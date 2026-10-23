@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/chips/battle_chip.dart';
 import '../../game/sprites.dart';
+import '../feedback.dart';
 import '../theme.dart';
 import 'chip_card_view.dart';
 
@@ -65,7 +66,7 @@ class ChipPicker extends StatelessWidget {
           ),
         ),
         if (cancel != null)
-          TextButton(onPressed: cancel, child: const Text('Cancelar')),
+          TextButton(onPressed: withTap(cancel), child: const Text('Cancelar')),
       ],
     );
     if (cancel == null) return content;

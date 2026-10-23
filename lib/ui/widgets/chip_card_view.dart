@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/chips/battle_chip.dart';
 import '../../game/sprites.dart';
+import '../feedback.dart';
 import '../theme.dart';
 import 'sheet_sprite.dart';
 
@@ -96,7 +97,7 @@ class _ChipCardViewState extends State<ChipCardView> {
         );
 
     final card = GestureDetector(
-      onTap: onTap,
+      onTap: withTap(onTap),
       child: Opacity(
         opacity: widget.dimmed ? 0.45 : 1,
         child: SizedBox.square(
@@ -169,6 +170,7 @@ class _ChipCardViewState extends State<ChipCardView> {
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
+            tapFeedback();
             onTap();
             return null;
           },

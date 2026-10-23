@@ -119,5 +119,10 @@ Tamanhos em px virtuais, dentro da tela:
     próxima.
 - Swipe e cartas usam `Listener` puro, sem arena de gestos, para segurar uma
   carta com um dedo e deslizar com o outro.
-- Todo toque em carta e cada passo do swipe dão
-  `HapticFeedback.selectionClick`.
+- Vibração (`lib/ui/feedback.dart`):
+  - toque em botão, carta, nó do mapa ou ícone: `tapFeedback` (leve,
+    `lightImpact`). Botões novos passam o callback por `withTap`;
+  - cada passo do swipe: `HapticFeedback.selectionClick`;
+  - a jogadora toma dano: `hurtFeedback` (`heavyImpact`).
+- Quem toma dano pisca em branco: 3 ticks branco, 3 normal, duas vezes
+  (`hurtFlashTicks`).

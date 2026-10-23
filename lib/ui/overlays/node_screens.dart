@@ -4,6 +4,7 @@ import '../../domain/chips/battle_chip.dart';
 import '../../domain/chips/chip_library.dart';
 import '../../domain/run/events.dart';
 import '../../game/star_cop_game.dart';
+import '../feedback.dart';
 import '../theme.dart';
 import '../widgets/chip_card_view.dart';
 import '../widgets/chip_picker.dart';
@@ -86,7 +87,7 @@ class RewardOverlay extends StatelessWidget {
       ),
       const SizedBox(height: 6),
       TextButton(
-        onPressed: () => game.pickReward(null),
+        onPressed: withTap(() => game.pickReward(null)),
         child: const Text('Pular'),
       ),
     ],
@@ -138,14 +139,16 @@ class _RestOverlayState extends State<RestOverlay> {
         const SizedBox(height: 6),
         FilledButton(
           autofocus: true,
-          onPressed: game.restHere,
+          onPressed: withTap(game.restHere),
           child: const Text('Descansar (+30%)'),
         ),
         const SizedBox(height: 4),
         FilledButton(
-          onPressed: upgradeable.isEmpty
-              ? null
-              : () => setState(() => _upgrading = true),
+          onPressed: withTap(
+            upgradeable.isEmpty
+                ? null
+                : () => setState(() => _upgrading = true),
+          ),
           child: const Text('Melhorar uma carta'),
         ),
       ],
@@ -228,9 +231,11 @@ class _ShopOverlayState extends State<ShopOverlay> {
         const SizedBox(height: 4),
         if (relic != null)
           OutlinedButton(
-            onPressed: run.credits < shop.relicCost
-                ? null
-                : () => setState(shop.buyRelic),
+            onPressed: withTap(
+              run.credits < shop.relicCost
+                  ? null
+                  : () => setState(shop.buyRelic),
+            ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -238,7 +243,7 @@ class _ShopOverlayState extends State<ShopOverlay> {
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
-                    '${relic.name} · ${shop.relicCost} Z\n${relic.description}',
+                    '${relic.name} · ${shop.relicCost} C\n${relic.description}',
                     textAlign: TextAlign.center,
                     style: GbText.small,
                   ),
@@ -251,13 +256,18 @@ class _ShopOverlayState extends State<ShopOverlay> {
           mainAxisSize: MainAxisSize.min,
           children: [
             OutlinedButton(
-              onPressed: run.credits < shop.removalCost || run.deck.isEmpty
-                  ? null
-                  : () => setState(() => _removing = true),
+              onPressed: withTap(
+                run.credits < shop.removalCost || run.deck.isEmpty
+                    ? null
+                    : () => setState(() => _removing = true),
+              ),
               child: Text('Remover carta · ${shop.removalCost} C'),
             ),
             const SizedBox(width: 4),
-            FilledButton(onPressed: game.finishNode, child: const Text('Sair')),
+            FilledButton(
+              onPressed: withTap(game.finishNode),
+              child: const Text('Sair'),
+            ),
           ],
         ),
       ],
@@ -296,7 +306,7 @@ class _EventOverlayState extends State<EventOverlay> {
               padding: const EdgeInsets.only(bottom: 3),
               child: OutlinedButton(
                 autofocus: i == 0,
-                onPressed: () => game.pickOffer(offer),
+                onPressed: withTap(() => game.pickOffer(offer)),
                 child: Text(
                   [
                     offer.label,
@@ -342,12 +352,13 @@ class _EventOverlayState extends State<EventOverlay> {
             padding: const EdgeInsets.only(bottom: 3),
             child: OutlinedButton(
               autofocus: i == 0,
-              onPressed:
-                  option.pick == EventPick.deckChip && game.run.deck.isEmpty
-                  ? null
-                  : () => option.pick == EventPick.deckChip
-                        ? setState(() => _picking = option)
-                        : game.resolveEvent(option),
+              onPressed: withTap(
+                option.pick == EventPick.deckChip && game.run.deck.isEmpty
+                    ? null
+                    : () => option.pick == EventPick.deckChip
+                          ? setState(() => _picking = option)
+                          : game.resolveEvent(option),
+              ),
               child: Text(
                 [
                   option.label,
@@ -396,7 +407,7 @@ class _RelicChoiceState extends State<_RelicChoice> {
               children: [
                 for (final (i, offer) in offers.indexed)
                   GestureDetector(
-                    onTap: () => setState(() => _selected = i),
+                    onTap: withTap(() => setState(() => _selected = i)),
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
@@ -439,7 +450,7 @@ class _RelicChoiceState extends State<_RelicChoice> {
             ),
             const SizedBox(height: 6),
             GestureDetector(
-              onTap: () => widget.game.pickOffer(selected),
+              onTap: withTap(() => widget.game.pickOffer(selected)),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 20,
@@ -470,7 +481,7 @@ class GameOverOverlay extends StatelessWidget {
     children: [
       FilledButton(
         autofocus: true,
-        onPressed: game.startNewRun,
+        onPressed: withTap(game.startNewRun),
         child: const Text('Nova run'),
       ),
     ],

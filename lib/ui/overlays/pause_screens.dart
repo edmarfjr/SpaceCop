@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../game/star_cop_game.dart';
+import '../feedback.dart';
 import '../theme.dart';
 import '../widgets/chip_picker.dart';
 
@@ -12,7 +13,7 @@ class PauseOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: game.closeMenus,
+    onTap: withTap(game.closeMenus),
     child: ColoredBox(
       color: Pico.black.withValues(alpha: 0.7),
       child: const Center(
@@ -38,7 +39,7 @@ class DeckOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: game.closeMenus,
+    onTap: withTap(game.closeMenus),
     child: ColoredBox(
       color: Pico.darkBlue.withValues(alpha: 0.95),
       child: Padding(

@@ -65,6 +65,9 @@ const int playerTossTicks = 9;
 /// How long a lobbed ball or pickaxe flies before it lands.
 const int lobFlightTicks = 18;
 
+/// How long a unit flashes after taking damage.
+const int hurtFlashTicks = 12;
+
 /// An enemy keeps its attack pose this long after its attack lands.
 const int attackPoseTicks = 8;
 
@@ -218,7 +221,7 @@ class Fighter {
 
   void takeDamage(int amount) {
     hp = max(0, hp - amount);
-    hurtTicks = 6;
+    hurtTicks = hurtFlashTicks;
   }
 }
 

@@ -27,11 +27,11 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
   static const double _lobHeight = 28;
 
   static final _danger = Paint()
-    ..color = Pico.red
+    ..color = Pico.white
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2;
   static final _terrain = Paint()
-    ..color = Pico.blue
+    ..color = Pico.lightGray
     ..style = PaintingStyle.stroke
     ..strokeWidth = 2;
 

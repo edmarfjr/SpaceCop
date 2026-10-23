@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../../domain/battle/battle_state.dart';
 import '../../domain/chips/battle_chip.dart';
 import '../star_cop_game.dart';
+import '../../ui/feedback.dart';
 import 'fighter_component.dart';
 import 'grid_component.dart';
 import 'projectile_layer.dart';
@@ -128,6 +129,7 @@ class BattleWorld extends World
           cycleChip: _cyclePressed,
         ),
       );
+      if (battle.player.hurtTicks == hurtFlashTicks) hurtFeedback();
       _usePressed = _cyclePressed = false;
       // Consumed once it moved, or once the chip left the hand or began
       // charging.

@@ -8,6 +8,7 @@ import '../../domain/run/relics.dart';
 import '../../domain/run/run_state.dart';
 import '../../game/star_cop_game.dart';
 import '../../game/sprites.dart';
+import '../feedback.dart';
 import '../theme.dart';
 import '../widgets/sheet_sprite.dart';
 
@@ -102,7 +103,7 @@ class _MapOverlayState extends State<MapOverlay> {
           children: [
             Text('HP ${run.hp}/${run.maxHp} · ', style: GbText.small),
             TextButton(
-              onPressed: game.showDeck,
+              onPressed: withTap(game.showDeck),
               child: Text('Deck ${run.deck.length}', style: GbText.small),
             ),
             const Text(' · ', style: GbText.small),
@@ -265,7 +266,7 @@ class _NodeButtonState extends State<_NodeButton> {
     final onTap = widget.onTap;
     final active = onTap != null;
     final button = GestureDetector(
-      onTap: onTap,
+      onTap: withTap(onTap),
       child: Container(
         width: MapOverlay._nodeSize,
         height: MapOverlay._nodeSize,

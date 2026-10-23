@@ -5,6 +5,7 @@ import '../../domain/battle/battle_state.dart';
 import '../../game/battle/battle_world.dart';
 import '../../game/star_cop_game.dart';
 import '../../game/sprites.dart';
+import '../feedback.dart';
 import '../theme.dart';
 import '../widgets/chip_card_view.dart';
 
@@ -150,7 +151,7 @@ class _IconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
+    onTap: withTap(onTap),
     child: Container(
       width: 22,
       height: 20,
@@ -242,7 +243,7 @@ class _Hand extends StatelessWidget {
             padding: const EdgeInsets.only(left: 1),
             child: Listener(
               onPointerDown: (_) {
-                HapticFeedback.selectionClick();
+                tapFeedback();
                 world.pressChip(card);
               },
               onPointerUp: (_) => world.releaseChip(),
@@ -312,7 +313,7 @@ class _PeekPopup extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               TextButton(
-                onPressed: () => _close(battle.dismissPeek),
+                onPressed: withTap(() => _close(battle.dismissPeek)),
                 child: const Text('Manter ordem'),
               ),
             ],

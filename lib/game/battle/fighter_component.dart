@@ -45,6 +45,12 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     return _attacking && f is PlayerFighter && f.pose == ChipPose.shoot;
   }
 
+  /// White for 3 ticks, normal for 3, twice, starting on the hit.
+  bool get _flashing {
+    final ticks = fighter.hurtTicks;
+    return ticks > 0 && ((hurtFlashTicks - ticks) ~/ 3).isEven;
+  }
+
   static final _hurtPaint = Paint()
     ..colorFilter = const ColorFilter.mode(Pico.white, BlendMode.srcATop);
 
@@ -120,7 +126,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
       canvas,
       position: Vector2(0, size.y * buried),
       size: size,
-      overridePaint: fighter.hurtTicks.isOdd ? _hurtPaint : null,
+      overridePaint: _flashing ? _hurtPaint : null,
     );
     canvas.restore();
     // Energy shield: the player's barrier, or the Brute's while it blocks.

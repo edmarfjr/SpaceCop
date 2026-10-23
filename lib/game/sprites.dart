@@ -108,8 +108,8 @@ abstract final class SpriteFiles {
 
   /// Frame drawn over every panel, by the side that owns it.
   static const panelFrames = <Team, String>{
-    Team.player: 'panels/panel-panelPlr.png',
-    Team.enemy: 'panels/panel-panelEnemy.png',
+    Team.player: 'panels/panel_panelPlr.png',
+    Team.enemy: 'panels/panel_panelEnemy.png',
   };
 
   static const panels = <PanelState, String>{
