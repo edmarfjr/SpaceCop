@@ -1,0 +1,53 @@
+# Codemagic CI: Android APK and web builds of StarCop.
+# Both run on every push to main, or by hand from the Codemagic UI.
+
+definitions:
+  environment: &environment
+    flutter: 3.38.9
+    java: 17
+  triggering: &triggering
+    events:
+      - push
+    branch_patterns:
+      - pattern: main
+        include: true
+  scripts:
+    - &get_packages
+      name: Get packages
+      script: flutter pub get
+    - &tests
+      name: Tests
+      script: flutter test
+
+workflows:
+  android:
+    name: Android
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment: *environment
+    triggering: *triggering
+    scripts:
+      - *get_packages
+      - *tests
+      # Release build signed with the debug key (see android/app/build.gradle.kts)
+      # until a release keystore is set up.
+      - name: Build APK
+        script: flutter build apk --release --build-number=$BUILD_NUMBER
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+
+  web:
+    name: Web
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment: *environment
+    triggering: *triggering
+    scripts:
+      - *get_packages
+      - *tests
+      - name: Build web
+        script: |
+          flutter build web --release
+          cd build/web && zip -r ../web.zip .
+    artifacts:
+      - build/web.zip

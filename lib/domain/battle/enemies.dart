@@ -1,0 +1,281 @@
+import 'dart:math';
+
+import '../element.dart';
+import '../grid.dart';
+import 'enemy_behaviors.dart';
+
+/// Enemy stats. Timings are in simulation ticks (30 per second).
+class EnemyDef {
+  const EnemyDef({
+    required this.name,
+    required this.hp,
+    this.moveTicks = 30,
+    this.attackTicks = 60,
+    this.shotDamage = 0,
+    this.shotStepTicks = 20,
+    this.element = Element.neutral,
+    this.behavior = const MobileCannonBehavior(),
+    this.footprint = const [GridPos(0, 0)],
+    this.pushable = true,
+    this.summon = false,
+    this.frontShield = false,
+    this.prism = false,
+    this.windUpPose = true,
+  });
+
+  final String name;
+  final int hp;
+
+  /// Pause after each step.
+  final int moveTicks;
+
+  /// Length of the attack animation; the shot fires at the midpoint.
+  final int attackTicks;
+  final int shotDamage;
+
+  /// Ticks the enemy shot waits on each cell (lower = faster).
+  final int shotStepTicks;
+  final Element element;
+
+  /// The AI. Stateless; per-unit state lives on the `EnemyFighter`.
+  final EnemyBehavior behavior;
+
+  /// Cells occupied, relative to the unit's position.
+  final List<GridPos> footprint;
+  final bool pushable;
+
+  /// Spawned by another enemy; doesn't count toward winning the battle.
+  final bool summon;
+
+  /// Blocks straight projectile hits on its front (Brute).
+  final bool frontShield;
+
+  /// Reflects straight projectiles unless lined up with its partner (Dupla
+  /// Prisma).
+  final bool prism;
+
+  /// Drawn with its attack frame while an attack winds up. False shows the
+  /// attack frame only once the attack lands (Capanga Corpo-a-Corpo).
+  final bool windUpPose;
+}
+
+class EnemySpawn {
+  const EnemySpawn(this.def, this.pos);
+
+  final EnemyDef def;
+  final GridPos pos;
+}
+
+class Encounter {
+  const Encounter(this.spawns);
+
+  final List<EnemySpawn> spawns;
+}
+
+abstract final class Enemies {
+  /// The cart's only enemy: `'10,15,12,10,30,60,30'` -> move 30, attack 60,
+  /// hp 30. Shot damage 5 is the cart's `m_atq` default.
+  static const mobileCannon = EnemyDef(
+    name: 'Canhão Móvel',
+    hp: 30,
+    moveTicks: 30,
+    attackTicks: 60,
+    shotDamage: 5,
+  );
+
+  static const root = EnemyDef(
+    name: 'Raiz',
+    hp: 40,
+    element: Element.wood,
+    pushable: false,
+    behavior: RootBehavior(),
+  );
+
+  static const bubbler = EnemyDef(
+    name: 'Bolhador',
+    hp: 35,
+    element: Element.aqua,
+    behavior: BubblerBehavior(),
+  );
+
+  static const cannon = EnemyDef(
+    name: 'Canhão Fixo',
+    hp: 50,
+    pushable: false,
+    behavior: CannonBehavior(),
+  );
+
+  static const brute = EnemyDef(
+    name: 'Brute',
+    hp: 80,
+    moveTicks: 20,
+    frontShield: true,
+    behavior: BruteBehavior(),
+  );
+
+  static const digger = EnemyDef(
+    name: 'Escavador',
+    hp: 70,
+    element: Element.wood,
+    behavior: DiggerBehavior(),
+  );
+
+  static const prism = EnemyDef(
+    name: 'Prisma',
+    hp: 40,
+    shotDamage: 10,
+    shotStepTicks: 12,
+    prism: true,
+    behavior: PrismBehavior(),
+  );
+
+  static const lavaGuard = EnemyDef(
+    name: 'Guardião de Lava',
+    hp: 90,
+    element: Element.fire,
+    behavior: LavaGuardBehavior(),
+  );
+
+  static const colossus = EnemyDef(
+    name: 'Colosso Sísmico',
+    hp: 300,
+    footprint: [GridPos(0, 0), GridPos(0, 1)],
+    pushable: false,
+    behavior: ColossusBehavior(),
+  );
+
+  /// The Colossus's weak point; damage to it goes to the body, doubled.
+  static const colossusFist = EnemyDef(
+    name: 'Punho',
+    hp: 1,
+    pushable: false,
+    summon: true,
+    behavior: FistBehavior(),
+  );
+
+  static const maestro = EnemyDef(
+    name: 'Maestro Elemental',
+    hp: 350,
+    element: Element.fire,
+    pushable: false,
+    behavior: MaestroBehavior(),
+  );
+
+  static const note = EnemyDef(
+    name: 'Nota',
+    hp: 20,
+    pushable: false,
+    summon: true,
+    behavior: IdleBehavior(),
+  );
+
+  // Capangas of the criminal organization: the first mission's basic
+  // enemies.
+
+  static const gruntGun = EnemyDef(
+    name: 'Capanga Atirador',
+    hp: 40,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    behavior: GruntGunBehavior(),
+  );
+
+  static const gruntDuck = EnemyDef(
+    name: 'Capanga Atirador Agachado',
+    hp: 50,
+    shotDamage: 5,
+    shotStepTicks: 8,
+    behavior: GruntDuckBehavior(),
+  );
+
+  static const gruntMelee = EnemyDef(
+    name: 'Capanga Corpo-a-Corpo',
+    hp: 50,
+    windUpPose: false,
+    behavior: GruntMeleeBehavior(),
+  );
+
+  static const gruntGrenade = EnemyDef(
+    name: 'Capanga Granada',
+    hp: 40,
+    behavior: GruntGrenadeBehavior(),
+  );
+
+  static const gruntArtillery = EnemyDef(
+    name: 'Capanga Artilharia',
+    hp: 60,
+    pushable: false,
+    behavior: GruntArtilleryBehavior(),
+  );
+
+  static const sentry = EnemyDef(
+    name: 'Torreta',
+    hp: 40,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    pushable: false,
+    behavior: SentryBehavior(),
+  );
+
+  /// The first mission's boss. Two panels wide: [pos] is the front one.
+  static const tank = EnemyDef(
+    name: 'Tanque de Guerra',
+    hp: 300,
+    shotDamage: 10,
+    shotStepTicks: 6,
+    pushable: false,
+    footprint: [GridPos(0, 0), GridPos(1, 0)],
+    behavior: TankBehavior(),
+  );
+
+  /// Pool of normal battles. Canhão Móvel, Raiz, Bolhador and Canhão Fixo
+  /// are out of it for now.
+  static const basics = [
+    gruntGun,
+    gruntDuck,
+    gruntMelee,
+    gruntGrenade,
+    gruntArtillery,
+    sentry,
+  ];
+}
+
+abstract final class Encounters {
+  /// One or two basic enemies on distinct cells. The fixed ones stay at the
+  /// back: Artilharia in column 5, Agachado and Torreta in columns 4-5.
+  static Encounter normal(Random random) {
+    final spawns = <EnemySpawn>[];
+    final count = 1 + random.nextInt(2);
+    while (spawns.length < count) {
+      final def = Enemies.basics[random.nextInt(Enemies.basics.length)];
+      final minX = switch (def) {
+        Enemies.gruntArtillery || Enemies.cannon => 5,
+        Enemies.gruntDuck || Enemies.sentry || Enemies.bubbler => 4,
+        _ => playerColumns,
+      };
+      final pos = GridPos(
+        minX + random.nextInt(gridColumns - minX),
+        random.nextInt(gridRows),
+      );
+      if (spawns.any((s) => s.pos == pos)) continue;
+      spawns.add(EnemySpawn(def, pos));
+    }
+    return Encounter(spawns);
+  }
+
+  static Encounter elite(Random random) => switch (random.nextInt(4)) {
+    0 => Encounter([
+      EnemySpawn(Enemies.brute, GridPos(4, random.nextInt(gridRows))),
+    ]),
+    1 => const Encounter([EnemySpawn(Enemies.digger, GridPos(4, 1))]),
+    2 => const Encounter([
+      EnemySpawn(Enemies.prism, GridPos(4, 0)),
+      EnemySpawn(Enemies.prism, GridPos(5, 2)),
+    ]),
+    _ => const Encounter([EnemySpawn(Enemies.lavaGuard, GridPos(5, 1))]),
+  };
+
+  /// Colosso Sísmico and Maestro Elemental are out of the pool for now.
+  static Encounter boss(Random random) =>
+      const Encounter([EnemySpawn(Enemies.tank, GridPos(4, 1))]);
+}
