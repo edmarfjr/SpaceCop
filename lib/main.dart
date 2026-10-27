@@ -56,12 +56,14 @@ class _StarCopAppState extends State<StarCopApp> {
   );
 
   /// Laid out in the wide screen: the battle (over the Flame camera) and the
-  /// map. The other menus use the 256x192 virtual screen.
+  /// map, the shop and the events. The other menus use the 256x192 virtual screen.
   static const _wideOverlays = {
     Overlays.hud,
     Overlays.pause,
     Overlays.deck,
     Overlays.map,
+    Overlays.shop,
+    Overlays.event,
   };
 
   static final _overlays = <String, Widget Function(StarCopGame)>{

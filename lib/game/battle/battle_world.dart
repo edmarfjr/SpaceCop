@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../domain/battle/battle_state.dart';
 import '../../domain/chips/battle_chip.dart';
+import '../../domain/grid.dart';
 import '../star_cop_game.dart';
 import '../../ui/feedback.dart';
 import 'fighter_component.dart';
@@ -83,7 +84,11 @@ class BattleWorld extends World
       position: GridComponent.origin,
     );
     await add(_grid);
-    await _grid.add(ProjectileLayer(battle, game.sprites));
+    await _grid.addAll([
+      ProjectileLayer.ground(battle, game.sprites),
+      for (var row = 0; row < gridRows; row++)
+        ProjectileLayer.row(battle, game.sprites, row),
+    ]);
     _syncViews();
   }
 

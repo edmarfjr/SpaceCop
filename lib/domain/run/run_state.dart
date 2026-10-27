@@ -9,6 +9,9 @@ import 'relics.dart';
 const int battleCredits = 20;
 const int eliteCredits = 40;
 
+/// Créditos a new run starts with.
+const int startCredits = 99;
+
 /// Everything that persists between nodes of one run: HP, deck, map
 /// position. Battles copy from here and write HP back when they end.
 class RunState {
@@ -24,10 +27,15 @@ class RunState {
   /// The permanent deck (StS "master deck").
   final List<ChipCard> deck;
 
-  final int maxHp = 100;
+  /// Lowered by implants (Enfermaria Clandestina).
+  int maxHp = 100;
   int hp = 100;
 
-  int credits = 0;
+  int credits = startCredits;
+
+  /// The next battle's enemies start stunned this long (Refeitório dos
+  /// Capangas); used up by that battle.
+  int openingStunTicks = 0;
 
   /// Added to the base energy of every battle. Can go negative (events).
   int energyBaseBonus = 0;

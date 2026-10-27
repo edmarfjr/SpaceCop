@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:starcop/domain/battle/battle_state.dart';
 import 'package:starcop/domain/battle/panels.dart';
+import 'package:starcop/domain/battle/enemies.dart';
+import 'package:starcop/domain/chips/battle_chip.dart';
 import 'package:starcop/domain/chips/chip_library.dart';
+import 'package:starcop/domain/element.dart';
 import 'package:starcop/domain/grid.dart';
 
 import 'battle_helpers.dart';
@@ -67,9 +70,62 @@ void main() {
     final enemy = battle.enemies.single;
     use(battle, Chips.hook);
     expect(enemy.pos, const GridPos(3, 1));
-    expect(enemy.has(Status.stunned), isFalse);
+    expect(
+      enemy.statuses[Status.stunned],
+      greaterThan(2 * ticksPerSecond - playerAttackCooldown),
+      reason: 'Gancho also stuns for 2 s',
+    );
     use(battle, Chips.hook);
     expect(enemy.pos, const GridPos(3, 1));
     expect(enemy.has(Status.stunned), isTrue);
+  });
+
+  test('Gancho pulls enemies that cannot be pushed', () {
+    final battle = battleWith(
+      [Chips.hook],
+      spawns: [const EnemySpawn(Enemies.gruntArtillery, GridPos(5, 1))],
+    );
+    final grunt = battle.enemies.single;
+    expect(grunt.pushable, isFalse);
+    use(battle, Chips.hook);
+    expect(grunt.pos, const GridPos(3, 1));
+  });
+
+  test('Gancho pulls a tall unit only as far as all its cells fit', () {
+    final battle = battleWith(
+      [Chips.hook],
+      spawns: [
+        const EnemySpawn(Enemies.colossus, GridPos(5, 1)),
+        dummyAt(3, 2),
+      ],
+    );
+    final colossus = battle.enemies.first;
+    use(battle, Chips.hook);
+    expect(
+      colossus.pos,
+      const GridPos(4, 1),
+      reason: 'its lower cell hit the dummy',
+    );
+  });
+
+  test('each new hand pauses the battle until the player acts', () {
+    final battle = BattleState(
+      playerHp: 100,
+      playerMaxHp: 100,
+      deckCards: [ChipCard(Chips.hook)],
+      encounter: Encounter([
+        EnemySpawn(dummyOf(Element.neutral), const GridPos(4, 1)),
+      ]),
+      pauseOnNewHand: true,
+    )..tick();
+    expect(battle.waitingForPlayer, isTrue);
+    final ticks = battle.ticks;
+    wait(battle, 30);
+    expect(battle.ticks, ticks, reason: 'frozen');
+    battle.tick(const PlayerInput(dy: -1));
+    expect(battle.waitingForPlayer, isFalse);
+    expect(battle.player.pos, const GridPos(1, 0));
+    wait(battle, gaugeTicks);
+    expect(battle.waitingForPlayer, isTrue, reason: 'the next hand');
   });
 }

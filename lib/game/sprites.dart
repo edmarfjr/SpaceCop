@@ -11,15 +11,15 @@ import '../domain/chips/chip_library.dart';
 import '../domain/element.dart' as el;
 import '../domain/grid.dart';
 import '../domain/map/run_map.dart';
+import '../domain/run/events.dart';
 import '../domain/run/relics.dart';
 
 /// Where each piece of art lives under `assets/images/`. One file per
-/// element; the cart's `spritesheet.png` only keeps the muzzle flash.
+/// element. Every file must be in [all], or drawing it throws (and the rest
+/// of the frame is not drawn).
 ///
 /// Render-only data, so it lives here and not in the domain.
 abstract final class SpriteFiles {
-  static const sheet = 'spritesheet.png';
-
   /// Three 24x24 frames: idle, shooting, melee / toss.
   static const player = 'actors/plr.png';
 
@@ -56,6 +56,12 @@ abstract final class SpriteFiles {
   static const pickaxe = 'projeteis/picareta.png';
   static const explosion = 'projeteis/explosao.png';
 
+  /// Smoke cloud over a panel, 2 frames of 16x16 looped.
+  static const smoke = 'projeteis/nuvem.png';
+
+  /// Espada's vertical slash: one 16x48 frame, 3 rows tall.
+  static const slash = 'projeteis/slash3Vertical.png';
+
   /// Energy shield, square frames looped (player's barrier, Brute).
   static const energyShield = 'projeteis/eShld.png';
 
@@ -65,23 +71,31 @@ abstract final class SpriteFiles {
   /// 32x32 frame every chip card is drawn on.
   static const chipFrame = 'chips/chip.png';
 
+  /// Same frame for upgraded ("+") cards.
+  static const chipFrameUpgraded = 'chips/chipEvo.png';
+
   static const obstacles = <ObstacleKind, String>{
     ObstacleKind.rock: 'chips/pedra.png',
-    ObstacleKind.turret: 'chips/turret.png',
-    // TODO(art): the Escudo Refletor borrows the old mirror icon.
-    ObstacleKind.reflector: 'chips/espelho.png',
+    ObstacleKind.turret: 'obstacles/drone.png',
+    ObstacleKind.reflector: 'chips/stasisGen.png',
+    // TODO(art): placeholder until the coil has its own sprite.
+    ObstacleKind.tesla: 'chips/turret.png',
   };
 
   static final chips = <String, String>{
     Chips.shot.id: 'chips/revolver.png',
     Chips.smg.id: 'chips/smg.png',
-    Chips.shotgun.id: 'chips/piercingBlt.png',
-    Chips.cannon.id: 'chips/canhao.png',
+    Chips.shotgun.id: 'chips/shotgun.png',
+    Chips.cannon.id: 'chips/revolver.png',
     Chips.vShot.id: 'chips/plasmaPistol.png',
     Chips.melta.id: 'chips/melta.png',
     Chips.missile.id: 'chips/missilItem.png',
     Chips.baton.id: 'chips/stunIten.png',
     Chips.sword.id: 'chips/sword.png',
+    Chips.grenade.id: 'chips/granada.png',
+    Chips.incendiaryGrenade.id: 'chips/granadaIncend.png',
+    Chips.smokeGrenade.id: 'chips/granadaFumaca.png',
+    Chips.stunGrenade.id: 'chips/granadaFlash.png',
     Chips.recover.id: 'chips/hp.png',
     Chips.atkBoost.id: 'chips/hollowBlt.png',
     Chips.energyDrink.id: 'chips/energDrink.png',
@@ -104,6 +118,15 @@ abstract final class SpriteFiles {
     // TODO(art): Tempestade and Avalanche borrow one of their parts.
     Chips.storm.id: 'chips/raio.png',
     Chips.avalanche.id: 'chips/pedra.png',
+    // TODO(art): placeholders borrowed from unused or related art.
+    Chips.cryoGrenade.id: 'chips/granada.png',
+    Chips.emp.id: 'chips/ramPlus.png',
+    Chips.neuralVine.id: 'chips/broto.png',
+    Chips.laserSight.id: 'icons/target.png',
+    Chips.overcharge.id: 'chips/ramUp.png',
+    Chips.tractorBeam.id: 'chips/exoArm.png',
+    Chips.teslaCoil.id: 'chips/turret.png',
+    Chips.overclock.id: 'chips/spdLdr.png',
   };
 
   /// Frame drawn over every panel, by the side that owns it.
@@ -133,9 +156,11 @@ abstract final class SpriteFiles {
     Status.wet: 'icons/agua.png',
     Status.stunned: 'icons/stun.png',
     Status.rooted: 'icons/raiz.png',
+    Status.marked: 'icons/target.png',
   };
 
   static const credits = 'chips/cred.png';
+  static const muzzle = 'projeteis/muzzle.png';
 
   static final relics = <String, String>{
     Relics.extraBattery.id: 'relics/ram.png',
@@ -145,6 +170,15 @@ abstract final class SpriteFiles {
     Relics.collisionCore.id: 'relics/circulos.png',
     Relics.chainTrigger.id: 'relics/corrente.png',
     Relics.iceBoots.id: 'relics/bota.png',
+  };
+
+  /// Event art, 80x80, by event title. Events without one show a
+  /// placeholder.
+  static final events = <String, String>{
+    Events.armory.title: 'events/arsenalDesprotegido.png',
+    Events.informant.title: 'events/celaInformante.png',
+    Events.securityTerminal.title: 'events/terminalSeguranca.png',
+    Events.vault.title: 'events/cofre.png',
   };
 
   static const nodes = <NodeType, String>{
@@ -157,14 +191,17 @@ abstract final class SpriteFiles {
   };
 
   static Set<String> get all => {
-    sheet,
     player,
     credits,
+    muzzle,
     chipFrame,
+    chipFrameUpgraded,
     shot,
     ball,
     pickaxe,
     explosion,
+    slash,
+    smoke,
     energyShield,
     attackSign,
     ...enemies.values,
@@ -175,6 +212,7 @@ abstract final class SpriteFiles {
     ...elements.values,
     ...statuses.values,
     ...relics.values,
+    ...events.values,
     ...nodes.values,
   };
 }
@@ -202,19 +240,19 @@ class GameSprites {
   late final Sprite playerAttack = _frame(SpriteFiles.player, 1, 24);
   late final Sprite playerMelee = _frame(SpriteFiles.player, 2, 24);
 
-  /// `spr(6)` of the cart's sheet, drawn in front of the player while
-  /// attacking.
+  /// Muzzle flash, drawn in front of the player while shooting and at the
+  /// Drone's barrel.
   late final Sprite muzzle = Sprite(
-    _images[SpriteFiles.sheet]!,
-    srcPosition: Vector2(48, 0),
+    _images[SpriteFiles.muzzle]!,
+    srcPosition: Vector2(0, 0),
     srcSize: Vector2.all(8),
   );
 
   /// Cropped to the coin: the file has a lot of empty border.
   late final Sprite credits = Sprite(
     _images[SpriteFiles.credits]!,
-    srcPosition: Vector2(6, 6),
-    srcSize: Vector2(18, 22),
+    srcPosition: Vector2(0, 0),
+    srcSize: Vector2(16, 16),
   );
 
   /// Moving shot, 2 frames looped.
@@ -223,6 +261,7 @@ class GameSprites {
   ];
   late final Sprite ball = _file(SpriteFiles.ball);
   late final Sprite chipFrame = _file(SpriteFiles.chipFrame);
+  late final Sprite chipFrameUpgraded = _file(SpriteFiles.chipFrameUpgraded);
   late final Sprite pickaxe = _file(SpriteFiles.pickaxe);
 
   /// Hits and area attacks, 4 frames played once.
@@ -239,6 +278,12 @@ class GameSprites {
         _frame(SpriteFiles.energyShield, i, size),
     ];
   }();
+
+  late final Sprite slash = _file(SpriteFiles.slash);
+
+  late final List<Sprite> smoke = [
+    for (var i = 0; i < 2; i++) _frame(SpriteFiles.smoke, i, 16),
+  ];
 
   late final List<Sprite> explosion = [
     for (var i = 0; i < 4; i++) _frame(SpriteFiles.explosion, i, 16),
@@ -270,6 +315,11 @@ class GameSprites {
   Sprite status(Status status) => _file(SpriteFiles.statuses[status]!);
 
   Sprite relic(RelicDef relic) => _file(SpriteFiles.relics[relic.id]!);
+
+  Sprite? event(EventDef event) => switch (SpriteFiles.events[event.title]) {
+    final path? => _file(path),
+    null => null,
+  };
 
   Sprite node(NodeType type) => _file(SpriteFiles.nodes[type]!);
 }

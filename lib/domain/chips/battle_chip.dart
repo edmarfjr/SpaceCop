@@ -78,10 +78,44 @@ class MeleeEffect extends ChipEffect {
   const MeleeEffect({
     this.pattern = const [GridPos(1, -1), GridPos(1, 0), GridPos(1, 1)],
     this.stunTicks = 0,
+    this.slash = false,
   });
 
   final List<GridPos> pattern;
   final int stunTicks;
+
+  /// Shown as one vertical slash on the panel in front instead of an
+  /// explosion on each panel hit (Espada).
+  final bool slash;
+}
+
+/// Lobbed [distance] panels in front of the user, wherever the enemies
+/// are. On landing every cell of [pattern] (relative to the landing panel)
+/// takes damage, the landing panel turns into [panel] if one is given and
+/// gets a smoke cloud for [smokeTicks] if positive, and whoever is hit is
+/// stunned for [stunTicks] and Wet for [wetTicks] if positive.
+class GrenadeEffect extends ChipEffect {
+  const GrenadeEffect({
+    this.distance = 3,
+    this.pattern = const [
+      GridPos(0, 0),
+      GridPos(1, 0),
+      GridPos(-1, 0),
+      GridPos(0, 1),
+      GridPos(0, -1),
+    ],
+    this.panel,
+    this.smokeTicks = 0,
+    this.stunTicks = 0,
+    this.wetTicks = 0,
+  });
+
+  final int distance;
+  final List<GridPos> pattern;
+  final PanelState? panel;
+  final int smokeTicks;
+  final int stunTicks;
+  final int wetTicks;
 }
 
 /// Projectile that cracks the panel under the first target it hits.
@@ -101,7 +135,45 @@ class PushEffect extends ChipEffect {
 /// Projectile that drags the first target hit to the front enemy column
 /// (x = 3). A target already there is stunned instead.
 class PullEffect extends ChipEffect {
-  const PullEffect();
+  const PullEffect({this.stunTicks = 0});
+
+  /// The target is also stunned this long, if positive.
+  final int stunTicks;
+}
+
+/// Projectile that gives the first target hit [status] for [ticks]
+/// (Vinha Neural roots, Mira Laser marks).
+class StatusShotEffect extends ChipEffect {
+  const StatusShotEffect(this.status, this.ticks);
+
+  final Status status;
+  final int ticks;
+}
+
+/// Instant hit on the whole front enemy column; front shields it touches
+/// stay down for [shieldTicks] (Pulso EMP).
+class EmpEffect extends ChipEffect {
+  const EmpEffect({required this.shieldTicks});
+
+  final int shieldTicks;
+}
+
+/// Pulls every enemy of the user's row [steps] panels forward, front one
+/// first; whoever runs into something collides (Feixe Trator).
+class TractorEffect extends ChipEffect {
+  const TractorEffect({this.steps = 1});
+
+  final int steps;
+}
+
+/// The next chip used counts twice in the chain (Sobrecarga).
+class ChainSurgeEffect extends ChipEffect {
+  const ChainSurgeEffect();
+}
+
+/// The next chip used runs twice; only the first pays energy (Overclock).
+class RepeatNextEffect extends ChipEffect {
+  const RepeatNextEffect();
 }
 
 /// Instant hit on every cell of the user's row from column [fromColumn] on.
@@ -135,14 +207,15 @@ class AreaStealEffect extends ChipEffect {
   final int hitDamage;
 }
 
-/// Places a rock, mine, turret or reflector. Where depends on the kind.
+/// Places a rock, mine, turret, reflector or tesla coil. Where depends on
+/// the kind.
 class SpawnObstacleEffect extends ChipEffect {
   const SpawnObstacleEffect(this.kind, {this.amount});
 
   final ObstacleKind kind;
 
   /// Overrides the kind's default: rock HP, mine damage, or how many ticks
-  /// a turret or reflector lasts.
+  /// a turret, reflector or tesla coil lasts.
   final int? amount;
 }
 

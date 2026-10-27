@@ -176,6 +176,8 @@ void main() {
       spawns: [const EnemySpawn(Enemies.digger, GridPos(4, 1))],
     );
     final digger = battle.enemies.single;
+    expect(digger.hidden, isFalse, reason: 'starts revealed');
+    wait(battle, DiggerBehavior.underTicks + DiggerBehavior.digTicks + 2);
     expect(digger.hidden, isTrue);
     battle.damage(digger, 10);
     expect(digger.hp, 70);
@@ -208,6 +210,7 @@ void main() {
       [],
       spawns: [const EnemySpawn(Enemies.digger, GridPos(4, 1))],
     );
+    wait(battle, DiggerBehavior.underTicks + DiggerBehavior.digTicks + 2);
     for (var x = playerColumns; x < gridColumns; x++) {
       for (var y = 0; y < gridRows; y++) {
         battle.setPanel(GridPos(x, y), PanelState.cracked);

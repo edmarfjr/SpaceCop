@@ -51,6 +51,30 @@ void main() {
     expect(grunt.pos, pos);
   });
 
+  test('the attack frame shows only when the shot goes off', () {
+    final battle = against(Enemies.gruntGun, const GridPos(4, 0));
+    final grunt = battle.enemies.single;
+    untilWarned(battle);
+    wait(battle, basicWarnTicks - 2);
+    expect(grunt.attackFrame, isFalse, reason: 'still winding up');
+    wait(battle, 2);
+    expect(battle.projectiles, hasLength(1));
+    expect(grunt.attackFrame, isTrue);
+  });
+
+  test('a stun cancels the pending attack and its warning', () {
+    final battle = against(Enemies.gruntGun, const GridPos(4, 0));
+    final grunt = battle.enemies.single;
+    untilWarned(battle);
+    grunt.applyStatus(Status.stunned, 2 * basicWarnTicks);
+    battle.tick();
+    expect(battle.telegraphs, isEmpty);
+    expect(battle.ticksToAttack(grunt), isNull);
+    expect(grunt.attacking, isFalse);
+    wait(battle, 2 * basicWarnTicks);
+    expect(battle.projectiles, isEmpty, reason: 'the shot never went off');
+  });
+
   test('ticksToAttack counts down to the attack, then clears', () {
     final battle = against(Enemies.gruntGrenade, const GridPos(4, 1));
     final grunt = battle.enemies.single;
@@ -88,7 +112,7 @@ void main() {
     expect(grunt.pos, const GridPos(4, 0));
   });
 
-  test('Capanga Corpo-a-Corpo moves next to the player, slashes 0.5 s '
+  test('Capanga Corpo-a-Corpo walks next to the player, slashes 0.5 s '
       'later and goes back', () {
     final battle = against(Enemies.gruntMelee, const GridPos(4, 0));
     final grunt = battle.enemies.single;
@@ -97,8 +121,15 @@ void main() {
       origin = grunt.pos;
       battle.tick();
     }
-    expect(grunt.pos, const GridPos(2, 1), reason: 'right of the player');
+    expect(grunt.pos, origin, reason: 'still home at the trigger');
     expect(warned(battle), {const GridPos(1, 1)});
+    var x = grunt.pos.x;
+    for (var i = 0; i < 30 && grunt.pos != const GridPos(2, 1); i++) {
+      battle.tick();
+      expect(grunt.pos.x, inInclusiveRange(x - 1, x), reason: 'one panel');
+      x = grunt.pos.x;
+    }
+    expect(grunt.pos, const GridPos(2, 1), reason: 'right of the player');
     expect(grunt.attackFrame, isFalse, reason: 'walking frame until it hits');
     wait(battle, minWarnTicks - 2);
     expect(grunt.attackFrame, isFalse);
@@ -114,8 +145,44 @@ void main() {
     final battle = against(Enemies.gruntMelee, const GridPos(4, 0));
     untilWarned(battle);
     battle.tick(const PlayerInput(dy: -1));
-    wait(battle, minWarnTicks);
+    wait(battle, 3 * GruntMeleeBehavior.walkStepTicks + minWarnTicks + 5);
     expect(battle.player.pos, const GridPos(1, 0));
+    expect(battle.player.hp, 100);
+  });
+
+  /// A Corpo-a-Corpo at (5, 1), lined up with the player and ready to go.
+  (BattleState, EnemyFighter) meleeReady() {
+    final battle = against(Enemies.gruntMelee, const GridPos(5, 1));
+    // Its first tick may have wandered off: put it back.
+    final grunt = battle.enemies.single
+      ..pos = const GridPos(5, 1)
+      ..timer = 0;
+    return (battle, grunt);
+  }
+
+  test('the Corpo-a-Corpo walk sets off mines and cracks panels', () {
+    final (battle, grunt) = meleeReady();
+    battle.panelAt(const GridPos(3, 1)).mineDamage = 15;
+    battle.setPanel(const GridPos(4, 1), PanelState.cracked);
+    wait(battle, 4 * GruntMeleeBehavior.walkStepTicks);
+    expect(grunt.pos, const GridPos(2, 1));
+    expect(grunt.hp, Enemies.gruntMelee.hp - 15);
+    expect(battle.panelAt(const GridPos(3, 1)).mine, isFalse);
+    expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.hole);
+  });
+
+  test('a hole on the way makes the Corpo-a-Corpo fall and go back', () {
+    final (battle, grunt) = meleeReady();
+    battle.setPanel(const GridPos(3, 1), PanelState.hole);
+    wait(battle, 3 * GruntMeleeBehavior.walkStepTicks);
+    expect(grunt.hp, Enemies.gruntMelee.hp - fallDamage);
+    expect(grunt.has(Status.stunned), isTrue);
+    var wentHome = false;
+    for (var i = 0; i < 2 * fallStunTicks && !wentHome; i++) {
+      battle.tick();
+      wentHome = grunt.pos == const GridPos(5, 1);
+    }
+    expect(wentHome, isTrue);
     expect(battle.player.hp, 100);
   });
 
@@ -146,6 +213,8 @@ void main() {
   test('Torreta hides, rises to shoot and hides again', () {
     final battle = against(Enemies.sentry, const GridPos(4, 1));
     final sentry = battle.enemies.single;
+    expect(sentry.hidden, isFalse, reason: 'starts revealed');
+    wait(battle, SentryBehavior.hiddenTicks + SentryBehavior.riseTicks + 2);
     expect(sentry.hidden, isTrue);
     use(battle, Chips.shot);
     wait(battle, 5);
@@ -283,6 +352,61 @@ void main() {
       wait(battle, TankBehavior.chargeWarnTicks + 20);
       expect(battle.obstacles.single.hp, rockHp - TankBehavior.chargeDamage);
       expect(tank.isDead, isFalse);
+    });
+
+    test('burst and charge wait until it lines up with the player', () {
+      for (final attack in [0, 2]) {
+        final (battle, tank) = tankAbout(attack);
+        tank.moveTimer = 0;
+        battle.player.pos = const GridPos(1, 0);
+        battle.tick();
+        expect(battle.telegraphs, isEmpty, reason: 'not lined up yet');
+        untilWarned(battle, limit: 60);
+        expect(tank.pos.y, 0);
+        expect(warned(battle), {for (var x = 0; x < 4; x++) GridPos(x, 0)});
+      }
+    });
+
+    test('missiles need no lining up', () {
+      final (battle, _) = tankAbout(1);
+      battle.player.pos = const GridPos(1, 0);
+      battle.tick();
+      expect(battle.telegraphs, hasLength(TankBehavior.missiles));
+    });
+
+    test('fires missiles instead when it cannot line up', () {
+      final (battle, tank) = tankAbout(0);
+      tank.moveTimer = 0;
+      battle
+        ..player.pos = const GridPos(1, 0)
+        ..obstacles.add(
+          Obstacle(ObstacleKind.rock, pos: const GridPos(4, 0), hp: rockHp),
+        );
+      wait(battle, TankBehavior.seekLimitTicks + 2);
+      expect(tank.pos.y, 1);
+      expect(battle.telegraphs, hasLength(TankBehavior.missiles));
+      expect(tank.attackTimer % 3, 2, reason: 'the charge is next');
+    });
+
+    test('the charge sets off mines and cracks panels like a move', () {
+      final (battle, tank) = tankAbout(2);
+      battle.panelAt(const GridPos(2, 1)).mineDamage = 40;
+      battle.setPanel(const GridPos(3, 1), PanelState.cracked);
+      wait(battle, TankBehavior.chargeWarnTicks + 20);
+      expect(tank.hp, Enemies.tank.hp - 40);
+      expect(battle.panelAt(const GridPos(3, 1)).state, PanelState.hole);
+    });
+
+    test('a hole ends the charge: the tank falls and comes back', () {
+      final (battle, tank) = tankAbout(2);
+      battle.setPanel(const GridPos(2, 1), PanelState.hole);
+      wait(battle, TankBehavior.chargeWarnTicks + 20);
+      expect(tank.hp, Enemies.tank.hp - fallDamage);
+      expect(tank.hidden, isTrue);
+      expect(battle.player.hp, 100);
+      wait(battle, fallStunTicks + TankBehavior.awayTicks + 2);
+      expect(tank.hidden, isFalse);
+      expect(tank.cells, [const GridPos(4, 1), const GridPos(5, 1)]);
     });
   });
 

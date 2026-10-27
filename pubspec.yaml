@@ -58,15 +58,16 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # PICO-8 sprite sheet exported from the original cart (color 0 made transparent).
+  # Game art, one file per element (see lib/game/sprites.dart).
   assets:
-    - assets/images/
     - assets/images/actors/
     - assets/images/chips/
+    - assets/images/events/
     - assets/images/icons/
     - assets/images/panels/
     - assets/images/projeteis/
     - assets/images/relics/
+    - assets/images/obstacles/
 
   fonts:
     - family: Pixel

@@ -11,7 +11,8 @@ import '../widgets/chip_card_view.dart';
 
 /// HP, gauge, Energy and the current hand, drawn by Flutter over the grid.
 ///
-/// Lives in the 384x192 battle screen: status in y 0-40 over the grid, the
+/// Lives in the 384x192 battle screen: the player's status in the top left
+/// corner, the enemies' bars on the right, chain info over the grid and the
 /// hand in a row at the bottom right (see DESIGN.md). Rebuilds
 /// on [BattleWorld.revision] (once per simulation tick) and only reads the
 /// battle; swipes and chip presses go back through the [BattleWorld].
@@ -34,9 +35,15 @@ class BattleHud extends StatelessWidget {
           Positioned.fill(child: _SwipeArea(world: world)),
           Positioned(
             top: 2,
-            left: _gridLeft,
-            width: _gridWidth,
-            child: _TopBar(battle: battle),
+            left: 2,
+            width: _gridLeft - 6,
+            child: _PlayerStatus(battle: battle),
+          ),
+          Positioned(
+            top: 26,
+            left: _gridLeft + _gridWidth + 4,
+            right: 2,
+            child: IgnorePointer(child: _EnemyBars(battle: battle)),
           ),
           Positioned(
             top: 14,
@@ -60,6 +67,19 @@ class BattleHud extends StatelessWidget {
             right: 2,
             child: _Hand(world: world, sprites: game.sprites),
           ),
+          if (battle.waitingForPlayer)
+            Positioned(
+              top: 14,
+              left: _gridLeft,
+              width: _gridWidth,
+              child: IgnorePointer(
+                child: Text(
+                  'Pausa · mova ou use uma carta',
+                  textAlign: TextAlign.center,
+                  style: GbText.small.copyWith(color: Pico.yellow),
+                ),
+              ),
+            ),
           // The battle waits for this choice, so it covers everything.
           if (battle.peekCards.isNotEmpty)
             Positioned.fill(
@@ -165,31 +185,88 @@ class _IconButton extends StatelessWidget {
   );
 }
 
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.battle});
+/// Top left corner: HP and Energy on a line, the gauge under them.
+class _PlayerStatus extends StatelessWidget {
+  const _PlayerStatus({required this.battle});
 
   final BattleState battle;
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Text(
-        'HP ${battle.player.hp}',
-        style: GbText.body.copyWith(fontWeight: FontWeight.bold),
-      ),
-      const SizedBox(width: 6),
-      Expanded(
-        child: LinearProgressIndicator(
-          value: battle.gauge / gaugeTicks,
-          minHeight: 4,
-          color: battle.gaugeFull ? Pico.yellow : Pico.red,
-          backgroundColor: Pico.black,
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            Text(
+              'HP ${battle.player.hp}',
+              style: GbText.body.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 6),
+            _RamBar(battle: battle),
+          ],
         ),
       ),
-      const SizedBox(width: 6),
-      _RamBar(battle: battle),
+      const SizedBox(height: 2),
+      LinearProgressIndicator(
+        value: battle.gauge / gaugeTicks,
+        minHeight: 5,
+        color: battle.gaugeFull ? Pico.yellow : Pico.red,
+        backgroundColor: Pico.chocolate,
+      ),
     ],
   );
+}
+
+/// Right of the grid: each enemy's name and life bar. Enemies sharing a
+/// name are numbered ("Capanga Atirador 2").
+class _EnemyBars extends StatelessWidget {
+  const _EnemyBars({required this.battle});
+
+  final BattleState battle;
+
+  @override
+  Widget build(BuildContext context) {
+    final seen = <String, int>{};
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final enemy in battle.enemies)
+          if (!enemy.isDead) ...[
+            Text(
+              switch (seen.update(
+                enemy.def.name,
+                (n) => n + 1,
+                ifAbsent: () => 1,
+              )) {
+                1 => enemy.def.name,
+                final n => '${enemy.def.name} $n',
+              },
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GbText.small.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 1),
+            Container(
+              height: 5,
+              decoration: BoxDecoration(
+                color: Pico.darkBlue,
+                border: Border.all(color: Pico.white, width: 0.5),
+              ),
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: (enemy.hp / enemy.maxHp).clamp(0, 1),
+                heightFactor: 1,
+                child: const ColoredBox(color: Pico.red),
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
+      ],
+    );
+  }
 }
 
 /// Selected chip's text, then piles, bonus, chain and fusion charge.
@@ -204,17 +281,19 @@ class _Info extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        //Text(
+        //  selected?.def.description ?? '',
+        //  style: GbText.small,
+        //  maxLines: 1,
+        //  overflow: TextOverflow.ellipsis,
+        //),
         Text(
-          selected?.def.description ?? '',
-          style: GbText.small,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        Text(
-          'Compra ${battle.deck.drawPile.length} · Descarte ${battle.deck.discardPile.length}'
+          //'Compra ${battle.deck.drawPile.length} · Descarte ${battle.deck.discardPile.length}'
           '${battle.damageBonus > 0 ? ' · +${battle.damageBonus}' : ''}'
           '${battle.chainCount > 0 ? ' · Corrente ${battle.chainElement!.label} x${battle.chainCount}' : ''}'
-          '${battle.chargingCard != null ? ' · Fundindo...' : ''}',
+          '${battle.chargingCard != null ? ' · Fundindo...' : ''}'
+          '${battle.chainSurge ? ' · Sobrecarga' : ''}'
+          '${battle.overclocked ? ' · Overclock' : ''}',
           style: GbText.small.copyWith(color: Pico.lightGray),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -251,7 +330,9 @@ class _Hand extends StatelessWidget {
               child: ChipCardView(
                 def: card.def,
                 sprites: sprites,
-                width: 50,
+                // 54 px tall: fits between the grid (bottom at y 136) and
+                // the bottom edge.
+                width: 36,
                 focusable: false,
                 selected: card == selected,
                 dimmed: !battle.canAfford(card),

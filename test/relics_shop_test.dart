@@ -29,10 +29,11 @@ BattleState withRelics(
 
 void main() {
   group('combat relics', () {
-    test('Linha de Frente: +20% damage from column 2', () {
+    test('Linha de Frente: +20% damage from the front column', () {
       final battle = withRelics(
         [Relics.frontLine],
-        [shotOf(Element.neutral), shotOf(Element.neutral)],
+        [for (var i = 0; i < 3; i++) shotOf(Element.neutral)],
+        spawns: [dummyAt(5, 1)],
       );
       final enemy = battle.enemies.single;
       use(battle, shotOf(Element.neutral));
@@ -40,6 +41,12 @@ void main() {
       battle.player.pos = const GridPos(2, 1);
       use(battle, shotOf(Element.neutral));
       expect(enemy.hp, 100 - 10 - 12);
+      // A stolen column moves the front line forward.
+      battle
+        ..setColumnOwner(3, Team.player)
+        ..player.pos = const GridPos(3, 1);
+      use(battle, shotOf(Element.neutral));
+      expect(enemy.hp, 100 - 10 - 12 - 12);
     });
 
     test('Núcleo de Colisão: +20 damage and +1 s stun', () {
@@ -118,6 +125,9 @@ void main() {
   group('credits and shop', () {
     test('battles pay credits; elites also give a relic', () {
       final run = RunState(random: Random(1));
+      expect(run.credits, startCredits);
+      expect(startCredits, 99);
+      run.credits = 0;
       expect(run.winBattle(elite: false), isNull);
       expect(run.credits, battleCredits);
       final relic = run.winBattle(elite: true);
@@ -125,18 +135,22 @@ void main() {
       expect(run.relics, [relic]);
     });
 
-    test('buying a chip and the relic costs credits', () {
+    test('5 chips and 3 distinct relics; buying costs credits', () {
       final run = RunState(random: Random(1))..credits = 200;
       final shop = Shop(run);
-      expect(shop.chips, hasLength(3));
+      expect(shop.chips, hasLength(5));
+      expect(shop.relics, hasLength(3));
+      expect(shop.relics.toSet(), hasLength(3));
       final def = shop.chips.first;
       final deckSize = run.deck.length;
       expect(shop.buyChip(def), isTrue);
       expect(run.credits, 200 - chipPrice);
       expect(run.deck, hasLength(deckSize + 1));
       expect(shop.chips, isNot(contains(def)));
-      expect(shop.buyRelic(), isTrue);
-      expect(run.relics, hasLength(1));
+      final relic = shop.relics.first;
+      expect(shop.buyRelic(relic), isTrue);
+      expect(run.relics, [relic]);
+      expect(shop.relics, hasLength(2));
       expect(shop.buyChip(shop.chips.first), isFalse);
     });
 
@@ -150,7 +164,17 @@ void main() {
       expect(shop.removeChip(run.deck.first), isFalse);
     });
 
-    test('Cartão de Sócio: 25% off and the first removal is free', () {
+    test('only one card can be removed per shop', () {
+      final run = RunState(random: Random(1))..credits = 1000;
+      final shop = Shop(run);
+      expect(shop.removeChip(run.deck.first), isTrue);
+      expect(shop.canRemove, isFalse);
+      expect(shop.removeChip(run.deck.first), isFalse);
+      expect(run.deck, hasLength(9));
+      expect(Shop(run).canRemove, isTrue, reason: 'the next shop resets it');
+    });
+
+    test('Cartão de Sócio: 25% off and the removal is free', () {
       final run = RunState(random: Random(1))
         ..credits = 100
         ..relics.add(Relics.memberCard);
@@ -159,7 +183,6 @@ void main() {
       expect(shop.removalCost, 0);
       shop.removeChip(run.deck.first);
       expect(run.credits, 100);
-      expect(shop.removalCost, 56);
     });
   });
 }

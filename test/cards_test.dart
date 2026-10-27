@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:starcop/domain/battle/battle_state.dart';
+import 'package:starcop/domain/battle/enemies.dart';
+import 'package:starcop/domain/battle/panels.dart';
 import 'package:starcop/domain/chips/battle_chip.dart';
 import 'package:starcop/domain/chips/chip_library.dart';
 import 'package:starcop/domain/element.dart';
@@ -84,6 +86,94 @@ void main() {
     use(battle, Chips.sword);
     expect(battle.enemies.single.hp, 80);
     expect(battle.enemies.single.has(Status.stunned), isFalse);
+  });
+
+  test('Espada shows one slash in front, not an explosion per panel', () {
+    final battle = atFront(const [GridPos(3, 1)], [Chips.sword]);
+    battle
+      ..selectChip(0)
+      ..tick(const PlayerInput(useChip: true));
+    expect(battle.flashes.single.kind, FlashKind.slash);
+    expect(battle.flashes.single.pos, const GridPos(3, 1));
+  });
+
+  test('Granada lands 3 panels ahead, wherever the enemies are', () {
+    final battle = battleWith(
+      [Chips.grenade],
+      spawns: [dummyAt(4, 1), dummyAt(4, 0), dummyAt(5, 0), dummyAt(3, 0)],
+    );
+    use(battle, Chips.grenade);
+    expect(battle.enemies.map((e) => e.hp), [75, 75, 100, 100]);
+    expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.normal);
+  });
+
+  test('Granada Incendiária: 15 Fire in a cross, lava in the middle', () {
+    final battle = battleWith(
+      [Chips.incendiaryGrenade],
+      spawns: [dummyAt(5, 1), dummyAt(4, 2)],
+    );
+    use(battle, Chips.incendiaryGrenade);
+    expect(battle.enemies.map((e) => e.hp), [85, 85]);
+    expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.lava);
+    expect(Chips.incendiaryGrenade.element, Element.fire);
+  });
+
+  test('Granada Atordoante stuns everyone in the cross for 2 s', () {
+    final battle = battleWith(
+      [Chips.stunGrenade],
+      spawns: [dummyAt(4, 1), dummyAt(4, 0), dummyAt(5, 0)],
+    );
+    use(battle, Chips.stunGrenade);
+    final [center, side, outside] = battle.enemies;
+    for (final hit in [center, side]) {
+      expect(
+        hit.statuses[Status.stunned],
+        greaterThan(2 * ticksPerSecond - playerAttackCooldown),
+      );
+      expect(hit.hp, 100, reason: 'no damage');
+    }
+    expect(outside.has(Status.stunned), isFalse);
+    expect(battle.energy, baseEnergy - 2);
+    expect(Chips.stunGrenade.element, Element.elec);
+  });
+
+  group('Granada de Fumaça', () {
+    test('explodes in a cross for 10 and leaves smoke for 10 s', () {
+      final battle = battleWith(
+        [Chips.smokeGrenade],
+        spawns: [dummyAt(4, 1), dummyAt(5, 1)],
+      );
+      use(battle, Chips.smokeGrenade);
+      expect(battle.enemies.map((e) => e.hp), [90, 90]);
+      final panel = battle.panelAt(const GridPos(4, 1));
+      expect(panel.smoky, isTrue);
+      expect(battle.panelAt(const GridPos(5, 1)).smoky, isFalse);
+      wait(battle, smokeDurationTicks);
+      expect(panel.smoky, isFalse);
+    });
+
+    test('an enemy in the smoke cannot attack', () {
+      final battle = battleWith(
+        [],
+        spawns: [const EnemySpawn(Enemies.gruntDuck, GridPos(4, 1))],
+      );
+      battle.panelAt(const GridPos(4, 1)).smokeTicks = 10000;
+      wait(battle, 6 * ticksPerSecond);
+      expect(battle.player.hp, 100);
+      expect(battle.projectiles, isEmpty);
+    });
+
+    test('anyone can walk in, but the player cannot use cards there', () {
+      final battle = battleWith([Chips.shot], spawns: [dummyAt(4, 1)]);
+      battle.panelAt(const GridPos(2, 1)).smokeTicks = 10000;
+      battle.tick(const PlayerInput(dx: 1));
+      expect(battle.player.pos, const GridPos(2, 1));
+      wait(battle, playerMoveCooldown);
+      battle.tick(const PlayerInput(useChip: true));
+      wait(battle, 10);
+      expect(battle.hand, hasLength(1));
+      expect(battle.enemies.single.hp, 100);
+    });
   });
 
   test('Primeiros Socorros heals 5 for 2 energy, single use', () {

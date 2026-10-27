@@ -49,8 +49,12 @@ void _extraEnergy(BattleState battle) => battle.energyMax++;
 void _peekTop(BattleState battle) =>
     battle.peekOpen = battle.deck.peek(2).isNotEmpty;
 
+/// The player's front column in its row: the next panel ahead isn't
+/// theirs, even after Roubo de Área moved the line.
 int _frontLine(BattleState battle, int damage) =>
-    battle.player.pos.x == playerColumns - 1 ? (damage * 1.2).round() : damage;
+    battle.ownerAt(battle.player.pos + const GridPos(1, 0)) != Team.player
+    ? (damage * 1.2).round()
+    : damage;
 
 void _hardCrash(BattleState battle, Collision collision) {
   collision
@@ -81,14 +85,15 @@ abstract final class Relics {
   static const memberCard = RelicDef(
     id: 'member_card',
     name: 'Cartão de Sócio',
-    description: 'Loja 25% mais barata; a primeira remoção é grátis.',
+    description: 'Loja 25% mais barata; remover carta é grátis.',
     kind: RelicKind.global,
   );
 
   static const frontLine = RelicDef(
     id: 'front_line',
     name: 'Linha de Frente',
-    description: 'Cartas usadas na coluna 2 causam +20% de dano.',
+    description:
+        'Cartas usadas na coluna mais à frente do seu lado causam +20% de dano.',
     kind: RelicKind.combat,
     modifyDamage: _frontLine,
   );

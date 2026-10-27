@@ -26,6 +26,15 @@ abstract class EnemyBehavior {
 
   /// Called after the player takes column [x] with Roubo de Área.
   void onAreaStolen(EnemyFighter enemy, BattleState battle, int x) {}
+
+  /// Called every tick [enemy] is stunned, after its pending attacks were
+  /// cancelled: drop any wind-up so nothing fires once the stun ends.
+  void onInterrupted(EnemyFighter enemy, BattleState battle) {
+    if (enemy.state != EnemyState.attacking) return;
+    enemy
+      ..state = EnemyState.idle
+      ..attackTimer = 0;
+  }
 }
 
 /// Cells in [enemy]'s row between it and the left edge.
@@ -88,7 +97,12 @@ class MobileCannonBehavior extends EnemyBehavior {
           enemy
             ..attackTimer = def.attackTicks
             ..state = EnemyState.attacking;
-          battle.warn(_rowAhead(enemy), def.attackTicks ~/ 2);
+          battle.warn(
+            _rowAhead(enemy),
+            def.attackTicks ~/ 2,
+            TelegraphKind.damage,
+            enemy,
+          );
         } else {
           enemy.state = EnemyState.moving;
         }
@@ -189,7 +203,7 @@ class CannonBehavior extends EnemyBehavior {
       return;
     }
     final row = _rowAhead(enemy);
-    battle.warn(row, 2);
+    battle.warn(row, 2, TelegraphKind.damage, enemy);
     enemy.state = EnemyState.attacking;
     if (++enemy.attackTimer < aimTicks) return;
     enemy
@@ -238,6 +252,10 @@ class BruteBehavior extends EnemyBehavior {
     if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
     enemy.moveTimer = enemy.def.moveTicks;
   }
+
+  @override
+  void onInterrupted(EnemyFighter enemy, BattleState battle) =>
+      enemy.stage = 0;
 }
 
 /// Escavador: hides underground (untouchable), pops up on a random panel
@@ -259,10 +277,10 @@ class DiggerBehavior extends EnemyBehavior {
   static const _under = 2;
   static const _climbingOut = 3;
 
+  /// Starts above ground, so the player sees it, and digs in later.
   @override
   void onBattleStart(EnemyFighter enemy) => enemy
-    ..hidden = true
-    ..stage = _under
+    ..stage = _up
     ..timer = underTicks;
 
   @override
@@ -689,10 +707,12 @@ class GruntDuckBehavior extends EnemyBehavior {
 }
 
 /// Capanga Corpo-a-Corpo: wanders and, once ready, lines up with the player.
-/// Then it moves (with its walking frame) to the panel right of where the
-/// player stands, into the player's area if needed; half a second later it
-/// slashes the panel on its left, switching to its attack frame only then,
-/// and goes back to the panel it came from. Once the slash lands it goes back to a free
+/// Then it walks, panel by panel and with its walking frame, to the panel
+/// right of where the player stood at that moment, into the player's area if
+/// needed; its steps crack panels and set off mines like any move, and a
+/// hole on the way makes it fall and give up. Half a second after arriving
+/// it slashes the panel on its left, switching to its attack frame only
+/// then, and goes back to the panel it came from. Once the slash lands it goes back to a free
 /// panel of its side.
 class GruntMeleeBehavior extends EnemyBehavior {
   const GruntMeleeBehavior();
@@ -700,20 +720,30 @@ class GruntMeleeBehavior extends EnemyBehavior {
   static const moveTicks = 40;
   static const cycleTicks = 4 * ticksPerSecond;
 
-  /// Tried again this soon when the panel next to the player is taken.
+  /// Tried again this soon when there is no panel right of the player.
   static const retryTicks = ticksPerSecond ~/ 2;
   static const damage = 20;
 
+  /// Ticks per panel while walking to the player.
+  static const walkStepTicks = 3;
+
   // Phases, kept in [EnemyFighter.stage].
   static const _wandering = 0;
-  static const _lunging = 1;
+  static const _walking = 1;
+
+  /// Attacked (or gave up): back home once the attack is over.
+  static const _returning = 2;
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
-    if (enemy.stage == _lunging) {
+    if (enemy.stage == _walking) {
+      _walk(enemy, battle);
+      return;
+    }
+    if (enemy.stage == _returning) {
       if (enemy.attacking) return;
       final home = enemy.home;
       final spots = _freeEnemyPanels(battle);
@@ -726,6 +756,7 @@ class GruntMeleeBehavior extends EnemyBehavior {
       enemy
         ..pos = back
         ..home = null
+        ..aim = null
         ..stage = _wandering;
       return;
     }
@@ -737,17 +768,52 @@ class GruntMeleeBehavior extends EnemyBehavior {
     if (_seekRow(enemy, battle, moveTicks)) return;
     final aim = battle.player.pos;
     final spot = aim + const GridPos(1, 0);
-    if (!spot.inBounds ||
-        !battle.panelAt(spot).walkable ||
-        battle.unitAt(spot) != null) {
+    if (!spot.inBounds) {
       enemy.timer = retryTicks;
       return;
     }
     enemy
       ..timer = cycleTicks
       ..home = enemy.pos
-      ..pos = spot
-      ..stage = _lunging;
+      ..aim = aim
+      ..moveTimer = walkStepTicks - 1
+      ..stage = _walking;
+    battle.warn(
+      [aim],
+      (enemy.pos.x - spot.x).abs() * walkStepTicks + minWarnTicks,
+      TelegraphKind.damage,
+      enemy,
+    );
+  }
+
+  /// Stunned on the way: gives up and goes home.
+  @override
+  void onInterrupted(EnemyFighter enemy, BattleState battle) {
+    if (enemy.stage == _walking) enemy.stage = _returning;
+  }
+
+  /// One panel toward the spot right of [EnemyFighter.aim] every
+  /// [walkStepTicks]; on arrival the slash is scheduled.
+  void _walk(EnemyFighter enemy, BattleState battle) {
+    if (enemy.moveTimer-- > 0) return;
+    enemy.moveTimer = walkStepTicks - 1;
+    final aim = enemy.aim!;
+    final spot = aim + const GridPos(1, 0);
+    if (enemy.pos != spot) {
+      final next = enemy.pos + GridPos((spot.x - enemy.pos.x).sign, 0);
+      if (!battle.panelAt(next).walkable) {
+        battle.fall(enemy);
+        enemy.stage = _returning;
+        return;
+      }
+      if (battle.unitAt(next) != null) {
+        enemy.stage = _returning;
+        return;
+      }
+      battle.stepOver(enemy, next);
+      if (enemy.pos != spot) return;
+    }
+    enemy.stage = _returning;
     battle.schedule(
       enemy,
       [aim],
@@ -824,11 +890,10 @@ class SentryBehavior extends EnemyBehavior {
   static const _up = 2;
   static const _sinking = 3;
 
+  /// Starts risen, so the player sees it, and sinks [hiddenTicks] later.
   @override
   void onBattleStart(EnemyFighter enemy) => enemy
-    ..hidden = true
-    ..buried = 1
-    ..stage = _hidden
+    ..stage = _up
     ..timer = hiddenTicks;
 
   @override
@@ -856,7 +921,7 @@ class SentryBehavior extends EnemyBehavior {
           () => battle.enemyShot(enemy),
         );
       case _up:
-        if (enemy.attacking) return;
+        if (enemy.attacking || enemy.timer-- > 0) return;
         enemy
           ..stage = _sinking
           ..timer = riseTicks;
@@ -873,7 +938,11 @@ class SentryBehavior extends EnemyBehavior {
 
 /// Tanque de Guerra: two panels wide, patrols up and down the back two
 /// columns and cycles three attacks: a 3-shot burst, missiles on random
-/// panels of the player's side and a charge down its row. The charge runs
+/// panels of the player's side and a charge down its row. The burst and the
+/// charge are only triggered lined up with the player: it moves to the
+/// player's row first, and fires missiles instead if it can't get there.
+/// The charge is a real move: it cracks panels, sets off mines and falls
+/// into holes (which ends the charge). The charge runs
 /// over obstacles, hits the player and pushes them 1 panel back (a wall,
 /// unit or hole behind them adds the usual collision or fall), leaves the
 /// arena on the left and comes back on the right.
@@ -881,6 +950,12 @@ class TankBehavior extends EnemyBehavior {
   const TankBehavior();
 
   static const moveTicks = 45;
+
+  /// Faster steps while lining up with the player for an attack.
+  static const seekTicks = 10;
+
+  /// Gives up lining up after this long and fires missiles instead.
+  static const seekLimitTicks = 2 * ticksPerSecond;
   static const attackEvery = 3 * ticksPerSecond;
   static const missiles = 3;
   static const missileStagger = 10;
@@ -923,15 +998,30 @@ class TankBehavior extends EnemyBehavior {
         _comeBack(enemy, battle);
         return;
     }
-    if (!enemy.attacking && enemy.moveTimer-- <= 0) {
-      enemy.moveTimer = moveTicks;
-      for (final dy in [1, -1]..shuffle(battle.random)) {
-        if (battle.tryMove(enemy, GridPos(0, dy))) break;
+    if (enemy.timer > 0) {
+      enemy.timer--;
+      if (!enemy.attacking && enemy.moveTimer-- <= 0) {
+        enemy.moveTimer = moveTicks;
+        for (final dy in [1, -1]..shuffle(battle.random)) {
+          if (battle.tryMove(enemy, GridPos(0, dy))) break;
+        }
       }
+      return;
     }
-    if (enemy.timer-- > 0) return;
-    enemy.timer = attackEvery;
-    switch (enemy.attackTimer++ % 3) {
+    // [EnemyFighter.timer] goes negative while lining up.
+    var next = enemy.attackTimer % 3;
+    if (next != 1 && enemy.pos.y != battle.player.pos.y) {
+      if (enemy.timer > -seekLimitTicks) {
+        enemy.timer--;
+        _seekRow(enemy, battle, seekTicks);
+        return;
+      }
+      next = 1;
+    }
+    enemy
+      ..timer = attackEvery
+      ..attackTimer = next + 1;
+    switch (next) {
       case 0:
         _burst(enemy, battle);
       case 1:
@@ -960,22 +1050,28 @@ class TankBehavior extends EnemyBehavior {
   /// Column of [pos] when the tank is back at the right edge.
   static const _homeX = gridColumns - 2;
 
+  /// A stun before the charge starts calls it off; a charge already under
+  /// way only pauses.
+  @override
+  void onInterrupted(EnemyFighter enemy, BattleState battle) {
+    if (enemy.stage == _windingUp) enemy.stage = _ready;
+  }
+
   /// One panel to the left every [chargeStepTicks], hitting what is there.
   void _charge(EnemyFighter enemy, BattleState battle) {
+    enemy.attackPose = attackPoseTicks;
     if (enemy.moveTimer-- > 0) return;
     enemy.moveTimer = chargeStepTicks;
     if (enemy.pos.x == 0) {
-      // Moved back to the right while hidden, so the sprite doesn't glide
-      // across the arena when it reappears.
-      enemy
-        ..pos = GridPos(_homeX, enemy.pos.y)
-        ..hidden = true
-        ..state = EnemyState.idle
-        ..stage = _away
-        ..timer = awayTicks;
+      _leave(enemy);
       return;
     }
     final cell = enemy.pos + const GridPos(-1, 0);
+    if (!battle.panelAt(cell).walkable) {
+      battle.fall(enemy);
+      _leave(enemy);
+      return;
+    }
     // Hit before moving in, so the tank itself doesn't hide the target.
     switch (battle.unitAt(cell)) {
       case final PlayerFighter player when enemy.stage != _chargingHit:
@@ -990,8 +1086,18 @@ class TankBehavior extends EnemyBehavior {
       case null:
         break;
     }
-    enemy.pos = cell;
+    battle.stepOver(enemy, cell);
   }
+
+  /// Off the arena (out on the left, or down a hole) until it comes back.
+  /// Moved back to the right while hidden, so the sprite doesn't glide
+  /// across the arena when it reappears.
+  void _leave(EnemyFighter enemy) => enemy
+    ..pos = GridPos(_homeX, enemy.pos.y)
+    ..hidden = true
+    ..state = EnemyState.idle
+    ..stage = _away
+    ..timer = awayTicks;
 
   /// Back on the right: its row if free, else any free row of the back two
   /// columns.

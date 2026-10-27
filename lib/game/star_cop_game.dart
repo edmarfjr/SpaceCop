@@ -78,12 +78,19 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   /// The shop being visited, while on [GamePhase.shop].
   Shop? shop;
 
-  /// The event being visited, and the choice it is waiting on, if any.
+  /// The event being visited, and the choice or card pick it is waiting
+  /// on, if any.
   EventDef? event;
   OfferChoice? eventChoice;
+  PickCard? eventPick;
 
-  /// The current battle is Arena Clandestina's duel.
-  bool _duel = false;
+  /// The current battle is an elite outside an elite node ("?" node,
+  /// event): it pays like an elite node.
+  bool _eliteFight = false;
+
+  /// The current battle came from an event that gives this instead of the
+  /// usual rewards.
+  OfferChoice? Function(RunState run)? _fightReward;
 
   /// Pause or deck view open; the battle doesn't tick.
   bool get halted =>
@@ -126,9 +133,23 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
         shop = Shop(run);
         _goTo(GamePhase.shop);
       case NodeType.event:
-        event = Events.all[run.random.nextInt(Events.all.length)];
-        eventChoice = null;
-        _goTo(GamePhase.event);
+        switch (rollUnknownRoom(run.random)) {
+          case UnknownRoom.event:
+            // TODO: events shouldn't repeat in a run; they still do while
+            // there are only a few.
+            event = Events.all[run.random.nextInt(Events.all.length)];
+            eventChoice = null;
+            eventPick = null;
+            _goTo(GamePhase.event);
+          case UnknownRoom.battle:
+            _startBattle(Encounters.normal(run.random));
+          case UnknownRoom.elite:
+            _eliteFight = true;
+            _startBattle(Encounters.elite(run.random));
+          case UnknownRoom.shop:
+            shop = Shop(run);
+            _goTo(GamePhase.shop);
+        }
     }
   }
 
@@ -141,7 +162,10 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       random: run.random,
       relics: run.relics,
       energyBaseBonus: run.energyBaseBonus,
+      openingStunTicks: run.openingStunTicks,
+      pauseOnNewHand: true,
     );
+    run.openingStunTicks = 0;
     _goTo(
       GamePhase.battle,
       world: BattleWorld(battle: battle, onFinished: _onBattleFinished),
@@ -150,17 +174,21 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
 
   void _onBattleFinished(BattleState battle) {
     run.hp = battle.player.hp;
+    final eliteFight = _eliteFight;
+    final fightReward = _fightReward;
+    _eliteFight = false;
+    _fightReward = null;
     if (battle.phase == BattlePhase.lost) {
       _goTo(GamePhase.gameOver);
-    } else if (_duel) {
-      _duel = false;
-      eventChoice = duelWon(run);
-      _goTo(GamePhase.event);
+    } else if (fightReward != null) {
+      _showFollowUp(fightReward(run));
     } else if (run.current?.type == NodeType.boss) {
       _goTo(GamePhase.victory);
     } else {
       final before = run.credits;
-      rewardRelic = run.winBattle(elite: run.current?.type == NodeType.elite);
+      rewardRelic = run.winBattle(
+        elite: run.current?.type == NodeType.elite || eliteFight,
+      );
       rewardCredits = run.credits - before;
       rewardOptions = run.rollRewards(3);
       _goTo(GamePhase.reward);
@@ -174,16 +202,34 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   }
 
   /// Applies an event option once its chip (if any) was picked.
-  void resolveEvent(EventOption option, [ChipCard? picked]) {
-    switch (option.apply(run, picked)) {
+  void resolveEvent(EventOption option, [ChipCard? picked]) =>
+      _showFollowUp(option.apply(run, picked));
+
+  /// Card picked for the event's [eventPick].
+  void resolvePick(ChipCard card) {
+    final pick = eventPick;
+    eventPick = null;
+    if (pick != null) _showFollowUp(pick.apply(run, card));
+  }
+
+  void _showFollowUp(EventFollowUp? next) {
+    eventChoice = null;
+    eventPick = null;
+    switch (next) {
       case null:
         finishNode();
       case final OfferChoice choice:
         eventChoice = choice;
         _goTo(GamePhase.event);
-      case StartDuel():
-        _duel = true;
-        _startBattle(Encounters.elite(run.random));
+      case final PickCard pick:
+        eventPick = pick;
+        _goTo(GamePhase.event);
+      case StartFight(:final elite, :final onWin):
+        _eliteFight = elite;
+        _fightReward = onWin;
+        _startBattle(
+          elite ? Encounters.elite(run.random) : Encounters.normal(run.random),
+        );
     }
   }
 

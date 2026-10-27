@@ -9,12 +9,13 @@ import '../../domain/chips/battle_chip.dart';
 import '../../ui/theme.dart';
 import '../sprites.dart';
 import 'grid_component.dart';
+import 'projectile_layer.dart';
 
 /// Renders one [Fighter] with its cart sprite and glides it toward its
 /// simulated cell.
 class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   FighterComponent(this.fighter, this.sprites)
-    : super(anchor: Anchor.bottomCenter, priority: 1) {
+    : super(anchor: Anchor.bottomCenter) {
     size = _idleSprite.srcSize * _scale;
   }
 
@@ -89,10 +90,18 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     return feet.reduce((a, b) => a + b) / feet.length.toDouble();
   }
 
+  /// Drawn in row order, with each row's projectiles right after it.
+  int get _rowPriority {
+    final f = fighter;
+    final row = f is EnemyFighter ? f.cells.map((c) => c.y).reduce(max) : f.pos.y;
+    return ProjectileLayer.priorityOf(row);
+  }
+
   @override
   void onMount() {
     super.onMount();
     position = _target;
+    priority = _rowPriority;
   }
 
   @override
@@ -100,6 +109,8 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     super.update(dt);
     _clock += dt;
     position.lerp(_target, min(1, dt * 20));
+    final rowPriority = _rowPriority;
+    if (priority != rowPriority) priority = rowPriority;
   }
 
   @override
@@ -178,11 +189,12 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     if (_shooting) {
       sprites.muzzle.render(
         canvas,
-        position: Vector2(size.x, 0),
+        position: Vector2(size.x-4, 10),
         size: sprites.muzzle.srcSize * _scale,
       );
     }
-    if (fighter is! PlayerFighter) {
+    // Enemies show their life in the HUD, on the right.
+    if (fighter is Obstacle) {
       _hpText.render(
         canvas,
         '${fighter.hp}',
@@ -198,7 +210,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
         final frame = frames[(_clock / _signFrameTime).floor() % frames.length];
         frame.render(
           canvas,
-          position: Vector2(size.x / 2, -22),
+          position: Vector2(size.x / 2,0),
           size: frame.srcSize * _scale,
           anchor: Anchor.bottomCenter,
         );

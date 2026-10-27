@@ -107,8 +107,8 @@ class _MapOverlayState extends State<MapOverlay> {
               child: Text('Deck ${run.deck.length}', style: GbText.small),
             ),
             const Text(' · ', style: GbText.small),
-            SheetSprite(sprite: game.sprites.credits, scale: 0.4),
-            Text(' ${run.credits}', style: GbText.small),
+            SheetSprite(sprite: game.sprites.credits, scale: 1),
+            Text(': ${run.credits}', style: GbText.small),
             for (final relic in run.relics)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,

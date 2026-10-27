@@ -55,6 +55,15 @@ const int turretShotDamage = 5;
 /// How long the Escudo Refletor stands in front of the player.
 const int reflectorTicks = 5 * ticksPerSecond;
 
+/// Bobina Tesla: zaps the first enemy of its row every second.
+const int teslaHp = 30;
+const int teslaTicks = 8 * ticksPerSecond;
+const int teslaZapDamage = 5;
+
+/// Mira Laser: a marked unit takes this much more from each hit.
+const int markBonus = 5;
+const int markTicks = 5 * ticksPerSecond;
+
 /// Damage to the Colossus's fist reaches the body multiplied by this.
 const int weakPointMultiplier = 2;
 
@@ -88,6 +97,9 @@ enum Status {
 
   /// Can't move.
   rooted,
+
+  /// Takes [markBonus] more from each hit (Mira Laser).
+  marked,
 }
 
 const int burnTicks = 3 * ticksPerSecond;
@@ -108,18 +120,21 @@ enum HitKind {
   area,
 }
 
-enum ObstacleKind { rock, mine, turret, reflector }
+enum ObstacleKind { rock, mine, turret, reflector, tesla }
 
 /// Red outlines warn of damage, blue ones of terrain changes.
 enum TelegraphKind { damage, terrain }
 
 /// A panel an enemy attack is about to hit, drawn ahead of time.
 class Telegraph {
-  Telegraph(this.pos, this.kind, this.ticksLeft);
+  Telegraph(this.pos, this.kind, this.ticksLeft, [this.owner]);
 
   final GridPos pos;
   final TelegraphKind kind;
   int ticksLeft;
+
+  /// The attacker, so a stun can take its warnings away.
+  final Fighter? owner;
 }
 
 /// A collision about to be applied. Relics can make it hurt more.
@@ -176,6 +191,9 @@ class PlayerInput {
   /// Use is still held down (fusion charge).
   final bool holdUse;
   final bool cycleChip;
+
+  /// Any move or card input; ends [BattleState.waitingForPlayer].
+  bool get acts => dx != 0 || dy != 0 || useChip || holdUse || cycleChip;
 }
 
 /// Anything that stands on a panel: the player, enemies and obstacles.
@@ -290,15 +308,14 @@ class EnemyFighter extends Fighter {
   /// Mirrored twin (Dupla Prisma).
   EnemyFighter? partner;
 
-  /// Panel to go back to after an attack away from it (Capanga
-  /// Corpo-a-Corpo).
+  /// Panel to go back to after an attack away from it, and the panel the
+  /// attack aims at, picked when it is triggered (Capanga Corpo-a-Corpo).
   GridPos? home;
+  GridPos? aim;
 
-  /// Whether to draw the attack frame: while [attacking], unless the
-  /// [EnemyDef.windUpPose] is off and the attack hasn't landed yet.
-  bool get attackFrame =>
-      attacking &&
-      (def.windUpPose || attackPose > 0 || state == EnemyState.attacking);
+  /// Whether to draw the attack frame: only as an attack lands, never
+  /// while it winds up.
+  bool get attackFrame => attackPose > 0;
 
   @override
   bool get pushable => def.pushable;
@@ -364,14 +381,23 @@ class Projectile {
   bool spent = false;
 }
 
+/// How a [HitFlash] is drawn.
+enum FlashKind {
+  explosion,
+
+  /// A vertical sword slash centered on [HitFlash.pos], 3 rows tall.
+  slash,
+}
+
 /// A cell that was just hit. Purely visual.
 class HitFlash {
-  HitFlash(this.pos);
+  HitFlash(this.pos, [this.kind = FlashKind.explosion]);
 
   /// Long enough for the 4-frame explosion.
   static const int lifetime = 12;
 
   final GridPos pos;
+  final FlashKind kind;
   int ticksLeft = lifetime;
 }
 
@@ -388,6 +414,8 @@ class BattleState {
     Random? random,
     this.relics = const [],
     int energyBaseBonus = 0,
+    int openingStunTicks = 0,
+    this.pauseOnNewHand = false,
   }) : energyMax = baseEnergy + energyBaseBonus,
        player = PlayerFighter(
          pos: const GridPos(1, 1),
@@ -399,6 +427,9 @@ class BattleState {
     for (final spawn in encounter.spawns) {
       final enemy = EnemyFighter(spawn.def, spawn.pos);
       spawn.def.behavior.onBattleStart(enemy);
+      if (openingStunTicks > 0) {
+        enemy.applyStatus(Status.stunned, openingStunTicks);
+      }
       enemies.add(enemy);
     }
     final prisms = enemies.where((e) => e.def.prism).toList();
@@ -482,6 +513,12 @@ class BattleState {
   /// Energia).
   int gaugeSpeedBonus = 0;
 
+  /// The next chip counts twice in the chain (Sobrecarga).
+  bool chainSurge = false;
+
+  /// The next chip runs twice (Overclock).
+  bool overclocked = false;
+
   /// Hundredths of a gauge tick carried over from the speed bonuses.
   int _gaugeProgress = 0;
 
@@ -501,6 +538,13 @@ class BattleState {
   void dismissPeek() => peekOpen = false;
 
   bool get gaugeFull => gauge >= gaugeTicks;
+
+  /// Every new hand (the start of each turn) freezes the battle until the
+  /// player moves or uses a card, to give time to plan.
+  final bool pauseOnNewHand;
+
+  /// Frozen by [pauseOnNewHand].
+  bool waitingForPlayer = false;
   bool get isOver => phase == BattlePhase.won || phase == BattlePhase.lost;
 
   List<ChipCard> get hand => deck.hand;
@@ -583,6 +627,7 @@ class BattleState {
     energyBonus = 0;
     selectedIndex = 0;
     gauge = 0;
+    waitingForPlayer = pauseOnNewHand;
     gaugeBoosted = boostNextGauge;
     boostNextGauge = false;
     for (final relic in relics) {
@@ -594,6 +639,10 @@ class BattleState {
 
   void tick([PlayerInput input = PlayerInput.none]) {
     if (phase != BattlePhase.fighting) return;
+    if (waitingForPlayer) {
+      if (!input.acts) return;
+      waitingForPlayer = false;
+    }
 
     ticks++;
     if (!gaugeFull) gauge++;
@@ -642,7 +691,8 @@ class BattleState {
         owner.pendingAttacks--;
         owner.attackPose = attackPoseTicks;
       }
-      if (owner?.isDead ?? false) continue;
+      // Attacks from inside a smoke cloud fizzle.
+      if (owner != null && (owner.isDead || inSmoke(owner))) continue;
       action.action();
     }
   }
@@ -660,13 +710,16 @@ class BattleState {
   }
 
   /// Outlines [cells] for [ticks] without doing anything else.
+  ///
+  /// The [owner]'s warnings go away if it is stunned (see [_interrupt]).
   void warn(
     Iterable<GridPos> cells,
     int ticks, [
     TelegraphKind kind = TelegraphKind.damage,
+    Fighter? owner,
   ]) {
     for (final cell in cells) {
-      if (cell.inBounds) telegraphs.add(Telegraph(cell, kind, ticks));
+      if (cell.inBounds) telegraphs.add(Telegraph(cell, kind, ticks, owner));
     }
   }
 
@@ -684,7 +737,7 @@ class BattleState {
     Lob lob = Lob.none,
     bool telegraph = true,
   }) {
-    if (telegraph) warn(cells, ticks, kind);
+    if (telegraph) warn(cells, ticks, kind, owner);
     _scheduled.add(_Scheduled(owner, ticks, action, lob, cells.toList()));
     if (owner is EnemyFighter) owner.pendingAttacks++;
   }
@@ -752,6 +805,7 @@ class BattleState {
       for (var y = 0; y < gridRows; y++) {
         final pos = GridPos(x, y);
         final panel = panelAt(pos);
+        if (panel.smokeTicks > 0) panel.smokeTicks--;
         if (panel.ownerTimer > 0 && --panel.ownerTimer == 0) {
           panel.owner = pos.homeSide;
           final intruder = unitAt(pos);
@@ -818,7 +872,7 @@ class BattleState {
       selectedIndex = (selectedIndex + 1) % hand.length;
     }
     final chip = selectedChip;
-    if (!input.useChip || chip == null) return;
+    if (!input.useChip || chip == null || inSmoke(player)) return;
     if (fusionPartner(chip) != null) {
       chargingCard = chip;
       _chargeTicks = 1; // The press itself is the first held tick.
@@ -839,7 +893,11 @@ class BattleState {
 
   /// Uses both cards as their fusion, paying the energy of both.
   void _fuse(ChipCard card, ChipCard partner) {
-    _activate(Chips.fusionOf(card.def, partner.def)!);
+    final fusion = Chips.fusionOf(card.def, partner.def)!;
+    final twice = overclocked;
+    overclocked = false;
+    _activate(fusion);
+    if (twice) _activate(fusion);
     energy -= card.def.cost + partner.def.cost;
     deck
       ..discard(card)
@@ -850,25 +908,28 @@ class BattleState {
 
   /// Chain bookkeeping for a chip of [element] about to be used. Returns the
   /// damage multiplier: x1.5 on the 2nd chip, x2 on the 3rd. The 3rd also
-  /// sets [_chainStatus] and completes the chain.
+  /// sets [_chainStatus] and completes the chain. After Sobrecarga
+  /// ([chainSurge]) the chip counts twice.
   double _advanceChain(Element element) {
     _chainStatus = null;
+    final step = chainSurge ? 2 : 1;
+    chainSurge = false;
     if (element == Element.neutral) {
       chainCount = 0;
       chainElement = null;
       return 1;
     }
     if (chainCount > 0 && element == chainElement) {
-      chainCount++;
+      chainCount += step;
     } else {
       chainElement = element;
-      chainCount = 1;
+      chainCount = step;
     }
     _chainTicks = chainWindowTicks;
     switch (chainCount) {
       case 2:
         return 1.5;
-      case 3:
+      case >= 3:
         _chainStatus = switch (element) {
           Element.fire => Status.burning,
           Element.aqua => Status.wet,
@@ -906,7 +967,10 @@ class BattleState {
 
   void _useChip(ChipCard card) {
     final def = card.def;
+    final twice = overclocked;
+    overclocked = false;
     _activate(def);
+    if (twice) _activate(def);
     energy -= def.cost;
     def.exhaust ? deck.exhaust(card) : deck.discard(card);
     selectedIndex = hand.isEmpty ? 0 : selectedIndex % hand.length;
@@ -940,7 +1004,49 @@ class BattleState {
         _toss(shot.pos, () => _impact(shot, Team.enemy));
       case ProjectileEffect(:final pattern):
         _fire(def, damage, pattern: pattern, status: status);
-      case CrackEffect() || PushEffect() || PullEffect():
+      case GrenadeEffect(
+        :final distance,
+        :final pattern,
+        :final panel,
+        :final smokeTicks,
+        :final stunTicks,
+        :final wetTicks,
+      ):
+        final target = player.pos + GridPos(distance, 0);
+        final shot = Projectile(
+          team: Team.player,
+          pos: target,
+          dir: 1,
+          stepTicks: 0,
+          damage: damage,
+          pattern: pattern,
+          element: def.element,
+          status: status,
+        );
+        damageBonus = 0;
+        _toss(target, () {
+          // Who is in the blast, before the hit can push or kill them.
+          final caught = {
+            if (stunTicks > 0 || wetTicks > 0)
+              for (final offset in pattern)
+                ?_targetAt(target + offset, Team.enemy),
+          };
+          _impact(shot, Team.enemy);
+          for (final unit in caught) {
+            if (stunTicks > 0) unit.applyStatus(Status.stunned, stunTicks);
+            if (wetTicks > 0) unit.applyStatus(Status.wet, wetTicks);
+          }
+          if (panel != null && target.inBounds && panelAt(target).walkable) {
+            setPanel(target, panel);
+          }
+          if (smokeTicks > 0 && target.inBounds) {
+            panelAt(target).smokeTicks = smokeTicks;
+          }
+        });
+      case CrackEffect() ||
+          PushEffect() ||
+          PullEffect() ||
+          StatusShotEffect():
         _fire(def, damage, onHit: def.effect, status: status);
       case HealEffect(:final amount):
         player.hp = min(player.maxHp, player.hp + amount);
@@ -964,8 +1070,12 @@ class BattleState {
             telegraph: false,
           );
         }
-      case MeleeEffect(:final pattern, :final stunTicks):
+      case MeleeEffect(:final pattern, :final stunTicks, :final slash):
         final struck = <Fighter>{};
+        final front = player.pos + const GridPos(1, 0);
+        if (slash && front.inBounds) {
+          flashes.add(HitFlash(front, FlashKind.slash));
+        }
         for (final offset in pattern) {
           strike(
             player.pos + offset,
@@ -974,6 +1084,7 @@ class BattleState {
             def.element,
             status: status,
             struck: struck,
+            flash: !slash,
           );
         }
         if (stunTicks > 0) {
@@ -1045,6 +1156,43 @@ class BattleState {
           if (panelAt(cell).walkable) setPanel(cell, PanelState.cracked);
         }
         damageBonus = 0;
+      case EmpEffect(:final shieldTicks):
+        final x = _frontEnemyColumn();
+        final struck = <Fighter>{};
+        if (x != null) {
+          for (var y = 0; y < gridRows; y++) {
+            strike(
+              GridPos(x, y),
+              damage,
+              Team.enemy,
+              def.element,
+              status: status,
+              struck: struck,
+            );
+          }
+        }
+        for (final unit in struck) {
+          if (unit is EnemyFighter && unit.def.frontShield) {
+            unit.shieldDown = max(unit.shieldDown, shieldTicks);
+          }
+        }
+        damageBonus = 0;
+      case TractorEffect(:final steps):
+        final row = player.pos.y;
+        final pulled = [
+          for (final enemy in enemies)
+            if (!enemy.hidden &&
+                enemy.pos.x > player.pos.x &&
+                enemy.cells.any((c) => c.y == row))
+              enemy,
+        ]..sort((a, b) => a.pos.x.compareTo(b.pos.x));
+        for (final enemy in pulled) {
+          displace(enemy, -1, 0, steps, byPlayer: true, force: true);
+        }
+      case ChainSurgeEffect():
+        chainSurge = true;
+      case RepeatNextEffect():
+        overclocked = true;
       case MagnetTrapEffect():
         for (var x = player.pos.x + 1; x < gridColumns; x++) {
           final unit = unitAt(GridPos(x, player.pos.y));
@@ -1163,6 +1311,23 @@ class BattleState {
             ticksLeft: amount ?? turretTicks,
           ),
         );
+      case ObstacleKind.tesla:
+        // The frontmost free panel of the player's side, ahead of them.
+        GridPos? pos;
+        for (var x = gridColumns - 1; x > player.pos.x && pos == null; x--) {
+          final cell = GridPos(x, player.pos.y);
+          if (canEnter(player, cell)) pos = cell;
+        }
+        if (pos == null) return;
+        obstacles.add(
+          Obstacle(
+            kind,
+            pos: pos,
+            hp: teslaHp,
+            team: Team.player,
+            ticksLeft: amount ?? teslaTicks,
+          ),
+        );
       case ObstacleKind.mine:
         final spots = [
           for (var x = playerColumns; x < gridColumns; x++)
@@ -1198,19 +1363,45 @@ class BattleState {
 
   /// Moves [unit] one cell, cracking what it leaves and setting off mines
   /// where it lands.
+  ///
+  /// Wide units crack only the panels they really leave and set off mines
+  /// only on the panels they newly reach.
   void _step(Fighter unit, GridPos to) {
-    if (panelAt(unit.pos).state == PanelState.cracked && !_iceProof(unit)) {
-      setPanel(unit.pos, PanelState.hole);
+    final from = _cellsAt(unit, unit.pos);
+    final into = _cellsAt(unit, to);
+    if (!_iceProof(unit)) {
+      for (final cell in from) {
+        if (!into.contains(cell) && panelAt(cell).state == PanelState.cracked) {
+          setPanel(cell, PanelState.hole);
+        }
+      }
     }
     unit.pos = to;
-    final panel = panelAt(to);
-    if (panel.mine) {
+    for (final cell in into) {
+      final panel = panelAt(cell);
+      if (from.contains(cell) || !panel.mine) continue;
       final amount = panel.mineDamage;
       panel.mineDamage = 0;
-      flashes.add(HitFlash(to));
+      flashes.add(HitFlash(cell));
       damage(unit, amount);
     }
   }
+
+  /// Whether any cell [unit] covers has a smoke cloud: it can't attack.
+  bool inSmoke(Fighter unit) => _cellsAt(
+    unit,
+    unit.pos,
+  ).any((cell) => cell.inBounds && panelAt(cell).smoky);
+
+  /// Cells [unit] covers when standing at [pos].
+  List<GridPos> _cellsAt(Fighter unit, GridPos pos) => unit is EnemyFighter
+      ? [for (final offset in unit.def.footprint) pos + offset]
+      : [pos];
+
+  /// An attack move (Tanque's charge, Capanga Corpo-a-Corpo's lunge): one
+  /// step that ignores sides and occupants but, like any step, cracks what
+  /// it leaves and sets off mines. Holes are the caller's business.
+  void stepOver(Fighter unit, GridPos to) => _step(unit, to);
 
   /// Forced movement (push, pull, knock-back), resolved cell by cell:
   /// - free cell on the unit's side: move in, and keep going if steps remain;
@@ -1219,30 +1410,39 @@ class BattleState {
   /// - hole: the unit falls and returns to where it started;
   /// - ice: the unit slides on, ignoring the step count.
   ///
-  /// [byPlayer] marks collisions the player caused, for relics.
+  /// Units several panels big check every cell they would cover.
+  /// [byPlayer] marks collisions the player caused, for relics; [force]
+  /// moves units that are not [Fighter.pushable] (pulls).
   void displace(
     Fighter unit,
     int dx,
     int dy,
     int steps, {
     bool byPlayer = false,
+    bool force = false,
   }) {
-    if (!unit.pushable || unit.isDead) return;
+    if ((!unit.pushable && !force) || unit.isDead) return;
     final origin = unit.pos;
     final dir = GridPos(dx, dy);
     var left = steps;
     var sliding = false;
     while (left > 0 || sliding) {
       final next = unit.pos + dir;
-      if (!next.inBounds || (unit.team != null && ownerAt(next) != unit.team)) {
+      final cells = _cellsAt(unit, next);
+      if (cells.any(
+        (c) => !c.inBounds || (unit.team != null && ownerAt(c) != unit.team),
+      )) {
         _collide(unit, null, byPlayer);
         return;
       }
-      if (unitAt(next) case final other?) {
+      final other = cells
+          .map(unitAt)
+          .firstWhere((u) => u != null && u != unit, orElse: () => null);
+      if (other != null) {
         _collide(unit, other, byPlayer);
         return;
       }
-      if (!panelAt(next).walkable) {
+      if (cells.any((c) => !panelAt(c).walkable)) {
         unit.pos = origin;
         fall(unit);
         return;
@@ -1323,13 +1523,21 @@ class BattleState {
     }
   }
 
-  /// Drags [target] to the front enemy column; stuns it if already there.
+  /// Drags [target] to the front column of its side (wherever stolen
+  /// panels put it); stuns it if already there. Pulls every unit, even
+  /// those that can't be pushed.
   void _pull(Fighter target) {
-    final distance = target.pos.x - playerColumns;
-    if (distance <= 0) {
+    var distance = 0;
+    while (_cellsAt(
+      target,
+      target.pos + GridPos(-distance - 1, 0),
+    ).every((c) => c.inBounds && ownerAt(c) == target.team)) {
+      distance++;
+    }
+    if (distance == 0) {
       target.applyStatus(Status.stunned, pullStunTicks);
     } else {
-      displace(target, -1, 0, distance, byPlayer: true);
+      displace(target, -1, 0, distance, byPlayer: true, force: true);
     }
   }
 
@@ -1356,12 +1564,13 @@ class BattleState {
     Element element, {
     Status? status,
     Set<Fighter>? struck,
+    bool flash = true,
   }) {
     if (!cell.inBounds) return;
-    flashes.add(HitFlash(cell));
+    if (flash) flashes.add(HitFlash(cell));
     final target = _targetAt(cell, opponent);
     if (target != null && (struck?.add(target) ?? true)) {
-      damage(target, amount, element: element);
+      damage(target, amount + _markBonus(target), element: element);
       if (status != null) target.applyStatus(status, statusTicks(status));
     }
     _scorch(cell, element);
@@ -1439,6 +1648,10 @@ class BattleState {
     target.takeDamage(total);
   }
 
+  /// Mira Laser's extra damage on a marked target.
+  int _markBonus(Fighter target) =>
+      target.has(Status.marked) ? markBonus : 0;
+
   /// Escudo Refletor: [shot] bounces off [reflector] and flies back down
   /// the row, doubled.
   void _reflect(Obstacle reflector, Projectile shot) {
@@ -1473,9 +1686,22 @@ class BattleState {
     for (final enemy in List.of(enemies)) {
       if (enemy.shieldDown > 0) enemy.shieldDown--;
       if (enemy.attackPose > 0) enemy.attackPose--;
-      if (enemy.has(Status.stunned) || enemy.isDead) continue;
+      if (enemy.isDead) continue;
+      if (enemy.has(Status.stunned)) {
+        _interrupt(enemy);
+        continue;
+      }
       enemy.def.behavior.tick(enemy, this);
     }
+  }
+
+  /// A stun cancels every attack [enemy] hasn't landed yet, with its
+  /// warnings, and its behavior drops the wind-up.
+  void _interrupt(EnemyFighter enemy) {
+    _scheduled.removeWhere((s) => s.owner == enemy);
+    telegraphs.removeWhere((t) => t.owner == enemy);
+    enemy.pendingAttacks = 0;
+    enemy.def.behavior.onInterrupted(enemy, this);
   }
 
   /// Straight enemy shot from the cell in front of [enemy].
@@ -1485,6 +1711,8 @@ class BattleState {
     int? stepTicks,
     Element? element,
   }) {
+    if (inSmoke(enemy)) return;
+    enemy.attackPose = attackPoseTicks;
     final shotElement = element ?? enemy.element;
     projectiles.add(
       Projectile(
@@ -1506,16 +1734,23 @@ class BattleState {
     return unit;
   }
 
-  /// Obstacles with a lifetime expire; turrets fire an Elec shot down their
-  /// row every second.
+  /// Obstacles with a lifetime expire; every second turrets fire an Elec
+  /// shot down their row and tesla coils zap the first enemy of theirs.
   void _updateObstacles() {
     for (final obstacle in obstacles) {
       if (obstacle.ticksLeft > 0 && --obstacle.ticksLeft == 0) {
         obstacle.hp = 0;
       }
-      if (obstacle.kind != ObstacleKind.turret || obstacle.isDead) continue;
+      final shooter =
+          obstacle.kind == ObstacleKind.turret ||
+          obstacle.kind == ObstacleKind.tesla;
+      if (!shooter || obstacle.isDead || inSmoke(obstacle)) continue;
       if (--obstacle.fireTimer > 0) continue;
       obstacle.fireTimer = ticksPerSecond;
+      if (obstacle.kind == ObstacleKind.tesla) {
+        _zap(obstacle);
+        continue;
+      }
       projectiles.add(
         Projectile(
           team: Team.player,
@@ -1527,6 +1762,16 @@ class BattleState {
           element: Element.elec,
         ),
       );
+    }
+  }
+
+  /// Bobina Tesla: an instant Elec hit on the first target of its row.
+  void _zap(Obstacle coil) {
+    for (var x = coil.pos.x + 1; x < gridColumns; x++) {
+      final cell = GridPos(x, coil.pos.y);
+      if (_targetAt(cell, Team.enemy) == null) continue;
+      strike(cell, teslaZapDamage, Team.enemy, Element.elec);
+      return;
     }
   }
 
@@ -1573,7 +1818,7 @@ class BattleState {
       if (target != null && struck.add(target)) {
         damage(
           target,
-          shot.damage,
+          shot.damage + _markBonus(target),
           element: shot.element,
           kind: straight ? HitKind.straight : HitKind.spread,
           shot: shot,
@@ -1600,8 +1845,11 @@ class BattleState {
           steps,
           byPlayer: shot.team == Team.player,
         );
-      case PullEffect():
+      case PullEffect(:final stunTicks):
         _pull(target);
+        if (stunTicks > 0) target.applyStatus(Status.stunned, stunTicks);
+      case StatusShotEffect(:final status, :final ticks):
+        target.applyStatus(status, ticks);
       default:
     }
   }
@@ -1623,4 +1871,5 @@ int statusTicks(Status status) => switch (status) {
   Status.wet => wetTicks,
   Status.stunned => ticksPerSecond,
   Status.rooted => rootTicks,
+  Status.marked => markTicks,
 };

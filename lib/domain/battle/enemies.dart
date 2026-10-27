@@ -20,7 +20,6 @@ class EnemyDef {
     this.summon = false,
     this.frontShield = false,
     this.prism = false,
-    this.windUpPose = true,
   });
 
   final String name;
@@ -54,9 +53,6 @@ class EnemyDef {
   /// Prisma).
   final bool prism;
 
-  /// Drawn with its attack frame while an attack winds up. False shows the
-  /// attack frame only once the attack lands (Capanga Corpo-a-Corpo).
-  final bool windUpPose;
 }
 
 class EnemySpawn {
@@ -106,7 +102,7 @@ abstract final class Enemies {
   );
 
   static const brute = EnemyDef(
-    name: 'Brute',
+    name: 'Capanga Bruto',
     hp: 80,
     moveTicks: 20,
     frontShield: true,
@@ -114,14 +110,14 @@ abstract final class Enemies {
   );
 
   static const digger = EnemyDef(
-    name: 'Escavador',
+    name: 'Capanga Engenheiro',
     hp: 70,
     element: Element.wood,
     behavior: DiggerBehavior(),
   );
 
   static const prism = EnemyDef(
-    name: 'Prisma',
+    name: 'Capanga Infiltrador',
     hp: 40,
     shotDamage: 10,
     shotStepTicks: 12,
@@ -191,7 +187,6 @@ abstract final class Enemies {
   static const gruntMelee = EnemyDef(
     name: 'Capanga Corpo-a-Corpo',
     hp: 50,
-    windUpPose: false,
     behavior: GruntMeleeBehavior(),
   );
 

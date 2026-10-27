@@ -28,17 +28,29 @@ ou tamanhos direto nos widgets: crie um token.
 
 ## Tela virtual
 
-- Os menus (loja, eventos, descanso...) são desenhados num espaço virtual de
+- Os menus (descanso, recompensa...) são desenhados num espaço virtual de
   **256×192** (`virtualScreen`).
 - A batalha e o mapa usam um espaço largo, **384×192** (`wideScreen`, 2:1), o
   mesmo da câmera do Flame. O HUD, a pausa e o deck usam esse tamanho, para
-  ficarem alinhados com a grade.
+  ficarem alinhados com a grade. A loja e os eventos também, para usar a
+  largura toda.
+- Evento (como no Slay the Spire): título numa faixa em cima, imagem
+  quadrada à esquerda (placeholder até ter arte), texto à direita e as
+  opções embaixo dele: `[rótulo]`, o ganho em verde e o custo em coral.
+- Loja (como no Slay the Spire): 5 cartas em cima e o serviço de remoção à
+  direita; embaixo, Sair, 3 relíquias (só o ícone), uma caixa com a
+  descrição do item selecionado e Confirmar. Tocar só seleciona (borda
+  amarela); Confirmar compra.
 - Os overlays usam `VirtualScreen`, que os escala com `FittedBox`.
 - Dentro da tela, os tamanhos são px virtuais, não dp.
 - A escala de fonte do sistema é ignorada dentro da tela
   (`TextScaler.noScaling`), para o layout não quebrar.
-- A grade da batalha fica em (72, 40), centralizada, com 240×96 px. O status
-  (HP, barra, Energia, descrição) fica em y 0–40, alinhado com a grade (x 72–312).
+- A grade da batalha fica em (72, 40), centralizada, com 240×96 px.
+- O status da jogadora fica no canto superior esquerdo (x 2–66): HP e
+  Energia numa linha, o gauge embaixo. Corrente e fusão ficam sobre a grade.
+- À direita da grade, abaixo dos ícones, cada inimigo tem nome e barra de
+  vida (vermelha, borda branca); nomes repetidos são numerados ("Prisma 2").
+  O HP não aparece mais sobre os inimigos, só sobre os obstáculos.
 - A mão fica numa linha embaixo, encostada à direita. Os ícones de deck e
   pausa ficam no canto superior direito.
 - O mapa ocupa a largura toda e é mais alto que a tela: 28 px por andar, nós
@@ -78,11 +90,17 @@ Use só as 32 cores de `Pico`, a paleta do Picotron (as 16 do PICO-8 mais
   0,1 s) sobre a cabeça do inimigo no último 0,5 s antes de um ataque dele
   cair; some quando o ataque acontece. Os painéis em vermelho continuam
   avisando pelo tempo todo.
-- Cartas melhoradas na fogueira têm "+" no nome e usam a mesma arte da
-  carta base.
-- A arte das cartas cabe no quadrado preto do frame `chips/chip.png`
-  (12×12): ícones de 8 px saem a 1,25×, artes maiores (32 ou 40 px) são
-  reduzidas para caber.
+- Cartas melhoradas na fogueira têm "+" no nome, usam a mesma arte da
+  carta base e são desenhadas no frame `chips/chipEvo.png` em vez do
+  `chips/chip.png`.
+- A carta é um retângulo 2:3: o frame `chips/chip.png` tem 32×48 e a carta
+  é desenhada com a largura pedida e altura 1,5× ela. Na mão da batalha
+  as cartas têm 36 de largura (54 de altura), para caber entre a grade e a
+  borda de baixo.
+- A arte das cartas cabe na janela preta do frame (22×13 px do frame):
+  ícones de 8 px saem a 1,25×, artes maiores (32 ou 40 px) são reduzidas
+  para caber. O custo fica no círculo azul, o dano no vermelho e o ícone do
+  elemento entre os dois.
 
 ## Tipografia
 

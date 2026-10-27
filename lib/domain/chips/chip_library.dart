@@ -8,7 +8,7 @@ import 'battle_chip.dart';
 abstract final class Chips {
   static const shot = ChipDef(
     id: 'shot',
-    name: 'Revolver',
+    name: 'Tiro Rápido',
     description: 'Acerta o primeiro inimigo da linha.',
     cost: 0,
     type: ChipType.attack,
@@ -19,7 +19,7 @@ abstract final class Chips {
 
   static const cannon = ChipDef(
     id: 'cannon',
-    name: 'Canhão',
+    name: 'Tiro Mirado',
     description: 'Acerta o primeiro inimigo da linha.',
     cost: 1,
     type: ChipType.attack,
@@ -41,7 +41,7 @@ abstract final class Chips {
 
   static const shotgun = ChipDef(
     id: 'shotgun',
-    name: 'Bala Perfurante',
+    name: 'Escopeta',
     description: 'Atravessa: acerta o alvo e a célula atrás dele.',
     cost: 1,
     type: ChipType.attack,
@@ -116,8 +116,62 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 20,
-    effect: MeleeEffect(),
+    effect: MeleeEffect(slash: true),
     pose: ChipPose.melee,
+  );
+
+  static const grenade = ChipDef(
+    id: 'grenade',
+    name: 'Granada',
+    description: 'Lançada no 3º painel à frente: explode em cruz.',
+    cost: 1,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 25,
+    effect: GrenadeEffect(),
+    pose: ChipPose.toss,
+  );
+
+  static const incendiaryGrenade = ChipDef(
+    id: 'incendiary_grenade',
+    name: 'Granada Incendiária',
+    description:
+        'Lançada no 3º painel à frente: explode em cruz e o centro vira Lava.',
+    cost: 1,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    element: Element.fire,
+    effect: GrenadeEffect(panel: PanelState.lava),
+    pose: ChipPose.toss,
+  );
+
+  static const smokeGrenade = ChipDef(
+    id: 'smoke_grenade',
+    name: 'Granada de Fumaça',
+    description:
+        'Lançada no 3º painel à frente: explode em cruz e deixa Fumaça por '
+        '10 s. Quem está na Fumaça não ataca.',
+    cost: 1,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 10,
+    effect: GrenadeEffect(smokeTicks: smokeDurationTicks),
+    pose: ChipPose.toss,
+  );
+
+  static const stunGrenade = ChipDef(
+    id: 'stun_grenade',
+    name: 'Granada Atordoante',
+    description:
+        'Lançada no 3º painel à frente: explode em cruz e atordoa quem for '
+        'atingido por 2 s.',
+    cost: 2,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    element: Element.elec,
+    effect: GrenadeEffect(stunTicks: 2 * ticksPerSecond),
+    pose: ChipPose.toss,
   );
 
   static const recover = ChipDef(
@@ -311,15 +365,119 @@ abstract final class Chips {
   static const hook = ChipDef(
     id: 'hook',
     name: 'Gancho',
-    description: 'Puxa o primeiro alvo da linha para a frente.',
+    description:
+        'Puxa o primeiro alvo da linha para a frente e o atordoa por 2 s.',
     cost: 1,
     type: ChipType.support,
     target: ChipTarget.row,
-    effect: PullEffect(),
+    effect: PullEffect(stunTicks: 2 * ticksPerSecond),
     pose: ChipPose.melee,
   );
 
-  /// Junk from the Nave à Deriva event. Never offered as a reward.
+  static const cryoGrenade = ChipDef(
+    id: 'cryo_grenade',
+    name: 'Criogranada',
+    description:
+        'Lançada no 3º painel à frente: explode em cruz, molha quem for '
+        'atingido e o centro vira Gelo.',
+    cost: 1,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 10,
+    element: Element.aqua,
+    effect: GrenadeEffect(panel: PanelState.ice, wetTicks: wetTicks),
+    pose: ChipPose.toss,
+  );
+
+  static const emp = ChipDef(
+    id: 'emp',
+    name: 'Pulso EMP',
+    description:
+        'Atinge a coluna inimiga da frente inteira e derruba escudos '
+        'frontais por 3 s.',
+    cost: 2,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 10,
+    element: Element.elec,
+    effect: EmpEffect(shieldTicks: 3 * ticksPerSecond),
+  );
+
+  static const neuralVine = ChipDef(
+    id: 'neural_vine',
+    name: 'Vinha Neural',
+    description: 'Acerta o primeiro inimigo da linha e o enraíza por 3 s.',
+    cost: 1,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 15,
+    element: Element.wood,
+    effect: StatusShotEffect(Status.rooted, 3 * ticksPerSecond),
+  );
+
+  static const laserSight = ChipDef(
+    id: 'laser_sight',
+    name: 'Mira Laser',
+    description:
+        'Marca o primeiro inimigo da linha: por 5 s ele leva +5 de cada '
+        'acerto.',
+    cost: 0,
+    type: ChipType.support,
+    target: ChipTarget.row,
+    effect: StatusShotEffect(Status.marked, markTicks),
+  );
+
+  static const overcharge = ChipDef(
+    id: 'overcharge',
+    name: 'Sobrecarga',
+    description: 'A próxima carta conta 2 vezes na corrente.',
+    cost: 1,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    element: Element.elec,
+    effect: ChainSurgeEffect(),
+  );
+
+  static const tractorBeam = ChipDef(
+    id: 'tractor_beam',
+    name: 'Feixe Trator',
+    description:
+        'Puxa 1 painel todos os inimigos da sua linha. Quem bater em algo '
+        'sofre colisão.',
+    cost: 2,
+    type: ChipType.support,
+    target: ChipTarget.row,
+    effect: TractorEffect(),
+  );
+
+  static const teslaCoil = ChipDef(
+    id: 'tesla_coil',
+    name: 'Bobina Tesla',
+    description:
+        'Bobina de 30 HP na frente do seu lado: dá um choque de 5 Elétrico '
+        'no primeiro inimigo da linha a cada 1 s, por 8 s.',
+    cost: 2,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    element: Element.elec,
+    effect: SpawnObstacleEffect(ObstacleKind.tesla),
+  );
+
+  static const overclock = ChipDef(
+    id: 'overclock',
+    name: 'Overclock',
+    description:
+        'A próxima carta é usada 2 vezes; a segunda não gasta Energia. Uso '
+        'único.',
+    cost: 1,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: RepeatNextEffect(),
+    exhaust: true,
+  );
+
+  /// Junk from events (Enfermaria Clandestina, Hangar de Contrabando).
+  /// Never offered as a reward.
   static const bug = ChipDef(
     id: 'bug',
     name: 'Bug',
@@ -434,6 +592,22 @@ abstract final class Chips {
         effect: const MeleeEffect(stunTicks: 3 * ticksPerSecond),
       ),
       _up(sword, damage: 30),
+      _up(grenade, damage: 35),
+      _up(incendiaryGrenade, damage: 25),
+      _up(
+        stunGrenade,
+        description:
+            'Lançada no 3º painel à frente: explode em cruz e atordoa quem '
+            'for atingido por 3 s.',
+        effect: const GrenadeEffect(stunTicks: 3 * ticksPerSecond),
+      ),
+      _up(
+        smokeGrenade,
+        description:
+            'Lançada no 3º painel à frente: explode em cruz e deixa Fumaça '
+            'por 15 s. Quem está na Fumaça não ataca.',
+        effect: const GrenadeEffect(smokeTicks: 15 * ticksPerSecond),
+      ),
       _up(
         recover,
         description: 'Recupera 10 de vida. Uso único.',
@@ -503,12 +677,42 @@ abstract final class Chips {
         ),
       ),
       _up(hook, cost: 0),
+      _up(cryoGrenade, damage: 20),
+      _up(emp, damage: 20),
+      _up(neuralVine, damage: 25),
+      _up(
+        laserSight,
+        description:
+            'Marca o primeiro inimigo da linha: por 8 s ele leva +5 de cada '
+            'acerto.',
+        effect: const StatusShotEffect(Status.marked, 8 * ticksPerSecond),
+      ),
+      _up(overcharge, cost: 0),
+      _up(
+        tractorBeam,
+        description:
+            'Puxa 2 painéis todos os inimigos da sua linha. Quem bater em '
+            'algo sofre colisão.',
+        effect: const TractorEffect(steps: 2),
+      ),
+      _up(
+        teslaCoil,
+        description:
+            'Bobina de 30 HP na frente do seu lado: dá um choque de 5 '
+            'Elétrico no primeiro inimigo da linha a cada 1 s, por 12 s.',
+        effect: const SpawnObstacleEffect(
+          ObstacleKind.tesla,
+          amount: 12 * ticksPerSecond,
+        ),
+      ),
+      _up(overclock, cost: 0),
     ])
       up.id: up,
   };
 
   static const all = [
     shot,
+    cannon,
     smg,
     shotgun,
     vShot,
@@ -516,6 +720,10 @@ abstract final class Chips {
     missile,
     baton,
     sword,
+    grenade,
+    incendiaryGrenade,
+    smokeGrenade,
+    stunGrenade,
     recover,
     atkBoost,
     energyDrink,
@@ -533,14 +741,20 @@ abstract final class Chips {
     mine,
     turret,
     hook,
+    cryoGrenade,
+    emp,
+    neuralVine,
+    laserSight,
+    overcharge,
+    tractorBeam,
+    teslaCoil,
+    overclock,
   ];
 
-  /// Same starter deck as the cart: 4 Revolvers, 2 Plasmas, 2 Balas
-  /// Perfurantes, 2 Canhões.
   static List<ChipCard> starterDeck() => [
-    for (var i = 0; i < 4; i++) ChipCard(shot),
-    for (var i = 0; i < 2; i++) ChipCard(vShot),
-    for (var i = 0; i < 2; i++) ChipCard(shotgun),
-    for (var i = 0; i < 2; i++) ChipCard(cannon),
+    for (var i = 0; i < 4; i++) ChipCard(shot), //ChipCard(shot),
+    for (var i = 0; i < 2; i++) ChipCard(vShot), //ChipCard(vShot),
+    for (var i = 0; i < 2; i++) ChipCard(shotgun), //ChipCard(shotgun),
+    for (var i = 0; i < 2; i++) ChipCard(cannon), //ChipCard(cannon),
   ];
 }

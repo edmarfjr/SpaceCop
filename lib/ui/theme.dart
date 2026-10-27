@@ -77,16 +77,22 @@ const Size wideScreen = Size(384, 192);
 /// Width of the focus border.
 const double focusBorder = 1.5;
 
+/// Inside every button: room enough that the focus border never touches
+/// the text.
+const EdgeInsets buttonPadding = EdgeInsets.symmetric(
+  horizontal: 6,
+  vertical: 3,
+);
+
 /// Compact Material theme for widgets inside the virtual screen: no minimum
 /// sizes, no padded tap targets, small text.
 ThemeData screenTheme(ThemeData base) {
   final buttonStyle = ButtonStyle(
     minimumSize: const WidgetStatePropertyAll(Size.zero),
-    padding: const WidgetStatePropertyAll(
-      EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-    ),
+    padding: const WidgetStatePropertyAll(buttonPadding),
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    visualDensity: VisualDensity.compact,
+    // Compact density would take 4 px off [buttonPadding] on each side.
+    visualDensity: VisualDensity.standard,
     textStyle: const WidgetStatePropertyAll(GbText.body),
     shape: const WidgetStatePropertyAll(
       RoundedRectangleBorder(

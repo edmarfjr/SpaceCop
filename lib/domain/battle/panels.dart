@@ -8,6 +8,10 @@ const int crackedTicks = 15 * ticksPerSecond;
 const int holeTicks = 10 * ticksPerSecond;
 const int iceTicks = 8 * ticksPerSecond;
 const int grassTicks = 15 * ticksPerSecond;
+const int lavaTicks = 15 * ticksPerSecond;
+
+/// Granada de Fumaça's cloud.
+const int smokeDurationTicks = 10 * ticksPerSecond;
 
 const int grassHeal = 1;
 const int lavaDamage = 5;
@@ -36,6 +40,12 @@ class Panel {
 
   bool get mine => mineDamage > 0;
 
+  /// Ticks left of a smoke cloud here. Whoever stands in it can't attack,
+  /// but anyone may walk in.
+  int smokeTicks = 0;
+
+  bool get smoky => smokeTicks > 0;
+
   /// Ticks until the panel turns back to [PanelState.normal]. Unused for
   /// normal and lava, which never revert on their own.
   int timer = 0;
@@ -49,6 +59,7 @@ class Panel {
     PanelState.hole => holeTicks,
     PanelState.ice => iceTicks,
     PanelState.grass => grassTicks,
-    PanelState.normal || PanelState.lava => 0,
+    PanelState.lava => lavaTicks,
+    PanelState.normal => 0,
   };
 }

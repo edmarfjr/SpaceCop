@@ -50,12 +50,18 @@ class ChipCardView extends StatefulWidget {
 class _ChipCardViewState extends State<ChipCardView> {
   bool _focused = false;
 
-  /// Regions of the 32x32 `chips/chip.png` frame, in its pixels.
-  static const _name = Rect.fromLTWH(6, 1, 20, 4);
-  static const _art = Rect.fromLTWH(10, 6, 12, 12);
-  static const _left = Rect.fromLTWH(3, 6, 9, 12);
-  static const _right = Rect.fromLTWH(20.5, 6, 9, 12);
-  static const _description = Rect.fromLTWH(6, 19, 20, 12);
+  /// Size of the `chips/chip.png` frame, in its pixels.
+  static const _frame = Size(32, 48);
+
+  /// Regions of the frame, in its pixels: the name bar, the black art
+  /// window, the cost (blue) and damage (red) circles, the element icon
+  /// between them, and the description box.
+  static const _name = Rect.fromLTWH(3, 3, 26, 3);
+  static const _art = Rect.fromLTWH(5, 14, 22, 13);
+  static const _left = Rect.fromLTWH(1, 8, 6, 6);
+  static const _right = Rect.fromLTWH(25, 8, 6, 6);
+  static const _element = Rect.fromLTWH(13, 8, 6, 6);
+  static const _description = Rect.fromLTWH(3, 28, 26, 17);
 
   @override
   Widget build(BuildContext context) {
@@ -63,8 +69,8 @@ class _ChipCardViewState extends State<ChipCardView> {
     final art = widget.sprites.chip(def);
     final onTap = widget.onTap;
     //final highlight = widget.selected || _focused;
-    // The frame is square: the card is [width] x [width].
-    final scale = widget.width / 32;
+    // The card is [width] wide and as tall as the frame's proportion.
+    final scale = widget.width / _frame.width;
 
     Widget at(Rect rect, Widget child) => Positioned.fromRect(
       rect: Rect.fromLTWH(
@@ -100,11 +106,17 @@ class _ChipCardViewState extends State<ChipCardView> {
       onTap: withTap(onTap),
       child: Opacity(
         opacity: widget.dimmed ? 0.45 : 1,
-        child: SizedBox.square(
-          dimension: widget.width*1,
+        child: SizedBox(
+          width: widget.width,
+          height: _frame.height * scale,
           child: Stack(
             children: [
-              SheetSprite(sprite: widget.sprites.chipFrame, scale: scale*2),
+              SheetSprite(
+                sprite: def.upgraded
+                    ? widget.sprites.chipFrameUpgraded
+                    : widget.sprites.chipFrame,
+                scale: scale,
+              ),
               at(
                 _name,
                 Center(
@@ -117,29 +129,38 @@ class _ChipCardViewState extends State<ChipCardView> {
                   child: SheetSprite(
                     sprite: art,
                     // Old 8px icons are drawn a bit larger; bigger art is
-                    // fitted to the square.
-                    scale: scale * min(1.25, _art.width / art.srcSize.x),
+                    // fitted to the window.
+                    scale:
+                        scale *
+                        min(
+                          1.25,
+                          min(
+                            _art.width / art.srcSize.x,
+                            _art.height / art.srcSize.y,
+                          ),
+                        ),
                   ),
                 ),
               ),
               at(
                 _left,
-                Align(
-                  alignment: Alignment.topCenter,
-                  child:fitted('${def.cost}', 5 * scale * 0.8),
-                ),
+                Center(child: fitted('${def.cost}', 5 * scale * 0.8)),
               ),
-              at(
-                _right,
-                Column(
-                  children: [
-                    if (widget.sprites.element(def.element) case final icon?)
-                      SheetSprite(sprite: icon, scale: scale * 0.75),
-                    if (def.damage > 0)
-                      fitted('${def.damage}', 5 * scale * 0.8),
-                  ],
+              if (def.damage > 0)
+                at(
+                  _right,
+                  Center(child: fitted('${def.damage}', 5 * scale * 0.8)),
                 ),
-              ),
+              if (widget.sprites.element(def.element) case final icon?)
+                at(
+                  _element,
+                  Center(
+                    child: SheetSprite(
+                      sprite: icon,
+                      scale: scale * _element.width / icon.srcSize.x,
+                    ),
+                  ),
+                ),
               at(
                 _description,
                 Center(child: fitted(def.description, 2 * scale, lines: 6)),
