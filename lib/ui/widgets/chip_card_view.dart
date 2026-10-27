@@ -191,7 +191,7 @@ class _ChipCardViewState extends State<ChipCardView> {
       actions: {
         ActivateIntent: CallbackAction<ActivateIntent>(
           onInvoke: (_) {
-            tapFeedback();
+            menuTapFeedback();
             onTap();
             return null;
           },

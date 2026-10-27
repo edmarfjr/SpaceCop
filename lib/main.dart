@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'game/audio.dart';
 import 'game/star_cop_game.dart';
 import 'ui/overlays/battle_hud.dart';
 import 'ui/overlays/map_overlay.dart';
@@ -19,6 +20,7 @@ Future<void> main() async {
   // Full screen: hides the status and navigation bars; a swipe from the
   // edge brings them back for a moment.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  await GameAudio.instance.init();
   runApp(const StarCopApp());
 }
 

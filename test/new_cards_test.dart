@@ -112,6 +112,13 @@ void main() {
     expect(battle.obstacles, isEmpty);
   });
 
+  test('Bobina Tesla goes behind a player standing at the front', () {
+    final battle = battleWith([Chips.teslaCoil], spawns: [dummyAt(5, 1)]);
+    battle.player.pos = const GridPos(2, 1);
+    use(battle, Chips.teslaCoil);
+    expect(battle.obstacles.single.pos, const GridPos(1, 1));
+  });
+
   test('Overclock runs the next card twice for the price of one', () {
     final battle = battleWith(
       [Chips.overclock, Chips.cannon],

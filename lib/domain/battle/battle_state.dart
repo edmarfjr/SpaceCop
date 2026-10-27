@@ -125,6 +125,51 @@ enum ObstacleKind { rock, mine, turret, reflector, tesla }
 /// Red outlines warn of damage, blue ones of terrain changes.
 enum TelegraphKind { damage, terrain }
 
+/// What a [BattleEvent] reports.
+enum BattleEventKind {
+  /// The player used [BattleEvent.chip] (once per run of its effect).
+  chipUsed,
+
+  /// The player fused two cards into [BattleEvent.chip].
+  fusion,
+
+  /// A chain reached [BattleEvent.amount] chips (2 or 3).
+  chain,
+
+  /// An attack by [BattleEvent.unit] started warning its panels.
+  telegraph,
+
+  /// [BattleEvent.unit] fired a straight shot.
+  enemyShot,
+
+  /// A [HitFlash] appeared.
+  explosion,
+  slash,
+
+  /// A hit on [BattleEvent.unit] was stopped: barrier, shield, prism or
+  /// reflector.
+  blocked,
+
+  /// [BattleEvent.unit], an enemy, died.
+  death,
+
+  /// The gauge filled and a new hand was drawn.
+  newHand,
+  won,
+  lost,
+}
+
+/// Something that happened during the last [BattleState.tick], for sounds
+/// and effects. Damage dealt is in [BattleState.hits] instead.
+class BattleEvent {
+  const BattleEvent(this.kind, {this.chip, this.unit, this.amount = 0});
+
+  final BattleEventKind kind;
+  final ChipDef? chip;
+  final Fighter? unit;
+  final int amount;
+}
+
 /// A panel an enemy attack is about to hit, drawn ahead of time.
 class Telegraph {
   Telegraph(this.pos, this.kind, this.ticksLeft, [this.owner]);
@@ -452,6 +497,13 @@ class BattleState {
   final List<Obstacle> obstacles = [];
   final List<Projectile> projectiles = [];
   final List<HitFlash> flashes = [];
+
+  /// Damage dealt during the last [tick], for the renderer's numbers and
+  /// the player's hurt feedback.
+  final List<({Fighter target, int amount})> hits = [];
+
+  /// Everything else that happened during the last [tick].
+  final List<BattleEvent> events = [];
   final List<Telegraph> telegraphs = [];
   final List<_Scheduled> _scheduled = [];
   final Random random;
@@ -628,6 +680,7 @@ class BattleState {
     selectedIndex = 0;
     gauge = 0;
     waitingForPlayer = pauseOnNewHand;
+    events.add(const BattleEvent(BattleEventKind.newHand));
     gaugeBoosted = boostNextGauge;
     boostNextGauge = false;
     for (final relic in relics) {
@@ -638,6 +691,8 @@ class BattleState {
   // ------------------------------------------------------------------ tick
 
   void tick([PlayerInput input = PlayerInput.none]) {
+    hits.clear();
+    events.clear();
     if (phase != BattlePhase.fighting) return;
     if (waitingForPlayer) {
       if (!input.acts) return;
@@ -664,17 +719,34 @@ class BattleState {
       _updateStatuses(unit);
     }
     for (final flash in flashes) {
+      // Not counted down yet: added this tick.
+      if (flash.ticksLeft == HitFlash.lifetime) {
+        events.add(
+          BattleEvent(
+            flash.kind == FlashKind.slash
+                ? BattleEventKind.slash
+                : BattleEventKind.explosion,
+          ),
+        );
+      }
       flash.ticksLeft--;
     }
     flashes.removeWhere((f) => f.ticksLeft <= 0);
+    for (final enemy in enemies) {
+      if (enemy.isDead) {
+        events.add(BattleEvent(BattleEventKind.death, unit: enemy));
+      }
+    }
     enemies.removeWhere((e) => e.isDead);
     obstacles.removeWhere((o) => o.isDead);
 
     if (player.isDead) {
       phase = BattlePhase.lost;
+      events.add(const BattleEvent(BattleEventKind.lost));
     } else if (enemies.every((e) => e.def.summon)) {
       enemies.clear();
       phase = BattlePhase.won;
+      events.add(const BattleEvent(BattleEventKind.won));
     }
   }
 
@@ -718,6 +790,15 @@ class BattleState {
     TelegraphKind kind = TelegraphKind.damage,
     Fighter? owner,
   ]) {
+    // Attacks that keep refreshing their warning (aimed beams) report it
+    // only once.
+    if (kind == TelegraphKind.damage &&
+        (owner == null ||
+            !telegraphs.any(
+              (t) => t.owner == owner && t.kind == TelegraphKind.damage,
+            ))) {
+      events.add(BattleEvent(BattleEventKind.telegraph, unit: owner));
+    }
     for (final cell in cells) {
       if (cell.inBounds) telegraphs.add(Telegraph(cell, kind, ticks, owner));
     }
@@ -894,6 +975,7 @@ class BattleState {
   /// Uses both cards as their fusion, paying the energy of both.
   void _fuse(ChipCard card, ChipCard partner) {
     final fusion = Chips.fusionOf(card.def, partner.def)!;
+    events.add(BattleEvent(BattleEventKind.fusion, chip: fusion));
     final twice = overclocked;
     overclocked = false;
     _activate(fusion);
@@ -926,6 +1008,11 @@ class BattleState {
       chainCount = step;
     }
     _chainTicks = chainWindowTicks;
+    if (chainCount >= 2) {
+      events.add(
+        BattleEvent(BattleEventKind.chain, amount: min(chainCount, 3)),
+      );
+    }
     switch (chainCount) {
       case 2:
         return 1.5;
@@ -980,6 +1067,7 @@ class BattleState {
   /// Runs [def]'s effect for the player. Damage goes through terrain, chain
   /// and relic bonuses, in that order.
   void _activate(ChipDef def) {
+    events.add(BattleEvent(BattleEventKind.chipUsed, chip: def));
     player.pose = def.pose;
     final chain = _advanceChain(def.element);
     var damage = boosted(player, def.damage + damageBonus, def.element);
@@ -1312,9 +1400,10 @@ class BattleState {
           ),
         );
       case ObstacleKind.tesla:
-        // The frontmost free panel of the player's side, ahead of them.
+        // The frontmost free panel of the player's side in their row; behind
+        // them if they stand at the front.
         GridPos? pos;
-        for (var x = gridColumns - 1; x > player.pos.x && pos == null; x--) {
+        for (var x = gridColumns - 1; x >= 0 && pos == null; x--) {
           final cell = GridPos(x, player.pos.y);
           if (canEnter(player, cell)) pos = cell;
         }
@@ -1618,16 +1707,21 @@ class BattleState {
             ),
           );
         }
+        events.add(BattleEvent(BattleEventKind.blocked, unit: target));
         return;
       }
       if (target.def.frontShield &&
           target.shieldDown == 0 &&
           kind == HitKind.straight &&
           shot?.dir == 1) {
+        events.add(BattleEvent(BattleEventKind.blocked, unit: target));
         return;
       }
     }
-    if (target is Obstacle && target.kind == ObstacleKind.reflector) return;
+    if (target is Obstacle && target.kind == ObstacleKind.reflector) {
+      events.add(BattleEvent(BattleEventKind.blocked, unit: target));
+      return;
+    }
     var total = amount;
     final panel = panelAt(target.pos).state;
     if (element.beats(target.element)) total *= weaknessMultiplier;
@@ -1643,9 +1737,11 @@ class BattleState {
     if (element == Element.fire && panel == PanelState.grass) total *= 2;
     if (target is PlayerFighter && target.barrierTicks > 0) {
       target.barrierTicks = 0;
+      events.add(BattleEvent(BattleEventKind.blocked, unit: target));
       return;
     }
     target.takeDamage(total);
+    if (total > 0) hits.add((target: target, amount: total));
   }
 
   /// Mira Laser's extra damage on a marked target.
@@ -1656,6 +1752,7 @@ class BattleState {
   /// the row, doubled.
   void _reflect(Obstacle reflector, Projectile shot) {
     shot.spent = true;
+    events.add(BattleEvent(BattleEventKind.blocked, unit: reflector));
     flashes.add(HitFlash(reflector.pos));
     projectiles.add(
       Projectile(
@@ -1712,6 +1809,7 @@ class BattleState {
     Element? element,
   }) {
     if (inSmoke(enemy)) return;
+    events.add(BattleEvent(BattleEventKind.enemyShot, unit: enemy));
     enemy.attackPose = attackPoseTicks;
     final shotElement = element ?? enemy.element;
     projectiles.add(

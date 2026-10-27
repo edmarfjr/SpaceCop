@@ -224,6 +224,20 @@ void main() {
     expect(battle.obstacles.single.pos, const GridPos(1, 1));
   });
 
+  test('every hit is reported for one tick, for the damage numbers', () {
+    final battle = battleWith([Chips.shot], spawns: [dummyAt(2, 1)]);
+    final enemy = battle.enemies.single;
+    battle.selectChip(0);
+    battle.tick(const PlayerInput(useChip: true));
+    for (var i = 0; i < 5 && battle.hits.isEmpty; i++) {
+      battle.tick();
+    }
+    expect(battle.hits.single.target, enemy);
+    expect(battle.hits.single.amount, Chips.shot.damage);
+    battle.tick();
+    expect(battle.hits, isEmpty);
+  });
+
   test('Gancho pulls the first target of the row', () {
     final battle = battleWith([Chips.hook], spawns: [dummyAt(4, 1)]);
     use(battle, Chips.hook);

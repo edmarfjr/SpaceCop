@@ -1,3 +1,4 @@
+import 'package:flame/components.dart' show Sprite;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,6 +9,7 @@ import '../../game/sprites.dart';
 import '../feedback.dart';
 import '../theme.dart';
 import '../widgets/chip_card_view.dart';
+import '../widgets/sheet_sprite.dart';
 
 /// HP, gauge, Energy and the current hand, drawn by Flutter over the grid.
 ///
@@ -56,9 +58,12 @@ class BattleHud extends StatelessWidget {
             right: 2,
             child: Row(
               children: [
-                _IconButton(icon: Icons.style, onTap: game.showDeck),
+                _IconButton(
+                  icon: game.sprites.deckIcon,
+                  onTap: game.showDeck,
+                ),
                 const SizedBox(width: 4),
-                _IconButton(icon: Icons.pause, onTap: game.pause),
+                _IconButton(icon: game.sprites.pauseIcon, onTap: game.pause),
               ],
             ),
           ),
@@ -166,7 +171,8 @@ class _SwipeAreaState extends State<_SwipeArea> {
 class _IconButton extends StatelessWidget {
   const _IconButton({required this.icon, required this.onTap});
 
-  final IconData icon;
+  /// 8x8 art, drawn at 2x like everything else.
+  final Sprite icon;
   final VoidCallback onTap;
 
   @override
@@ -180,7 +186,8 @@ class _IconButton extends StatelessWidget {
         border: Border.all(color: Pico.lightGray, width: 0.5),
         borderRadius: BorderRadius.circular(2),
       ),
-      child: Icon(icon, size: 12, color: Pico.white),
+      alignment: Alignment.center,
+      child: SheetSprite(sprite: icon, scale: 2),
     ),
   );
 }

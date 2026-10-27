@@ -9,6 +9,9 @@ import '../../domain/chips/battle_chip.dart';
 import '../../domain/grid.dart';
 import '../star_cop_game.dart';
 import '../../ui/feedback.dart';
+import '../../ui/theme.dart';
+import 'battle_sounds.dart';
+import 'damage_text.dart';
 import 'fighter_component.dart';
 import 'grid_component.dart';
 import 'projectile_layer.dart';
@@ -39,6 +42,15 @@ class BattleWorld extends World
   double _accumulator = 0;
   double _endTimer = 0;
   bool _finished = false;
+
+  /// Seconds of screen shake left, after the player is hurt.
+  double _shake = 0;
+  static const double _shakeTime = 0.25;
+
+  /// Px the grid moves at most while shaking.
+  static const double _shakeAmplitude = 3;
+  final _random = Random();
+  final _sounds = BattleSounds();
 
   int _keyDx = 0;
   int _keyDy = 0;
@@ -98,9 +110,37 @@ class BattleWorld extends World
     super.onRemove();
   }
 
+  /// The damage number over [target]; hurting the player also shakes the
+  /// screen and vibrates.
+  void _showHit(Fighter target, int amount) {
+    final view = _views[target];
+    final head = view == null
+        ? _grid.cellCenter(target.pos)
+        : view.position - Vector2(0, view.size.y);
+    _grid.add(
+      DamageText(
+        amount,
+        position: head + Vector2(_random.nextDouble() * 8 - 4, 0),
+        color: target is PlayerFighter ? Pico.red : Pico.white,
+      ),
+    );
+    if (target is PlayerFighter) {
+      hurtFeedback();
+      _shake = _shakeTime;
+    }
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
+    if (_shake > 0) {
+      _shake -= dt;
+      _grid.position = _shake <= 0
+          ? GridComponent.origin.clone()
+          : GridComponent.origin +
+                (Vector2.random(_random) - Vector2.all(0.5)) *
+                    (2 * _shakeAmplitude);
+    }
     if (game.halted || battle.peekOpen) return;
     if (battle.isOver) {
       _endTimer += dt;
@@ -134,7 +174,10 @@ class BattleWorld extends World
           cycleChip: _cyclePressed,
         ),
       );
-      if (battle.player.hurtTicks == hurtFlashTicks) hurtFeedback();
+      for (final hit in battle.hits) {
+        _showHit(hit.target, hit.amount);
+      }
+      _sounds.afterTick(battle);
       _usePressed = _cyclePressed = false;
       // Consumed once it moved, or once the chip left the hand or began
       // charging.

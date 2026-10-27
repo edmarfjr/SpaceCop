@@ -7,6 +7,7 @@ import '../../domain/chips/battle_chip.dart';
 import '../../domain/chips/chip_library.dart';
 import '../../domain/run/events.dart';
 import '../../domain/run/relics.dart';
+import '../../game/audio.dart';
 import '../../game/star_cop_game.dart';
 import '../feedback.dart';
 import '../theme.dart';
@@ -215,10 +216,10 @@ class _ShopOverlayState extends State<ShopOverlay> {
     return () => setState(() {
       switch (item) {
         case ChipDef():
-          shop.buyChip(item);
+          if (shop.buyChip(item)) GameAudio.instance.play(Sfx.buy);
           _selected = null;
         case RelicDef():
-          shop.buyRelic(item);
+          if (shop.buyRelic(item)) GameAudio.instance.play(Sfx.buy);
           _selected = null;
         default:
           _removing = true;
@@ -241,7 +242,7 @@ class _ShopOverlayState extends State<ShopOverlay> {
             sprites: game.sprites,
             grouped: true,
             onPick: (card) => setState(() {
-              shop.removeChip(card);
+              if (shop.removeChip(card)) GameAudio.instance.play(Sfx.buy);
               _removing = false;
               _selected = null;
             }),

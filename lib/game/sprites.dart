@@ -68,6 +68,10 @@ abstract final class SpriteFiles {
   /// Warning sign over an enemy about to attack, 2 frames blinking.
   static const attackSign = 'actors/sign.png';
 
+  /// Battle buttons, top right: 8x8 icons.
+  static const deckIcon = 'icons/deck.png';
+  static const pauseIcon = 'icons/pause.png';
+
   /// 32x32 frame every chip card is drawn on.
   static const chipFrame = 'chips/chip.png';
 
@@ -78,8 +82,7 @@ abstract final class SpriteFiles {
     ObstacleKind.rock: 'chips/pedra.png',
     ObstacleKind.turret: 'obstacles/drone.png',
     ObstacleKind.reflector: 'chips/stasisGen.png',
-    // TODO(art): placeholder until the coil has its own sprite.
-    ObstacleKind.tesla: 'chips/turret.png',
+    ObstacleKind.tesla: 'chips/teslaCoil.png',
   };
 
   static final chips = <String, String>{
@@ -118,15 +121,14 @@ abstract final class SpriteFiles {
     // TODO(art): Tempestade and Avalanche borrow one of their parts.
     Chips.storm.id: 'chips/raio.png',
     Chips.avalanche.id: 'chips/pedra.png',
-    // TODO(art): placeholders borrowed from unused or related art.
     Chips.cryoGrenade.id: 'chips/granadaCrio.png',
-    Chips.emp.id: 'chips/ramPlus.png',
-    Chips.neuralVine.id: 'chips/broto.png',
-    Chips.laserSight.id: 'icons/target.png',
-    Chips.overcharge.id: 'chips/ramUp.png',
-    Chips.tractorBeam.id: 'chips/exoArm.png',
-    Chips.teslaCoil.id: 'chips/turret.png',
-    Chips.overclock.id: 'chips/spdLdr.png',
+    Chips.emp.id: 'chips/emp.png',
+    Chips.neuralVine.id: 'chips/cabos.png',
+    Chips.laserSight.id: 'chips/laserSign.png',
+    Chips.overcharge.id: 'chips/sobrecarga.png',
+    Chips.tractorBeam.id: 'chips/raioTrator.png',
+    Chips.teslaCoil.id: 'chips/teslaCoil.png',
+    Chips.overclock.id: 'chips/overclock.png',
   };
 
   /// Frame drawn over every panel, by the side that owns it.
@@ -179,6 +181,8 @@ abstract final class SpriteFiles {
     Events.informant.title: 'events/celaInformante.png',
     Events.securityTerminal.title: 'events/terminalSeguranca.png',
     Events.vault.title: 'events/cofre.png',
+    Events.shootingRange.title: 'events/campoTiro.png',
+    Events.undercoverAgent.title: 'events/agenteInfiltrado.png',
   };
 
   static const nodes = <NodeType, String>{
@@ -204,6 +208,8 @@ abstract final class SpriteFiles {
     smoke,
     energyShield,
     attackSign,
+    deckIcon,
+    pauseIcon,
     ...enemies.values,
     ...obstacles.values,
     ...chips.values,
@@ -263,6 +269,8 @@ class GameSprites {
   late final Sprite chipFrame = _file(SpriteFiles.chipFrame);
   late final Sprite chipFrameUpgraded = _file(SpriteFiles.chipFrameUpgraded);
   late final Sprite pickaxe = _file(SpriteFiles.pickaxe);
+  late final Sprite deckIcon = _file(SpriteFiles.deckIcon);
+  late final Sprite pauseIcon = _file(SpriteFiles.pauseIcon);
 
   /// Hits and area attacks, 4 frames played once.
   /// Energy shield loop; frame size read from the file's height.

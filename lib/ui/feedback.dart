@@ -1,16 +1,25 @@
 import 'package:flutter/services.dart';
 
+import '../game/audio.dart';
+
 /// Light vibration for a tap on a button, card or map node.
 void tapFeedback() => HapticFeedback.lightImpact();
 
-/// Short, stronger vibration when the player takes damage.
-void hurtFeedback() => HapticFeedback.heavyImpact();
+/// [tapFeedback] plus the tap blip, for menus. A more specific sound played
+/// by the action replaces the blip.
+void menuTapFeedback() {
+  tapFeedback();
+  GameAudio.instance.play(Sfx.tap);
+}
 
-/// [action] preceded by [tapFeedback]. Null stays null, so disabled buttons
-/// stay disabled.
+/// Stronger vibration when the player takes damage.
+void hurtFeedback() => HapticFeedback.vibrate();
+
+/// [action] preceded by [menuTapFeedback]. Null stays null, so disabled
+/// buttons stay disabled.
 VoidCallback? withTap(VoidCallback? action) => action == null
     ? null
     : () {
-        tapFeedback();
+        menuTapFeedback();
         action();
       };

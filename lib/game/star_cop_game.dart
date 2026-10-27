@@ -11,6 +11,7 @@ import '../domain/run/events.dart';
 import '../domain/run/relics.dart';
 import '../domain/run/run_state.dart';
 import '../domain/run/shop.dart';
+import 'audio.dart';
 import 'battle/battle_world.dart';
 import 'sprites.dart';
 
@@ -96,11 +97,20 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   bool get halted =>
       overlays.isActive(Overlays.pause) || overlays.isActive(Overlays.deck);
 
-  void pause() => overlays.add(Overlays.pause);
+  void pause() {
+    GameAudio.instance.play(Sfx.pause);
+    overlays.add(Overlays.pause);
+  }
 
-  void showDeck() => overlays.add(Overlays.deck);
+  void showDeck() {
+    GameAudio.instance.play(Sfx.deck);
+    overlays.add(Overlays.deck);
+  }
 
-  void closeMenus() => overlays.removeAll([Overlays.pause, Overlays.deck]);
+  void closeMenus() {
+    GameAudio.instance.play(Sfx.cancel);
+    overlays.removeAll([Overlays.pause, Overlays.deck]);
+  }
 
   BattleWorld? get battleWorld =>
       world is BattleWorld ? world as BattleWorld : null;
@@ -119,6 +129,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
 
   /// Entry point from the map overlay.
   void selectNode(MapNode node) {
+    GameAudio.instance.play(Sfx.node);
     run.enter(node);
     switch (node.type!) {
       case NodeType.battle:
@@ -191,24 +202,29 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       );
       rewardCredits = run.credits - before;
       rewardOptions = run.rollRewards(3);
+      GameAudio.instance.play(Sfx.reward);
       _goTo(GamePhase.reward);
     }
   }
 
   /// Reward screen: [chip] null means "skip".
   void pickReward(ChipDef? chip) {
+    GameAudio.instance.play(chip == null ? Sfx.cancel : Sfx.confirm);
     if (chip != null) run.deck.add(ChipCard(chip));
     finishNode();
   }
 
   /// Applies an event option once its chip (if any) was picked.
-  void resolveEvent(EventOption option, [ChipCard? picked]) =>
-      _showFollowUp(option.apply(run, picked));
+  void resolveEvent(EventOption option, [ChipCard? picked]) {
+    GameAudio.instance.play(Sfx.confirm);
+    _showFollowUp(option.apply(run, picked));
+  }
 
   /// Card picked for the event's [eventPick].
   void resolvePick(ChipCard card) {
     final pick = eventPick;
     eventPick = null;
+    GameAudio.instance.play(Sfx.confirm);
     if (pick != null) _showFollowUp(pick.apply(run, card));
   }
 
@@ -234,19 +250,23 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   }
 
   void pickOffer(EventOffer offer) {
+    GameAudio.instance.play(Sfx.confirm);
     offer.apply(run);
     eventChoice = null;
     finishNode();
   }
 
   void restHere() {
+    GameAudio.instance.play(Sfx.heal);
     run.rest();
     finishNode();
   }
 
   /// The campfire's other choice: upgrade one card instead of resting.
   void upgradeHere(ChipCard card) {
-    if (run.upgrade(card)) finishNode();
+    if (!run.upgrade(card)) return;
+    GameAudio.instance.play(Sfx.upgrade);
+    finishNode();
   }
 
   /// Back to the map after any non-battle node or reward.
@@ -264,6 +284,13 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     overlays.removeAll(overlays.activeOverlays.toList());
     overlays.add(Overlays.forPhase(next));
     phase.value = next;
+    GameAudio.instance.music(switch (next) {
+      GamePhase.map || GamePhase.reward => Music.map,
+      GamePhase.battle =>
+        run.current?.type == NodeType.boss ? Music.boss : Music.battle,
+      GamePhase.rest || GamePhase.shop || GamePhase.event => Music.shop,
+      GamePhase.gameOver || GamePhase.victory => null,
+    });
   }
 
   @override
