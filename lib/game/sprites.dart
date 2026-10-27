@@ -119,7 +119,7 @@ abstract final class SpriteFiles {
     Chips.storm.id: 'chips/raio.png',
     Chips.avalanche.id: 'chips/pedra.png',
     // TODO(art): placeholders borrowed from unused or related art.
-    Chips.cryoGrenade.id: 'chips/granada.png',
+    Chips.cryoGrenade.id: 'chips/granadaCrio.png',
     Chips.emp.id: 'chips/ramPlus.png',
     Chips.neuralVine.id: 'chips/broto.png',
     Chips.laserSight.id: 'icons/target.png',
