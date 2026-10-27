@@ -254,7 +254,9 @@ abstract final class Chips {
   static const crossFlame = ChipDef(
     id: 'cross_flame',
     name: 'Chama Cruzada',
-    description: 'Explode em cruz no alvo. Queima Grama.',
+    description:
+        'Lançada no primeiro inimigo da linha, por cima de obstáculos: '
+        'explode em cruz. Queima Grama.',
     cost: 2,
     type: ChipType.attack,
     target: ChipTarget.row,
@@ -276,10 +278,10 @@ abstract final class Chips {
     id: 'thunder_lance',
     name: 'Lança Trovão',
     description: 'Acerta as 3 colunas inimigas da sua linha.',
-    cost: 3,
+    cost: 2,
     type: ChipType.attack,
     target: ChipTarget.row,
-    damage: 15,
+    damage: 20,
     element: Element.elec,
     effect: RowStrikeEffect(),
   );
@@ -355,7 +357,7 @@ abstract final class Chips {
     id: 'turret',
     name: 'Drone',
     description: 'Drone que atira 5 Elétrico por segundo por 10 s.',
-    cost: 3,
+    cost: 2,
     type: ChipType.attack,
     target: ChipTarget.self,
     element: Element.elec,
@@ -634,7 +636,7 @@ abstract final class Chips {
         effect: const PushEffect(2, status: Status.wet),
       ),
       _up(crossFlame, damage: 20),
-      _up(thunderLance, cost: 2),
+      _up(thunderLance, cost: 1),
       _up(
         barrier,
         description: 'Anula o próximo dano. Dura até 8 s.',
