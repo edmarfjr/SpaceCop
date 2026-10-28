@@ -84,13 +84,19 @@ class _ChipCardViewState extends State<ChipCardView> {
     );
 
     // Text is sized off the frame and shrinks further to fit its region.
-    Widget fitted(String text, double size, {int? lines, Color? color}) =>
-        FittedBox(
+    // [prefix] goes before [text], in its own style (the family line).
+    Widget fitted(
+      String text,
+      double size, {
+      int? lines,
+      Color? color,
+      TextSpan? prefix,
+    }) => FittedBox(
           fit: BoxFit.scaleDown,
           child: SizedBox(
             width: lines == null ? null : _description.width * scale,
-            child: Text(
-              text,
+            child: Text.rich(
+              TextSpan(children: [?prefix, TextSpan(text: text)]),
               textAlign: TextAlign.center,
               maxLines: lines,
               style: TextStyle(
@@ -173,7 +179,17 @@ class _ChipCardViewState extends State<ChipCardView> {
                 ),
               at(
                 _description,
-                Center(child: fitted(def.description, 2 * scale, lines: 6)),
+                Center(
+                  child: fitted(
+                    def.description,
+                    2 * scale,
+                    lines: 7,
+                    prefix: TextSpan(
+                      text: '${def.family.label}\n',
+                      style: TextStyle(color: familyColor(def.family)),
+                    ),
+                  ),
+                ),
               ),
               // Selection / focus, and the chip type, as an outline.
               /*Positioned.fill(

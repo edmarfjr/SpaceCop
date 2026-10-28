@@ -37,8 +37,12 @@ const int rockCollisionDamage = 30;
 const int fallDamage = 20;
 const int fallStunTicks = ticksPerSecond;
 
-/// A chain is kept by using a chip of the same element within this window.
+/// A chain is kept by using a chip of the same family within this window.
 const int chainWindowTicks = 2 * ticksPerSecond;
+
+/// Damage of the 2nd and 3rd chip of a chain.
+const double chain2Multiplier = 1.25;
+const double chain3Multiplier = 1.5;
 
 /// Holding Use this long with a fusion pair in hand fuses them.
 const int fusionChargeTicks = ticksPerSecond ~/ 2;
@@ -543,8 +547,8 @@ class BattleState {
   /// Temporary Energy granted by [EnergyBurstEffect]; reset on every refill.
   int energyBonus = 0;
 
-  /// Element of the running chain and how many chips it has (0 = none).
-  Element? chainElement;
+  /// Family of the running chain and how many chips it has (0 = none).
+  ChipFamily? chainFamily;
   int chainCount = 0;
   int _chainTicks = 0;
 
@@ -988,23 +992,20 @@ class BattleState {
     player.attackCooldown = playerAttackCooldown;
   }
 
-  /// Chain bookkeeping for a chip of [element] about to be used. Returns the
-  /// damage multiplier: x1.5 on the 2nd chip, x2 on the 3rd. The 3rd also
-  /// sets [_chainStatus] and completes the chain. After Sobrecarga
-  /// ([chainSurge]) the chip counts twice.
-  double _advanceChain(Element element) {
+  /// Chain bookkeeping for a chip of [family] about to be used. Returns the
+  /// damage multiplier ([chain2Multiplier], [chain3Multiplier]). The 3rd
+  /// chip also sets [_chainStatus] and completes the chain. After Sobrecarga
+  /// ([chainSurge]) the chip counts twice. Families that don't chain leave
+  /// the chain, its window and Sobrecarga untouched.
+  double _advanceChain(ChipFamily family) {
     _chainStatus = null;
+    if (!family.chains) return 1;
     final step = chainSurge ? 2 : 1;
     chainSurge = false;
-    if (element == Element.neutral) {
-      chainCount = 0;
-      chainElement = null;
-      return 1;
-    }
-    if (chainCount > 0 && element == chainElement) {
+    if (chainCount > 0 && family == chainFamily) {
       chainCount += step;
     } else {
-      chainElement = element;
+      chainFamily = family;
       chainCount = step;
     }
     _chainTicks = chainWindowTicks;
@@ -1015,19 +1016,19 @@ class BattleState {
     }
     switch (chainCount) {
       case 2:
-        return 1.5;
+        return chain2Multiplier;
       case >= 3:
-        _chainStatus = switch (element) {
-          Element.fire => Status.burning,
-          Element.aqua => Status.wet,
-          Element.elec => Status.stunned,
-          Element.wood || Element.neutral => Status.rooted,
+        _chainStatus = switch (family) {
+          ChipFamily.projectile => Status.marked,
+          ChipFamily.explosive => Status.burning,
+          ChipFamily.energy => Status.stunned,
+          _ => Status.rooted,
         };
         chainCount = 0;
         for (final relic in relics) {
           relic.onChainComplete?.call(this);
         }
-        return 2;
+        return chain3Multiplier;
       default:
         return 1;
     }
@@ -1069,7 +1070,7 @@ class BattleState {
   void _activate(ChipDef def) {
     events.add(BattleEvent(BattleEventKind.chipUsed, chip: def));
     player.pose = def.pose;
-    final chain = _advanceChain(def.element);
+    final chain = _advanceChain(def.family);
     var damage = boosted(player, def.damage + damageBonus, def.element);
     damage = (damage * chain).round();
     for (final relic in relics) {

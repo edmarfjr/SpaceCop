@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../domain/chips/battle_chip.dart' show ChipFamily;
 import '../domain/rarity.dart';
 
 /// Design tokens. See DESIGN.md.
@@ -82,6 +83,17 @@ Color rarityColor(Rarity rarity) => switch (rarity) {
   Rarity.common => Pico.lightGray,
   Rarity.uncommon => Pico.blue,
   Rarity.rare => Pico.orange,
+};
+
+/// Card family: the first line of a card's description, on the dark box.
+Color familyColor(ChipFamily family) => switch (family) {
+  ChipFamily.projectile => Pico.peach,
+  ChipFamily.explosive => Pico.orange,
+  ChipFamily.energy => Pico.blue,
+  ChipFamily.melee => Pico.red,
+  ChipFamily.equipment => Pico.lightGray,
+  ChipFamily.consumable => Pico.green,
+  ChipFamily.tactical => Pico.pink,
 };
 
 /// Width of the focus border.

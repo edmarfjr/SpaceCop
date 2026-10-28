@@ -17,11 +17,18 @@ EnemyDef dummyOf(Element element, {int shotDamage = 0}) => EnemyDef(
 );
 
 /// Single-target shot of [element], 10 damage, free.
-ChipDef shotOf(Element element, {int damage = 10}) => ChipDef(
-  id: 'test_${element.name}',
+/// Plain shot of [element]. Its family defaults to one that doesn't chain,
+/// so repeated shots keep their plain damage.
+ChipDef shotOf(
+  Element element, {
+  int damage = 10,
+  ChipFamily family = ChipFamily.tactical,
+}) => ChipDef(
+  id: 'test_${element.name}_${family.name}',
   name: 'Teste',
   description: '',
   cost: 0,
+  family: family,
   type: ChipType.attack,
   target: ChipTarget.row,
   damage: damage,

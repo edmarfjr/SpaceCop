@@ -297,7 +297,7 @@ class _Info extends StatelessWidget {
         Text(
           //'Compra ${battle.deck.drawPile.length} · Descarte ${battle.deck.discardPile.length}'
           '${battle.damageBonus > 0 ? ' · +${battle.damageBonus}' : ''}'
-          '${battle.chainCount > 0 ? ' · Corrente ${battle.chainElement!.label} x${battle.chainCount}' : ''}'
+          '${battle.chainCount > 0 ? ' · Corrente ${battle.chainFamily!.label} x${battle.chainCount}' : ''}'
           '${battle.chargingCard != null ? ' · Fundindo...' : ''}'
           '${battle.chainSurge ? ' · Sobrecarga' : ''}'
           '${battle.overclocked ? ' · Overclock' : ''}',

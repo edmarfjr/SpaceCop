@@ -22,49 +22,73 @@ void hold(BattleState battle, ChipDef def, int ticks) {
 }
 
 void main() {
-  group('element chain', () {
-    test('2nd chip +50%, 3rd +100% and applies the status', () {
-      final fire = shotOf(Element.fire);
-      final battle = battleWith([fire, fire, fire]);
+  group('family chain', () {
+    final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
+    final blast = shotOf(Element.neutral, family: ChipFamily.explosive);
+    final zap = shotOf(Element.neutral, family: ChipFamily.energy);
+
+    test('2nd chip +25%, 3rd +50% and applies the family status', () {
+      final battle = battleWith([blast, blast, blast]);
       final enemy = battle.enemies.single;
-      use(battle, fire);
+      use(battle, blast);
       expect(enemy.hp, 100 - 10);
       expect(battle.chainCount, 1);
-      use(battle, fire);
-      expect(enemy.hp, 100 - 10 - 15);
-      use(battle, fire);
-      expect(enemy.hp, 100 - 10 - 15 - 20);
+      expect(battle.chainFamily, ChipFamily.explosive);
+      use(battle, blast);
+      expect(enemy.hp, 100 - 10 - 13);
+      use(battle, blast);
+      expect(enemy.hp, 100 - 10 - 13 - 15);
       expect(enemy.has(Status.burning), isTrue);
       expect(battle.chainCount, 0);
     });
 
-    test('Neutral chips and a 2 s gap break the chain', () {
-      final fire = shotOf(Element.fire);
-      final battle = battleWith([fire, Chips.shot, fire, fire]);
+    test('each damage family has its own finishing status', () {
+      for (final (family, status) in [
+        (ChipFamily.projectile, Status.marked),
+        (ChipFamily.energy, Status.stunned),
+        (ChipFamily.melee, Status.rooted),
+      ]) {
+        final chip = shotOf(Element.neutral, family: family);
+        final battle = battleWith([chip, chip, chip]);
+        for (var i = 0; i < 3; i++) {
+          use(battle, chip);
+        }
+        expect(battle.enemies.single.has(status), isTrue, reason: '$family');
+      }
+    });
+
+    test('cards that do not chain keep it; another family or a 2 s gap '
+        'break it', () {
+      final other = shotOf(Element.neutral);
+      final battle = battleWith([shot, other, shot, blast, shot]);
       final enemy = battle.enemies.single;
-      use(battle, fire);
-      use(battle, Chips.shot);
-      use(battle, fire);
-      expect(enemy.hp, 100 - 10 - Chips.shot.damage - 10);
+      use(battle, shot);
+      use(battle, other);
+      expect(battle.chainCount, 1, reason: 'Tático leaves the chain alone');
+      use(battle, shot);
+      expect(enemy.hp, 100 - 10 - 10 - 13);
+      use(battle, blast);
+      expect(battle.chainFamily, ChipFamily.explosive);
+      expect(battle.chainCount, 1);
       wait(battle, chainWindowTicks);
-      use(battle, fire);
-      expect(enemy.hp, 100 - 10 - Chips.shot.damage - 10 - 10);
+      expect(battle.chainCount, 0);
+      use(battle, shot);
+      expect(enemy.hp, 100 - 10 - 10 - 13 - 10 - 10);
     });
 
     test('a complete chain fires Gatilho de Corrente', () {
-      final aqua = shotOf(Element.aqua);
       final battle = BattleState(
         playerHp: 100,
         playerMaxHp: 100,
-        deckCards: [for (var i = 0; i < 3; i++) ChipCard(aqua)],
+        deckCards: [for (var i = 0; i < 3; i++) ChipCard(zap)],
         encounter: Encounter([dummyAt(3, 1)]),
         random: Random(1),
         relics: const [Relics.chainTrigger],
       )..tick();
       for (var i = 0; i < 3; i++) {
-        use(battle, aqua);
+        use(battle, zap);
       }
-      expect(battle.enemies.single.has(Status.wet), isTrue);
+      expect(battle.enemies.single.has(Status.stunned), isTrue);
       expect(battle.boostNextGauge, isTrue);
     });
   });

@@ -10,6 +10,38 @@ export '../rarity.dart' show Rarity;
 /// (e.g. "attack chips cost +1 in this elite fight").
 enum ChipType { attack, support, recovery }
 
+/// What kind of gear the card is. Damage families keep a chain going (3 of
+/// the same in a row); the others leave the chain as it is.
+enum ChipFamily {
+  projectile,
+  explosive,
+  energy,
+  melee,
+  equipment,
+  consumable,
+  tactical;
+
+  /// Name shown in game.
+  String get label => switch (this) {
+    ChipFamily.projectile => 'Projétil',
+    ChipFamily.explosive => 'Explosivo',
+    ChipFamily.energy => 'Energia',
+    ChipFamily.melee => 'Corpo-a-corpo',
+    ChipFamily.equipment => 'Equipamento',
+    ChipFamily.consumable => 'Consumível',
+    ChipFamily.tactical => 'Tático',
+  };
+
+  /// Builds and keeps chains.
+  bool get chains => switch (this) {
+    ChipFamily.projectile ||
+    ChipFamily.explosive ||
+    ChipFamily.energy ||
+    ChipFamily.melee => true,
+    _ => false,
+  };
+}
+
 /// Who the chip is aimed at.
 enum ChipTarget {
   /// Affects the user (heal, buffs).
@@ -262,6 +294,7 @@ class ChipDef {
     required this.name,
     required this.description,
     required this.cost,
+    required this.family,
     required this.type,
     required this.target,
     required this.effect,
@@ -279,6 +312,7 @@ class ChipDef {
 
   /// Energy spent to use the chip in battle (0 to 3).
   final int cost;
+  final ChipFamily family;
   final ChipType type;
   final ChipTarget target;
   final ChipEffect effect;

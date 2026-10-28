@@ -139,6 +139,7 @@ void main() {
       name: 'Teste',
       description: '',
       cost: 0,
+      family: ChipFamily.tactical,
       type: ChipType.attack,
       target: ChipTarget.row,
       damage: 5,

@@ -67,6 +67,12 @@ Use só as 32 cores de `Pico`, a paleta do Picotron (as 16 do PICO-8 mais
 - Destaque e foco: `Pico.yellow`.
 - Ataque: `Pico.red`. Suporte: `Pico.orange`. Recuperação: `Pico.green`.
 - Energia: `Pico.blue`.
+- Raridade (`rarityColor`): Comum `Pico.lightGray`, Incomum `Pico.blue`,
+  Raro `Pico.orange`.
+- Família da carta (`familyColor`), sobre a caixa cinza da descrição:
+  Projétil `Pico.peach`, Explosivo `Pico.orange`, Energia `Pico.blue`,
+  Corpo-a-corpo `Pico.red`, Equipamento `Pico.lightGray`, Consumível
+  `Pico.green`, Tático `Pico.pink`.
 
 ## Sprites
 
@@ -100,7 +106,10 @@ Use só as 32 cores de `Pico`, a paleta do Picotron (as 16 do PICO-8 mais
 - A arte das cartas cabe na janela preta do frame (22×13 px do frame):
   ícones de 8 px saem a 1,25×, artes maiores (32 ou 40 px) são reduzidas
   para caber. O custo fica no círculo azul, o dano no vermelho e o ícone do
-  elemento entre os dois.
+  elemento entre os dois. A descrição começa com a família da carta
+  (Projétil, Explosivo...), na cor dela.
+- Cartas incomuns e raras têm uma borda na barra do nome, na cor da
+  raridade; as comuns ficam com o frame original.
 
 ## Tipografia
 

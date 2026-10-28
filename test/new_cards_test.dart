@@ -69,17 +69,25 @@ void main() {
 
   test('Sobrecarga: the next card counts twice in the chain', () {
     final battle = battleWith(
-      [Chips.overcharge, Chips.vShot],
+      [Chips.overcharge, Chips.laserSight, Chips.vShot, Chips.vShot],
       spawns: [dummyAt(4, 1)],
     );
     use(battle, Chips.overcharge);
     expect(battle.chainSurge, isTrue);
-    expect(battle.chainCount, 1, reason: 'Sobrecarga is Elec itself');
-    use(battle, Chips.vShot);
+    expect(battle.chainCount, 0, reason: 'Sobrecarga is Tático');
+    use(battle, Chips.laserSight);
+    expect(battle.chainSurge, isTrue, reason: 'kept for a chaining card');
     final enemy = battle.enemies.single;
-    expect(enemy.hp, 100 - 2 * Chips.vShot.damage, reason: '3rd of the chain');
-    expect(enemy.has(Status.stunned), isTrue);
+    final mark = markBonus;
+    use(battle, Chips.vShot);
+    expect(battle.chainCount, 2);
+    expect(
+      enemy.hp,
+      100 - (Chips.vShot.damage * chain2Multiplier).round() - mark,
+    );
     expect(battle.chainSurge, isFalse);
+    use(battle, Chips.vShot);
+    expect(enemy.has(Status.stunned), isTrue, reason: '3rd of the chain');
   });
 
   test('Feixe Trator pulls the whole row, then makes it collide', () {
@@ -127,7 +135,13 @@ void main() {
     use(battle, Chips.overclock);
     expect(battle.overclocked, isTrue);
     use(battle, Chips.cannon);
-    expect(battle.enemies.single.hp, 100 - 2 * Chips.cannon.damage);
+    expect(
+      battle.enemies.single.hp,
+      100 -
+          Chips.cannon.damage -
+          (Chips.cannon.damage * chain2Multiplier).round(),
+      reason: 'the second run is the 2nd chip of a chain',
+    );
     expect(battle.energy, baseEnergy - 1 - Chips.cannon.cost);
     expect(battle.overclocked, isFalse);
     expect(
