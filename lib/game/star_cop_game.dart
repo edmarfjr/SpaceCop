@@ -13,14 +13,26 @@ import '../domain/run/run_state.dart';
 import '../domain/run/shop.dart';
 import 'audio.dart';
 import 'battle/battle_world.dart';
+import 'run_save.dart';
 import 'sprites.dart';
 
 /// Top-level screens. Only [battle] uses the Flame world; the others are
 /// Flutter overlays over an empty world.
-enum GamePhase { map, battle, reward, rest, shop, event, gameOver, victory }
+enum GamePhase {
+  menu,
+  map,
+  battle,
+  reward,
+  rest,
+  shop,
+  event,
+  gameOver,
+  victory,
+}
 
 /// Overlay keys registered in `GameWidget.overlayBuilderMap`.
 abstract final class Overlays {
+  static const menu = 'menu';
   static const map = 'map';
   static const hud = 'hud';
   static const reward = 'reward';
@@ -35,6 +47,7 @@ abstract final class Overlays {
   static const deck = 'deck';
 
   static String forPhase(GamePhase phase) => switch (phase) {
+    GamePhase.menu => menu,
     GamePhase.map => map,
     GamePhase.battle => hud,
     GamePhase.reward => reward,
@@ -63,9 +76,12 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   /// Shared with GameWidget so overlays can hand keyboard focus back.
   final FocusNode focusNode = FocusNode();
 
-  final ValueNotifier<GamePhase> phase = ValueNotifier(GamePhase.map);
+  final ValueNotifier<GamePhase> phase = ValueNotifier(GamePhase.menu);
 
   late RunState run;
+
+  /// The run saved by an earlier session, offered by the menu.
+  RunState? savedRun;
 
   late final GameSprites sprites;
 
@@ -119,11 +135,23 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   Future<void> onLoad() async {
     camera.viewfinder.anchor = Anchor.topLeft;
     sprites = await GameSprites.load(images);
-    startNewRun();
+    savedRun = await RunSave.load();
+    _goTo(GamePhase.menu);
   }
 
   void startNewRun() {
+    savedRun = null;
+    RunSave.clear();
     run = RunState();
+    _goTo(GamePhase.map);
+  }
+
+  /// Menu: back to the saved run, on its map.
+  void continueRun() {
+    final saved = savedRun;
+    if (saved == null) return;
+    savedRun = null;
+    run = saved;
     _goTo(GamePhase.map);
   }
 
@@ -285,9 +313,11 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     finishNode();
   }
 
-  /// Back to the map after any non-battle node or reward.
+  /// Back to the map after any non-battle node or reward; the run is saved
+  /// here.
   void finishNode() {
     if (run.current?.type == NodeType.boss && !run.lastAct) run.nextAct();
+    RunSave.write(run);
     _goTo(GamePhase.map);
   }
 
@@ -303,8 +333,12 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     overlays.removeAll(overlays.activeOverlays.toList());
     overlays.add(Overlays.forPhase(next));
     phase.value = next;
+    // A finished run can't be continued.
+    if (next == GamePhase.gameOver || next == GamePhase.victory) {
+      RunSave.clear();
+    }
     GameAudio.instance.music(switch (next) {
-      GamePhase.map || GamePhase.reward => Music.map,
+      GamePhase.menu || GamePhase.map || GamePhase.reward => Music.map,
       GamePhase.battle =>
         run.current?.type == NodeType.boss ? Music.boss : Music.battle,
       GamePhase.rest || GamePhase.shop || GamePhase.event => Music.shop,

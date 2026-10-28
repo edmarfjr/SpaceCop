@@ -871,6 +871,64 @@ abstract final class Chips {
     overclock,
   ];
 
+  /// Every card, offered or not (fusions, Bug), by id: what a saved deck
+  /// is read back with.
+  static final Map<String, ChipDef> _byId = {
+    for (final def in const [
+      shot,
+      cannon,
+      smg,
+      shotgun,
+      vShot,
+      melta,
+      missile,
+      baton,
+      sword,
+      shoulderBash,
+      energyWhip,
+      seismicHammer,
+      grenade,
+      incendiaryGrenade,
+      smokeGrenade,
+      stunGrenade,
+      recover,
+      atkBoost,
+      energyDrink,
+      energyTank,
+      powerGenerator,
+      cracker,
+      bubblePush,
+      crossFlame,
+      thunderLance,
+      barrier,
+      mirror,
+      seedGrass,
+      areaSteal,
+      rock,
+      mine,
+      turret,
+      hook,
+      cryoGrenade,
+      emp,
+      neuralVine,
+      laserSight,
+      overcharge,
+      tractorBeam,
+      teslaCoil,
+      overclock,
+      bug,
+      storm,
+      avalanche,
+      magnetTrap,
+    ])
+      def.id: def,
+  };
+
+  /// The card saved as [id], upgraded if [upgraded]; null if it no longer
+  /// exists.
+  static ChipDef? byId(String id, {bool upgraded = false}) =>
+      upgraded ? _upgrades[id] : _byId[id];
+
   static List<ChipCard> starterDeck() => [
     for (var i = 0; i < 4; i++) ChipCard(shot), //ChipCard(shot),
     for (var i = 0; i < 2; i++) ChipCard(vShot), //ChipCard(vShot),

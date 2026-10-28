@@ -37,6 +37,48 @@ class RunMap {
 
   List<MapNode> get startNodes => floors.first.where((n) => n.isUsed).toList();
 
+  /// The node on [floor] and column [x]; [floorCount] is the boss.
+  MapNode nodeAt(int floor, int x) =>
+      floor == floorCount ? boss : floors[floor][x];
+
+  Map<String, Object?> toJson() => {
+    'floors': [
+      for (final floor in floors)
+        [
+          for (final node in floor)
+            {
+              'type': node.type?.index,
+              'next': node.next.toList(),
+              'visited': node.visited,
+            },
+        ],
+    ],
+    'boss': {'x': boss.x, 'visited': boss.visited},
+  };
+
+  factory RunMap.fromJson(Map<String, Object?> json) {
+    final floors = [
+      for (final (f, floor) in (json['floors']! as List).indexed)
+        [
+          for (final (x, cell) in (floor as List).indexed)
+            MapNode(x, f)
+              ..type = switch ((cell as Map)['type']) {
+                final int i => NodeType.values[i],
+                _ => null,
+              }
+              ..next.addAll((cell['next'] as List).cast<int>())
+              ..visited = cell['visited'] as bool,
+        ],
+    ];
+    final boss = json['boss']! as Map;
+    return RunMap(
+      floors,
+      MapNode(boss['x'] as int, floorCount)
+        ..type = NodeType.boss
+        ..visited = boss['visited'] as bool,
+    );
+  }
+
   List<MapNode> nextOf(MapNode node) {
     if (node.type == NodeType.boss) return const [];
     if (node.floor == floorCount - 1) return [boss];

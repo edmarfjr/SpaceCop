@@ -839,6 +839,34 @@ class _RelicChoiceState extends State<_RelicChoice> {
   }
 }
 
+/// The title screen: a new run, or the saved one.
+class MenuOverlay extends StatelessWidget {
+  const MenuOverlay({super.key, required this.game});
+
+  final StarCopGame game;
+
+  @override
+  Widget build(BuildContext context) => _Panel(
+    title: 'STAR COP',
+    children: [
+      const SizedBox(height: 10),
+      if (game.savedRun != null) ...[
+        FilledButton(
+          autofocus: true,
+          onPressed: withTap(game.continueRun),
+          child: const Text('Continuar'),
+        ),
+        const SizedBox(height: 6),
+      ],
+      FilledButton(
+        autofocus: game.savedRun == null,
+        onPressed: withTap(game.startNewRun),
+        child: const Text('Novo jogo'),
+      ),
+    ],
+  );
+}
+
 class GameOverOverlay extends StatelessWidget {
   const GameOverOverlay({super.key, required this.game});
 

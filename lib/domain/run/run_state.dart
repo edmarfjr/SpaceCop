@@ -22,11 +22,70 @@ const double actHeal = 0.75;
 /// Everything that persists between nodes of one run: HP, deck, map
 /// position. Battles copy from here and write HP back when they end.
 class RunState {
-  RunState({Random? random}) : this._(random ?? Random());
+  factory RunState({Random? random}) {
+    random ??= Random();
+    return RunState._(
+      random,
+      MapGenerator(random: random).generate(),
+      Chips.starterDeck(),
+    );
+  }
 
-  RunState._(this.random)
-    : map = MapGenerator(random: random).generate(),
-      deck = Chips.starterDeck();
+  RunState._(this.random, this.map, this.deck);
+
+  /// A run saved with [toJson], between two nodes. Cards and relics that no
+  /// longer exist are dropped.
+  factory RunState.fromJson(Map<String, Object?> json, {Random? random}) {
+    final run = RunState._(
+      random ?? Random(),
+      RunMap.fromJson(json['map']! as Map<String, Object?>),
+      [
+        for (final card in (json['deck']! as List).cast<Map>())
+          if (Chips.byId(
+                card['id'] as String,
+                upgraded: card['upgraded'] as bool,
+              )
+              case final def?)
+            ChipCard(def),
+      ],
+    );
+    run
+      ..act = json['act']! as int
+      ..maxHp = json['maxHp']! as int
+      ..hp = json['hp']! as int
+      ..credits = json['credits']! as int
+      ..openingStunTicks = json['openingStunTicks']! as int
+      ..energyBaseBonus = json['energyBaseBonus']! as int
+      ..nextBattleEnergy = json['nextBattleEnergy']! as int
+      ..relics.addAll([
+        for (final id in (json['relics']! as List).cast<String>())
+          ?Relics.byId(id),
+      ]);
+    if (json['current'] case [final int floor, final int x]) {
+      run.current = run.map.nodeAt(floor, x);
+    }
+    return run;
+  }
+
+  Map<String, Object?> toJson() => {
+    'act': act,
+    'maxHp': maxHp,
+    'hp': hp,
+    'credits': credits,
+    'openingStunTicks': openingStunTicks,
+    'energyBaseBonus': energyBaseBonus,
+    'nextBattleEnergy': nextBattleEnergy,
+    'deck': [
+      for (final card in deck)
+        {'id': card.def.id, 'upgraded': card.def.upgraded},
+    ],
+    'relics': [for (final relic in relics) relic.id],
+    'current': switch (current) {
+      final node? => [node.floor, node.x],
+      null => null,
+    },
+    'map': map.toJson(),
+  };
 
   final Random random;
 

@@ -69,6 +69,7 @@ class _StarCopAppState extends State<StarCopApp> {
   };
 
   static final _overlays = <String, Widget Function(StarCopGame)>{
+    Overlays.menu: (game) => MenuOverlay(game: game),
     Overlays.map: (game) => MapOverlay(game: game),
     Overlays.hud: (game) => BattleHud(game: game),
     Overlays.reward: (game) => RewardOverlay(game: game),

@@ -352,6 +352,9 @@ abstract final class Relics {
     rarity: Rarity.rare,
   );
 
+  /// The relic saved as [id]; null if it no longer exists.
+  static RelicDef? byId(String id) => all.where((r) => r.id == id).firstOrNull;
+
   static const all = [
     extraBattery,
     sortedFolder,

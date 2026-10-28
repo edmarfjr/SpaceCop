@@ -6,7 +6,8 @@ import '../feedback.dart';
 import '../theme.dart';
 import '../widgets/chip_picker.dart';
 
-/// Pause icon in battle: the sound settings. A tap anywhere else resumes.
+/// Pause icon in battle: the sound settings, and a button to resume (a
+/// stray tap doesn't).
 class PauseOverlay extends StatefulWidget {
   const PauseOverlay({super.key, required this.game});
 
@@ -22,46 +23,46 @@ class _PauseOverlayState extends State<PauseOverlay> {
   @override
   Widget build(BuildContext context) {
     final audio = GameAudio.instance;
-    return GestureDetector(
-      onTap: withTap(widget.game.closeMenus),
-      child: ColoredBox(
-        color: Pico.black.withValues(alpha: 0.7),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('PAUSA', style: GbText.title),
-              const SizedBox(height: 4),
-              const Text('Toque para continuar', style: GbText.small),
-              const SizedBox(height: 10),
-              _VolumeRow(
-                label: 'Música',
-                volume: audio.musicVolume,
-                onChange: (step) => setState(
-                  () => audio.setMusicVolume(
-                    audio.musicVolume + step * _volumeStep,
-                  ),
+    return ColoredBox(
+      color: Pico.black.withValues(alpha: 0.7),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('PAUSA', style: GbText.title),
+            const SizedBox(height: 10),
+            _VolumeRow(
+              label: 'Música',
+              volume: audio.musicVolume,
+              onChange: (step) => setState(
+                () => audio.setMusicVolume(
+                  audio.musicVolume + step * _volumeStep,
                 ),
               ),
-              _VolumeRow(
-                label: 'Efeitos',
-                volume: audio.sfxVolume,
-                onChange: (step) {
-                  setState(
-                    () => audio.setSfxVolume(
-                      audio.sfxVolume + step * _volumeStep,
-                    ),
-                  );
-                  audio.play(Sfx.tap);
-                },
-              ),
-              const SizedBox(height: 4),
-              _TextButton(
-                text: audio.muted ? 'Som: desligado' : 'Som: ligado',
-                onTap: () => setState(audio.toggleMute),
-              ),
-            ],
-          ),
+            ),
+            _VolumeRow(
+              label: 'Efeitos',
+              volume: audio.sfxVolume,
+              onChange: (step) {
+                setState(
+                  () =>
+                      audio.setSfxVolume(audio.sfxVolume + step * _volumeStep),
+                );
+                audio.play(Sfx.tap);
+              },
+            ),
+            const SizedBox(height: 4),
+            _TextButton(
+              text: audio.muted ? 'Som: desligado' : 'Som: ligado',
+              onTap: () => setState(audio.toggleMute),
+            ),
+            const SizedBox(height: 10),
+            FilledButton(
+              autofocus: true,
+              onPressed: withTap(widget.game.closeMenus),
+              child: const Text('Continuar'),
+            ),
+          ],
         ),
       ),
     );
