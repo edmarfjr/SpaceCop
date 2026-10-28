@@ -29,7 +29,10 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
 
   Sprite get _idleSprite {
     return switch (fighter) {
-      EnemyFighter(:final def, :final stage) => sprites.enemy(def, stage: stage),
+      EnemyFighter(:final def, :final stage) => sprites.enemy(
+        def,
+        stage: stage,
+      ),
       Obstacle(:final kind) => sprites.obstacle(kind),
       _ => sprites.playerIdle,
     };
@@ -96,7 +99,9 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   /// Drawn in row order, with each row's projectiles right after it.
   int get _rowPriority {
     final f = fighter;
-    final row = f is EnemyFighter ? f.cells.map((c) => c.y).reduce(max) : f.pos.y;
+    final row = f is EnemyFighter
+        ? f.cells.map((c) => c.y).reduce(max)
+        : f.pos.y;
     return ProjectileLayer.priorityOf(row);
   }
 
@@ -122,7 +127,10 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     final sprite = switch (fighter) {
       EnemyFighter(:final def, :final stage, attackFrame: true) =>
         sprites.enemy(def, attacking: true, stage: stage),
-      EnemyFighter(:final def, :final stage) => sprites.enemy(def, stage: stage),
+      EnemyFighter(:final def, :final stage) => sprites.enemy(
+        def,
+        stage: stage,
+      ),
       _ when _shooting => sprites.playerAttack,
       _ when _attacking => sprites.playerMelee,
       _ => _idleSprite,
@@ -146,11 +154,13 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
           : null,
     );
     canvas.restore();
-    // Energy shield: the player's barrier, or the Brute's while it blocks.
+    // Energy shield: the player's barrier, or an enemy's while it blocks.
     final shielded = switch (fighter) {
       PlayerFighter(:final barrierTicks) => barrierTicks > 0,
-      EnemyFighter(:final def, :final shieldDown, :final invulnerable) =>
-        invulnerable || (def.frontShield && shieldDown == 0),
+      final EnemyFighter enemy =>
+        enemy.invulnerable ||
+            parent.battle.prismGuarded(enemy) ||
+            (enemy.def.frontShield && enemy.shieldDown == 0),
       _ => false,
     };
     if (shielded) {
@@ -195,7 +205,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     if (_shooting) {
       sprites.muzzle.render(
         canvas,
-        position: Vector2(size.x-4, 10),
+        position: Vector2(size.x - 4, 10),
         size: sprites.muzzle.srcSize * _scale,
       );
     }
@@ -216,7 +226,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
         final frame = frames[(_clock / _signFrameTime).floor() % frames.length];
         frame.render(
           canvas,
-          position: Vector2(size.x / 2,0),
+          position: Vector2(size.x / 2, 0),
           size: frame.srcSize * _scale,
           anchor: Anchor.bottomCenter,
         );

@@ -1757,6 +1757,16 @@ class BattleState {
     _scorch(cell, element);
   }
 
+  /// A Capanga Infiltrador whose twin lives on another row: projectiles
+  /// can't hurt it.
+  bool prismGuarded(EnemyFighter enemy) {
+    final twin = enemy.partner;
+    return enemy.def.prism &&
+        twin != null &&
+        !twin.isDead &&
+        twin.pos.y != enemy.pos.y;
+  }
+
   /// Target-side modifiers, then the hit:
   /// - invulnerable enemies ignore it; weak points pass it on doubled;
   /// - prisms reflect straight shots unless lined up with their twin;
@@ -1787,12 +1797,7 @@ class BattleState {
         );
         return;
       }
-      final twin = target.partner;
-      if (target.def.prism &&
-          kind != HitKind.area &&
-          twin != null &&
-          !twin.isDead &&
-          twin.pos.y != target.pos.y) {
+      if (kind != HitKind.area && prismGuarded(target)) {
         if (kind == HitKind.straight && shot != null) {
           projectiles.add(
             Projectile(

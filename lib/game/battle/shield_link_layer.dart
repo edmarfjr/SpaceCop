@@ -10,8 +10,8 @@ import 'fighter_component.dart';
 import 'grid_component.dart';
 
 /// Lightning from the top of every shield source (the Rei's totems, the
-/// Olho do Abismo's Hemisférios) to the enemy it keeps invulnerable, over
-/// every fighter.
+/// Olho do Abismo's Hemisférios) to the enemy it keeps invulnerable, and
+/// between guarded Capangas Infiltradores, over every fighter.
 class ShieldLinkLayer extends Component with ParentIsA<GridComponent> {
   ShieldLinkLayer(this.battle, this.viewOf) : super(priority: 1000);
 
@@ -62,12 +62,24 @@ class ShieldLinkLayer extends Component with ParentIsA<GridComponent> {
 
   @override
   void render(Canvas canvas) {
+    final shape = Random(_seed);
+    // Each guarded twin pair once, middle to middle.
+    for (final enemy in battle.enemies) {
+      final twin = enemy.partner;
+      if (twin == null ||
+          battle.enemies.indexOf(twin) < battle.enemies.indexOf(enemy) ||
+          !battle.prismGuarded(enemy)) {
+        continue;
+      }
+      final (a, b) = (viewOf(enemy), viewOf(twin));
+      if (a == null || b == null) continue;
+      _draw(canvas, _middle(a), _middle(b), shape);
+    }
     final shielded = [
       for (final e in battle.enemies)
         if (e.invulnerable && !e.hidden) e,
     ];
     if (shielded.isEmpty) return;
-    final shape = Random(_seed);
     for (final source in battle.enemies) {
       if (!sources.contains(source.def) || source.hidden) continue;
       final from = viewOf(source);
@@ -76,16 +88,24 @@ class ShieldLinkLayer extends Component with ParentIsA<GridComponent> {
         final to = viewOf(target);
         if (to == null) continue;
         // From the totem's top to the middle of the boss.
-        final path = _bolt(
+        _draw(
+          canvas,
           from.position - Vector2(0, from.size.y),
-          to.position - Vector2(0, to.size.y / 2),
+          _middle(to),
           shape,
         );
-        canvas
-          ..drawPath(path, _glow)
-          ..drawPath(path, _core);
       }
     }
+  }
+
+  Vector2 _middle(FighterComponent view) =>
+      view.position - Vector2(0, view.size.y / 2);
+
+  void _draw(Canvas canvas, Vector2 a, Vector2 b, Random shape) {
+    final path = _bolt(a, b, shape);
+    canvas
+      ..drawPath(path, _glow)
+      ..drawPath(path, _core);
   }
 
   /// A jagged line from [a] to [b], bent sideways at each kink.
