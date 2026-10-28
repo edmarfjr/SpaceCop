@@ -103,8 +103,14 @@ class RunState {
     random,
   );
 
-  /// Picks [count] distinct chips to offer, by rarity; [elite] rolls rare
-  /// ones more often.
-  List<ChipDef> rollRewards(int count, {bool elite = false}) =>
-      pickByRarity(Chips.all, (c) => c.rarity, count, random, elite: elite);
+  /// Picks [count] distinct chips to offer, by rarity; [elite] and Chip da
+  /// Sorte roll rare ones more often.
+  List<ChipDef> rollRewards(int count, {bool elite = false}) => pickByRarity(
+    Chips.all,
+    (c) => c.rarity,
+    count,
+    random,
+    elite: elite,
+    lucky: hasRelic(Relics.luckyChip),
+  );
 }

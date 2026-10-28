@@ -1,6 +1,7 @@
 import '../battle/battle_state.dart';
+import '../battle/enemies.dart';
+import '../chips/battle_chip.dart';
 import '../grid.dart';
-import '../rarity.dart';
 
 enum RelicKind {
   /// Works on the map, shop or energy.
@@ -24,6 +25,9 @@ class RelicDef {
     this.onCollision,
     this.onChainComplete,
     this.onHandRefill,
+    this.modifyHit,
+    this.onHit,
+    this.onChipUsed,
   });
 
   final String id;
@@ -36,13 +40,35 @@ class RelicDef {
 
   final void Function(BattleState battle)? onBattleStart;
 
-  /// Adjusts the damage of a chip the player is about to use.
-  final int Function(BattleState battle, int damage)? modifyDamage;
+  /// Adjusts the damage of [chip], which the player is about to use.
+  final int Function(BattleState battle, ChipDef chip, int damage)?
+  modifyDamage;
+
+  /// Adjusts the damage multiplier of a hit of [family] on [target], after
+  /// the enemy kind (0 = the hit passes through).
+  final double Function(
+    BattleState battle,
+    EnemyFighter target,
+    ChipFamily family,
+    double multiplier,
+  )?
+  modifyHit;
+
+  /// A hit of [family] landed on [target], before its statuses react.
+  final void Function(
+    BattleState battle,
+    EnemyFighter target,
+    ChipFamily family,
+  )?
+  onHit;
+
+  /// [chip] was used and paid for.
+  final void Function(BattleState battle, ChipDef chip)? onChipUsed;
 
   /// A collision the player caused (push, pull).
   final void Function(BattleState battle, Collision collision)? onCollision;
 
-  /// A 3-chip element chain was completed.
+  /// A 3-chip chain was completed.
   final void Function(BattleState battle)? onChainComplete;
 
   /// The gauge filled and a new hand was drawn.
@@ -56,7 +82,7 @@ void _peekTop(BattleState battle) =>
 
 /// The player's front column in its row: the next panel ahead isn't
 /// theirs, even after Roubo de Área moved the line.
-int _frontLine(BattleState battle, int damage) =>
+int _frontLine(BattleState battle, ChipDef chip, int damage) =>
     battle.ownerAt(battle.player.pos + const GridPos(1, 0)) != Team.player
     ? (damage * 1.2).round()
     : damage;
@@ -68,6 +94,57 @@ void _hardCrash(BattleState battle, Collision collision) {
 }
 
 void _fastGauge(BattleState battle) => battle.boostNextGauge = true;
+
+int _piercingAmmo(BattleState battle, ChipDef chip, int damage) =>
+    chip.family == ChipFamily.projectile && damage > 0 ? damage + 3 : damage;
+
+int _doubleCharge(BattleState battle, ChipDef chip, int damage) =>
+    chip.family == ChipFamily.explosive && damage > 0 ? damage + 5 : damage;
+
+void _refundProjectile(BattleState battle, ChipDef chip) {
+  if (chip.family != ChipFamily.projectile || battle.projectileRefunded) {
+    return;
+  }
+  battle
+    ..energy += chip.cost
+    ..projectileRefunded = true;
+}
+
+void _symbiote(BattleState battle, ChipDef chip) {
+  if (chip.family == ChipFamily.consumable) battle.heal(5);
+}
+
+void _superconduct(BattleState battle, EnemyFighter target, ChipFamily family) {
+  if (family == ChipFamily.energy && target.has(Status.wet)) {
+    target.applyStatus(Status.stunned, ticksPerSecond);
+  }
+}
+
+double _monoBlade(
+  BattleState battle,
+  EnemyFighter target,
+  ChipFamily family,
+  double multiplier,
+) => family == ChipFamily.melee && target.has(Status.stunned)
+    ? multiplier * 1.5
+    : multiplier;
+
+double _decoder(
+  BattleState battle,
+  EnemyFighter target,
+  ChipFamily family,
+  double multiplier,
+) => target.def.kind == EnemyKind.machine ? multiplier * 1.25 : multiplier;
+
+double _phaseTuner(
+  BattleState battle,
+  EnemyFighter target,
+  ChipFamily family,
+  double multiplier,
+) => family == ChipFamily.projectile && target.phased ? 0.5 : multiplier;
+
+void _armorPlate(BattleState battle) =>
+    battle.spawnObstacle(ObstacleKind.rock, null);
 
 abstract final class Relics {
   static const extraBattery = RelicDef(
@@ -132,6 +209,140 @@ abstract final class Relics {
     kind: RelicKind.combat,
   );
 
+  static const piercingAmmo = RelicDef(
+    id: 'piercing_ammo',
+    name: 'Munição Perfurante',
+    description: 'Cartas de Projétil causam +3 de dano.',
+    kind: RelicKind.combat,
+    modifyDamage: _piercingAmmo,
+  );
+
+  static const extendedMag = RelicDef(
+    id: 'extended_mag',
+    name: 'Carregador Estendido',
+    description: 'A 1ª carta de Projétil de cada mão devolve a Energia gasta.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+    onChipUsed: _refundProjectile,
+  );
+
+  static const doubleCharge = RelicDef(
+    id: 'double_charge',
+    name: 'Carga Dupla',
+    description: 'Cartas de Explosivo causam +5 de dano.',
+    kind: RelicKind.combat,
+    modifyDamage: _doubleCharge,
+  );
+
+  /// Read by the battle where an Explosivo lands.
+  static const shortFuse = RelicDef(
+    id: 'short_fuse',
+    name: 'Pavio Curto',
+    description: 'Explosivos racham o painel onde explodem.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+  );
+
+  static const superconductor = RelicDef(
+    id: 'superconductor',
+    name: 'Bobina Supercondutora',
+    description: 'Energia em alvo Molhado também atordoa por 1 s.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+    onHit: _superconduct,
+  );
+
+  /// Read by the battle on each refill.
+  static const capacitor = RelicDef(
+    id: 'capacitor',
+    name: 'Capacitor',
+    description:
+        'Na recarga, até 2 de Energia que sobrou passam para a mão nova.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+  );
+
+  /// Read by the battle on each melee hit.
+  static const servoArm = RelicDef(
+    id: 'servo_arm',
+    name: 'Servo-braço',
+    description: 'Golpes de Corpo-a-corpo empurram o alvo 1 painel.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+  );
+
+  static const monoBlade = RelicDef(
+    id: 'mono_blade',
+    name: 'Lâmina Monomolecular',
+    description: 'Corpo-a-corpo causa +50% de dano em alvo atordoado.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+    modifyHit: _monoBlade,
+  );
+
+  /// Read by the battle when it places gear.
+  static const engineeringKit = RelicDef(
+    id: 'engineering_kit',
+    name: 'Kit de Engenharia',
+    description: 'Drone, Bobina Tesla e os escudos duram 50% mais.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+  );
+
+  static const armorPlate = RelicDef(
+    id: 'armor_plate',
+    name: 'Placa Blindada',
+    description: 'Começa cada luta com uma Rocha à sua frente.',
+    kind: RelicKind.combat,
+    onBattleStart: _armorPlate,
+  );
+
+  /// Read by the battle when a single-use card is used.
+  static const tacticalPack = RelicDef(
+    id: 'tactical_pack',
+    name: 'Mochila Tática',
+    description:
+        'A 1ª carta de uso único de cada luta vai para o descarte em vez de '
+        'sair.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+  );
+
+  static const symbiote = RelicDef(
+    id: 'symbiote',
+    name: 'Simbionte',
+    description: 'Cada carta Consumível usada cura 5.',
+    kind: RelicKind.combat,
+    onChipUsed: _symbiote,
+  );
+
+  static const phaseTuner = RelicDef(
+    id: 'phase_tuner',
+    name: 'Sintonizador de Fase',
+    description: 'Projéteis acertam Etéreos em fase com 50% do dano.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+    modifyHit: _phaseTuner,
+  );
+
+  static const decoder = RelicDef(
+    id: 'decoder',
+    name: 'Decodificador',
+    description: '+25% de dano contra Máquinas.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+    modifyHit: _decoder,
+  );
+
+  /// Read by the run when it rolls rewards.
+  static const luckyChip = RelicDef(
+    id: 'lucky_chip',
+    name: 'Chip da Sorte',
+    description: 'Cartas raras aparecem com o dobro da chance.',
+    kind: RelicKind.global,
+    rarity: Rarity.rare,
+  );
+
   static const all = [
     extraBattery,
     sortedFolder,
@@ -140,5 +351,20 @@ abstract final class Relics {
     collisionCore,
     chainTrigger,
     iceBoots,
+    piercingAmmo,
+    extendedMag,
+    doubleCharge,
+    shortFuse,
+    superconductor,
+    capacitor,
+    servoArm,
+    monoBlade,
+    engineeringKit,
+    armorPlate,
+    tacticalPack,
+    symbiote,
+    phaseTuner,
+    decoder,
+    luckyChip,
   ];
 }

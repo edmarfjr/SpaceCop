@@ -28,6 +28,147 @@ BattleState withRelics(
 )..tick();
 
 void main() {
+  group('family and gear relics', () {
+    final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
+    final blast = shotOf(Element.neutral, family: ChipFamily.explosive);
+    final zap = shotOf(Element.neutral, family: ChipFamily.energy);
+    final slash = shotOf(Element.neutral, family: ChipFamily.melee);
+
+    int hit(RelicDef relic, ChipDef chip, {EnemyKind? kind}) {
+      final battle = withRelics(
+        [relic],
+        [chip],
+        spawns: [dummyAt(3, 1, kind: kind ?? EnemyKind.organic)],
+      );
+      use(battle, chip);
+      return 100 - battle.enemies.single.hp;
+    }
+
+    test('Munição Perfurante: Projétil +3', () {
+      expect(hit(Relics.piercingAmmo, shot), 13);
+      expect(hit(Relics.piercingAmmo, zap), 10);
+    });
+
+    test('Carga Dupla: Explosivo +5', () {
+      expect(hit(Relics.doubleCharge, blast), boom(15));
+      expect(hit(Relics.doubleCharge, shot), 10);
+    });
+
+    test('Decodificador: +25% against Máquinas', () {
+      expect(hit(Relics.decoder, zap, kind: EnemyKind.machine), 25);
+      expect(hit(Relics.decoder, zap), 10);
+    });
+
+    test('Sintonizador de Fase: Projétil hits a phased Etéreo for half', () {
+      expect(hit(Relics.phaseTuner, shot, kind: EnemyKind.ethereal), 5);
+      expect(hit(Relics.phaseTuner, slash, kind: EnemyKind.ethereal), 0);
+    });
+
+    test('Lâmina Monomolecular: Corpo-a-corpo +50% on a stunned target', () {
+      final battle = withRelics([Relics.monoBlade], [slash, slash]);
+      final enemy = battle.enemies.single;
+      use(battle, slash);
+      expect(enemy.hp, 90);
+      wait(battle, chainWindowTicks); // no chain bonus on the 2nd
+      enemy.applyStatus(Status.stunned, ticksPerSecond);
+      use(battle, slash);
+      expect(enemy.hp, 90 - 15);
+    });
+
+    test('Bobina Supercondutora: Energia stuns a Wet target', () {
+      final battle = withRelics([Relics.superconductor], [zap, zap]);
+      final enemy = battle.enemies.single;
+      use(battle, zap);
+      expect(enemy.has(Status.stunned), isFalse);
+      enemy.applyStatus(Status.wet, wetTicks);
+      use(battle, zap);
+      expect(enemy.has(Status.stunned), isTrue);
+    });
+
+    test('Carregador Estendido: the 1st Projétil of each hand is refunded', () {
+      final battle = withRelics(
+        [Relics.extendedMag],
+        [Chips.cannon, Chips.cannon],
+        spawns: [dummyAt(5, 1)],
+      );
+      use(battle, Chips.cannon);
+      expect(battle.energy, baseEnergy);
+      use(battle, Chips.cannon);
+      expect(battle.energy, baseEnergy - Chips.cannon.cost);
+      wait(battle, gaugeTicks);
+      expect(battle.projectileRefunded, isFalse);
+    });
+
+    test('Simbionte: each Consumível heals 5', () {
+      final battle = withRelics([Relics.symbiote], [Chips.energyTank])
+        ..player.hp = 50;
+      use(battle, Chips.energyTank);
+      expect(battle.player.hp, 55);
+    });
+
+    test('Mochila Tática: the 1st single-use card goes to the discard', () {
+      final battle = withRelics(
+        [Relics.tacticalPack],
+        [Chips.energyTank, Chips.energyTank],
+      );
+      use(battle, Chips.energyTank);
+      expect(battle.deck.discardPile, hasLength(1));
+      use(battle, Chips.energyTank);
+      expect(battle.deck.discardPile, hasLength(1), reason: 'only once');
+    });
+
+    test('Capacitor: up to 2 leftover energy carries into the next hand', () {
+      final battle = withRelics([Relics.capacitor], []);
+      battle.energy = 3;
+      wait(battle, gaugeTicks);
+      expect(battle.energy, battle.energyMax + capacitorCarry);
+    });
+
+    test('Kit de Engenharia: gear lasts 50% longer', () {
+      final battle = withRelics([Relics.engineeringKit], [Chips.barrier]);
+      use(battle, Chips.barrier);
+      expect(battle.player.barrierTicks, greaterThan(5 * ticksPerSecond));
+    });
+
+    test('Placa Blindada: a rock in front of the player at the start', () {
+      final battle = withRelics([Relics.armorPlate], []);
+      expect(
+        battle.obstacles.single.pos,
+        battle.player.pos + const GridPos(1, 0),
+      );
+    });
+
+    test('Servo-braço: melee hits push the target 1 panel', () {
+      final battle = withRelics([Relics.servoArm], [Chips.sword])
+        ..player.pos = const GridPos(2, 1);
+      final enemy = battle.enemies.single;
+      use(battle, Chips.sword);
+      expect(enemy.pos, const GridPos(4, 1));
+    });
+
+    test('Pavio Curto: an Explosivo cracks the panel where it lands', () {
+      final battle = withRelics([Relics.shortFuse], [Chips.grenade]);
+      use(battle, Chips.grenade);
+      expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.cracked);
+    });
+
+    test('Chip da Sorte: rare cards come twice as often', () {
+      int rares(RunState run) {
+        var n = 0;
+        for (var i = 0; i < 3000; i++) {
+          if (run.rollRewards(1).single.rarity == Rarity.rare) n++;
+        }
+        return n;
+      }
+
+      final plain = rares(RunState(random: Random(7)));
+      final lucky = rares(
+        RunState(random: Random(7))..relics.add(Relics.luckyChip),
+      );
+      expect(lucky, greaterThan(plain * 3 ~/ 2));
+    });
+  });
+
   group('combat relics', () {
     test('Linha de Frente: +20% damage from the front column', () {
       final battle = withRelics(
@@ -220,7 +361,7 @@ void main() {
       final run = RunState(random: Random(5));
       final all = run.rollRewards(Chips.all.length);
       expect(all.toSet(), hasLength(Chips.all.length));
-      run.relics.addAll(Relics.all.where((r) => r.rarity != Rarity.rare));
+      run.relics.addAll(Relics.all.where((r) => r != Relics.extraBattery));
       expect(run.rollRelics(3), [Relics.extraBattery]);
     });
 

@@ -14,12 +14,16 @@ enum Rarity {
   };
 
   /// Chance, in percent, of this rarity on a roll. Elite rewards roll
-  /// better.
-  int weight({bool elite = false}) => switch (this) {
-    Rarity.common => elite ? 40 : 60,
-    Rarity.uncommon => elite ? 40 : 30,
-    Rarity.rare => elite ? 20 : 10,
-  };
+  /// better; [lucky] (Chip da Sorte) doubles the rare chance, taken from
+  /// the common one.
+  int weight({bool elite = false, bool lucky = false}) {
+    final rare = (elite ? 20 : 10) * (lucky ? 2 : 1);
+    return switch (this) {
+      Rarity.common => 100 - (elite ? 40 : 30) - rare,
+      Rarity.uncommon => elite ? 40 : 30,
+      Rarity.rare => rare,
+    };
+  }
 }
 
 /// Picks up to [count] distinct items of [pool]. Each pick first rolls a
@@ -31,16 +35,17 @@ List<T> pickByRarity<T>(
   int count,
   Random random, {
   bool elite = false,
+  bool lucky = false,
 }) {
   final left = List.of(pool);
   final picked = <T>[];
   while (picked.length < count && left.isNotEmpty) {
     final rarities = {for (final item in left) rarityOf(item)};
     var roll = random.nextInt(
-      rarities.fold(0, (sum, r) => sum + r.weight(elite: elite)),
+      rarities.fold(0, (sum, r) => sum + r.weight(elite: elite, lucky: lucky)),
     );
     final rarity = rarities.firstWhere((r) {
-      roll -= r.weight(elite: elite);
+      roll -= r.weight(elite: elite, lucky: lucky);
       return roll < 0;
     });
     final options = [

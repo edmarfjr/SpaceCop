@@ -48,6 +48,12 @@ const double organicExplosiveMultiplier = 1.5;
 /// An Etéreo hit by an Explosivo stays solid this long.
 const int materializeTicks = 2 * ticksPerSecond;
 
+/// Capacitor: energy left over that carries into the next hand, at most.
+const int capacitorCarry = 2;
+
+/// Kit de Engenharia: how much longer gear lasts.
+const double engineeringKitBonus = 1.5;
+
 /// Damage of the 2nd and 3rd chip of a chain.
 const double chain2Multiplier = 1.25;
 const double chain3Multiplier = 1.5;
@@ -595,6 +601,12 @@ class BattleState {
   /// The next chip runs twice (Overclock).
   bool overclocked = false;
 
+  /// Carregador Estendido already refunded a Projétil in this hand.
+  bool projectileRefunded = false;
+
+  /// Mochila Tática already saved a single-use card in this battle.
+  bool packUsed = false;
+
   /// Hundredths of a gauge tick carried over from the speed bonuses.
   int _gaugeProgress = 0;
 
@@ -699,8 +711,12 @@ class BattleState {
     deck
       ..discardHand()
       ..draw(handSize);
-    energy = energyMax;
+    final carried = hasRelic(Relics.capacitor)
+        ? min(energy, capacitorCarry)
+        : 0;
+    energy = energyMax + carried;
     energyBonus = 0;
+    projectileRefunded = false;
     selectedIndex = 0;
     gauge = 0;
     waitingForPlayer = pauseOnNewHand;
@@ -1012,6 +1028,10 @@ class BattleState {
     player.attackCooldown = playerAttackCooldown;
   }
 
+  /// Restores [amount] of the player's HP, up to the max.
+  void heal(int amount) =>
+      player.hp = min(player.maxHp, player.hp + amount);
+
   /// Chain bookkeeping for a chip of [family] about to be used. Returns the
   /// damage multiplier ([chain2Multiplier], [chain3Multiplier]). The 3rd
   /// chip also sets [_chainStatus] and completes the chain. After Sobrecarga
@@ -1080,9 +1100,17 @@ class BattleState {
     _activate(def);
     if (twice) _activate(def);
     energy -= def.cost;
-    def.exhaust ? deck.exhaust(card) : deck.discard(card);
+    if (def.exhaust && !(hasRelic(Relics.tacticalPack) && !packUsed)) {
+      deck.exhaust(card);
+    } else {
+      if (def.exhaust) packUsed = true;
+      deck.discard(card);
+    }
     selectedIndex = hand.isEmpty ? 0 : selectedIndex % hand.length;
     player.attackCooldown = playerAttackCooldown;
+    for (final relic in relics) {
+      relic.onChipUsed?.call(this, def);
+    }
   }
 
   /// Runs [def]'s effect for the player. Damage goes through terrain, chain
@@ -1094,7 +1122,7 @@ class BattleState {
     var damage = boosted(player, def.damage + damageBonus, def.element);
     damage = (damage * chain).round();
     for (final relic in relics) {
-      damage = relic.modifyDamage?.call(this, damage) ?? damage;
+      damage = relic.modifyDamage?.call(this, def, damage) ?? damage;
     }
     final status = _chainStatus;
     switch (def.effect) {
@@ -1160,7 +1188,7 @@ class BattleState {
           StatusShotEffect():
         _fire(def, damage, onHit: def.effect, status: status);
       case HealEffect(:final amount):
-        player.hp = min(player.maxHp, player.hp + amount);
+        heal(amount);
       case DamageBoostEffect(:final amount):
         damageBonus += amount;
       case EnergyBurstEffect(:final amount):
@@ -1199,10 +1227,11 @@ class BattleState {
             flash: !slash,
           );
         }
-        if (stunTicks > 0) {
-          for (final unit in struck) {
-            if (_passesThrough(unit, def.family)) continue;
-            unit.applyStatus(Status.stunned, stunTicks);
+        for (final unit in struck) {
+          if (_passesThrough(unit, def.family)) continue;
+          if (stunTicks > 0) unit.applyStatus(Status.stunned, stunTicks);
+          if (hasRelic(Relics.servoArm) && !unit.isDead) {
+            displace(unit, 1, 0, 1, byPlayer: true);
           }
         }
         damageBonus = 0;
@@ -1219,7 +1248,7 @@ class BattleState {
         }
         damageBonus = 0;
       case BarrierEffect(:final ticks):
-        player.barrierTicks = ticks;
+        player.barrierTicks = _lasting(ticks);
       case PanelChangeEffect(:final state):
         for (var x = 0; x < gridColumns; x++) {
           for (var y = 0; y < gridRows; y++) {
@@ -1232,7 +1261,7 @@ class BattleState {
       case AreaStealEffect(:final ticks, :final hitDamage):
         _stealArea(ticks, hitDamage);
       case SpawnObstacleEffect(:final kind, :final amount):
-        _spawnObstacle(kind, amount, tossed: def.pose == ChipPose.toss);
+        spawnObstacle(kind, amount, tossed: def.pose == ChipPose.toss);
       // An empty case would fall through to the next one.
       case NoEffect():
         break;
@@ -1383,7 +1412,12 @@ class BattleState {
   /// when they land there (if it is still free).
   ///
   /// [amount] overrides the kind's default (see [SpawnObstacleEffect]).
-  void _spawnObstacle(ObstacleKind kind, int? amount, {bool tossed = false}) {
+  /// [ticks] of player gear, longer with Kit de Engenharia.
+  int _lasting(int ticks) => hasRelic(Relics.engineeringKit)
+      ? (ticks * engineeringKitBonus).round()
+      : ticks;
+
+  void spawnObstacle(ObstacleKind kind, int? amount, {bool tossed = false}) {
     void place(GridPos pos, void Function() put) =>
         tossed ? _toss(pos, put) : put();
     bool free(GridPos pos) =>
@@ -1406,7 +1440,7 @@ class BattleState {
             pos: pos,
             hp: 1,
             team: Team.player,
-            ticksLeft: amount ?? reflectorTicks,
+            ticksLeft: _lasting(amount ?? reflectorTicks),
           ),
         );
       case ObstacleKind.turret:
@@ -1425,7 +1459,7 @@ class BattleState {
             pos: pos,
             hp: turretHp,
             team: Team.player,
-            ticksLeft: amount ?? turretTicks,
+            ticksLeft: _lasting(amount ?? turretTicks),
           ),
         );
       case ObstacleKind.tesla:
@@ -1443,7 +1477,7 @@ class BattleState {
             pos: pos,
             hp: teslaHp,
             team: Team.player,
-            ticksLeft: amount ?? teslaTicks,
+            ticksLeft: _lasting(amount ?? teslaTicks),
           ),
         );
       case ObstacleKind.mine:
@@ -1779,6 +1813,9 @@ class BattleState {
           family == ChipFamily.explosive) {
         target.materialTicks = materializeTicks;
       }
+      for (final relic in relics) {
+        relic.onHit?.call(this, target, family);
+      }
     }
     final panel = panelAt(target.pos).state;
     if (element == Element.elec) {
@@ -1800,9 +1837,19 @@ class BattleState {
     if (total > 0) hits.add((target: target, amount: total));
   }
 
-  /// How much a card of [family] hurts [target], by what it is made of; 0
-  /// when the hit passes through a phased Etéreo.
-  double _kindMultiplier(EnemyFighter target, ChipFamily family) =>
+  /// How much a card of [family] hurts [target]: by what it is made of,
+  /// then the relics. 0 when the hit passes through a phased Etéreo.
+  double _kindMultiplier(EnemyFighter target, ChipFamily family) {
+    var multiplier = _kindBase(target, family);
+    for (final relic in relics) {
+      multiplier =
+          relic.modifyHit?.call(this, target, family, multiplier) ??
+          multiplier;
+    }
+    return multiplier;
+  }
+
+  double _kindBase(EnemyFighter target, ChipFamily family) =>
       switch ((target.def.kind, family)) {
         (EnemyKind.machine, ChipFamily.projectile) =>
           machineProjectileMultiplier,
@@ -1988,6 +2035,12 @@ class BattleState {
       return;
     }
     shot.spent = true;
+    if (shot.family == ChipFamily.explosive &&
+        hasRelic(Relics.shortFuse) &&
+        shot.pos.inBounds &&
+        panelAt(shot.pos).state == PanelState.normal) {
+      setPanel(shot.pos, PanelState.cracked);
+    }
     final struck = <Fighter>{};
     for (final offset in shot.pattern) {
       final cell = shot.pos + GridPos(offset.x * shot.dir, offset.y);

@@ -164,6 +164,9 @@ abstract final class SpriteFiles {
   static const credits = 'chips/cred.png';
   static const muzzle = 'projeteis/muzzle.png';
 
+  /// Relics without art of their own yet.
+  static const relicPlaceholder = 'relics/placeholder.png';
+
   static final relics = <String, String>{
     Relics.extraBattery.id: 'relics/ram.png',
     Relics.sortedFolder.id: 'relics/pasta.png',
@@ -218,6 +221,7 @@ abstract final class SpriteFiles {
     ...elements.values,
     ...statuses.values,
     ...relics.values,
+    relicPlaceholder,
     ...events.values,
     ...nodes.values,
   };
@@ -322,7 +326,8 @@ class GameSprites {
 
   Sprite status(Status status) => _file(SpriteFiles.statuses[status]!);
 
-  Sprite relic(RelicDef relic) => _file(SpriteFiles.relics[relic.id]!);
+  Sprite relic(RelicDef relic) =>
+      _file(SpriteFiles.relics[relic.id] ?? SpriteFiles.relicPlaceholder);
 
   Sprite? event(EventDef event) => switch (SpriteFiles.events[event.title]) {
     final path? => _file(path),
