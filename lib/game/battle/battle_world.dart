@@ -15,6 +15,7 @@ import 'damage_text.dart';
 import 'fighter_component.dart';
 import 'grid_component.dart';
 import 'projectile_layer.dart';
+import 'shield_link_layer.dart';
 
 /// Flame side of one battle: steps [battle] at a fixed rate, turns keys and
 /// touch into [PlayerInput] and keeps one [FighterComponent] per living
@@ -100,6 +101,7 @@ class BattleWorld extends World
       ProjectileLayer.ground(battle, game.sprites),
       for (var row = 0; row < gridRows; row++)
         ProjectileLayer.row(battle, game.sprites, row),
+      ShieldLinkLayer(battle, (fighter) => _views[fighter]),
     ]);
     _syncViews();
   }
