@@ -253,6 +253,54 @@ abstract final class Enemies {
     behavior: TankBehavior(),
   );
 
+  // ETs: the second mission's enemies, a tribe living in ancient ruins.
+  // Out of every pool until that mission exists.
+
+  static const etWarrior = EnemyDef(
+    name: 'ET Guerreiro',
+    hp: 45,
+    behavior: GruntMeleeBehavior(reach: 2, wanderTicks: 20, flee: true),
+  );
+
+  static const etGunner = EnemyDef(
+    name: 'ET Atirador',
+    hp: 40,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    behavior: GruntGunBehavior(wanderTicks: 20, flee: true),
+  );
+
+  static const etTrap = EnemyDef(
+    name: 'ET Emboscador',
+    hp: 50,
+    behavior: TrapBehavior(),
+  );
+
+  static const etShaman = EnemyDef(
+    name: 'ET Xamã',
+    hp: 50,
+    behavior: ShamanBehavior(),
+  );
+
+  /// Left by the ET Xamã; doesn't count toward winning.
+  static const energySphere = EnemyDef(
+    name: 'Esfera de Energia',
+    kind: EnemyKind.machine,
+    hp: 20,
+    pushable: false,
+    summon: true,
+    behavior: SphereBehavior(),
+  );
+
+  /// Two panels wide, like the Tanque: [pos] is the front one.
+  static const etRider = EnemyDef(
+    name: 'ET Montado',
+    hp: 100,
+    pushable: false,
+    footprint: [GridPos(0, 0), GridPos(1, 0)],
+    behavior: TankBehavior(chargeOnly: true),
+  );
+
   // Etéreos: the third mission's enemies. Out of every pool until that
   // mission exists.
 

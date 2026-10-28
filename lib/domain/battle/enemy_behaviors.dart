@@ -254,8 +254,7 @@ class BruteBehavior extends EnemyBehavior {
   }
 
   @override
-  void onInterrupted(EnemyFighter enemy, BattleState battle) =>
-      enemy.stage = 0;
+  void onInterrupted(EnemyFighter enemy, BattleState battle) => enemy.stage = 0;
 }
 
 /// Escavador: hides underground (untouchable), pops up on a random panel
@@ -659,14 +658,43 @@ bool _seekRow(EnemyFighter enemy, BattleState battle, int moveTicks) {
   return true;
 }
 
+/// One step every [moveTicks] away from the player: off their row, toward
+/// the back. Used by the ETs after they attack.
+void _flee(EnemyFighter enemy, BattleState battle, int moveTicks) {
+  if (enemy.moveTimer-- > 0) return;
+  enemy.moveTimer = moveTicks;
+  final player = battle.player.pos;
+  int distance(GridPos p) => (p.y - player.y).abs() * 2 + p.x;
+  final steps = [
+    const GridPos(1, 0),
+    const GridPos(-1, 0),
+    const GridPos(0, 1),
+    const GridPos(0, -1),
+  ]..shuffle(battle.random);
+  steps.sort(
+    (a, b) => distance(enemy.pos + b).compareTo(distance(enemy.pos + a)),
+  );
+  for (final step in steps) {
+    if (distance(enemy.pos + step) <= distance(enemy.pos)) break;
+    if (battle.tryMove(enemy, step)) break;
+  }
+}
+
 /// Capanga Atirador: wanders its side and, once ready, lines up with the
 /// player to shoot down its row. It stands still from the warning until the
 /// shot leaves.
+///
+/// With [flee] (ET Atirador) it spends the first half of its cooldown
+/// running away from the player instead of wandering.
 class GruntGunBehavior extends EnemyBehavior {
-  const GruntGunBehavior();
+  const GruntGunBehavior({this.wanderTicks = moveTicks, this.flee = false});
 
   static const moveTicks = 40;
   static const cycleTicks = 3 * ticksPerSecond;
+
+  /// Pause between steps.
+  final int wanderTicks;
+  final bool flee;
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
@@ -675,10 +703,12 @@ class GruntGunBehavior extends EnemyBehavior {
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer > 0) {
       enemy.timer--;
-      _wander(enemy, battle, moveTicks);
+      flee && enemy.timer > cycleTicks ~/ 2
+          ? _flee(enemy, battle, wanderTicks)
+          : _wander(enemy, battle, wanderTicks);
       return;
     }
-    if (_seekRow(enemy, battle, moveTicks)) return;
+    if (_seekRow(enemy, battle, wanderTicks)) return;
     enemy.timer = cycleTicks;
     battle.schedule(
       enemy,
@@ -714,8 +744,23 @@ class GruntDuckBehavior extends EnemyBehavior {
 /// it slashes the panel on its left, switching to its attack frame only
 /// then, and goes back to the panel it came from. Once the slash lands it goes back to a free
 /// panel of its side.
+///
+/// ET Guerreiro: [reach] 2 (it also hits the panel behind the player's),
+/// faster steps and, with [flee], the first half of its cooldown spent
+/// running away from the player.
 class GruntMeleeBehavior extends EnemyBehavior {
-  const GruntMeleeBehavior();
+  const GruntMeleeBehavior({
+    this.reach = 1,
+    this.wanderTicks = moveTicks,
+    this.flee = false,
+  });
+
+  /// Panels hit, from the player's toward the left edge.
+  final int reach;
+
+  /// Pause between steps while wandering.
+  final int wanderTicks;
+  final bool flee;
 
   static const moveTicks = 40;
   static const cycleTicks = 4 * ticksPerSecond;
@@ -762,10 +807,12 @@ class GruntMeleeBehavior extends EnemyBehavior {
     }
     if (enemy.timer > 0) {
       enemy.timer--;
-      _wander(enemy, battle, moveTicks);
+      flee && enemy.timer > cycleTicks ~/ 2
+          ? _flee(enemy, battle, wanderTicks)
+          : _wander(enemy, battle, wanderTicks);
       return;
     }
-    if (_seekRow(enemy, battle, moveTicks)) return;
+    if (_seekRow(enemy, battle, wanderTicks)) return;
     final aim = battle.player.pos;
     final spot = aim + const GridPos(1, 0);
     if (!spot.inBounds) {
@@ -779,12 +826,18 @@ class GruntMeleeBehavior extends EnemyBehavior {
       ..moveTimer = walkStepTicks - 1
       ..stage = _walking;
     battle.warn(
-      [aim],
+      _reached(aim),
       (enemy.pos.x - spot.x).abs() * walkStepTicks + minWarnTicks,
       TelegraphKind.damage,
       enemy,
     );
   }
+
+  /// The panels its slash covers, aimed at [aim].
+  List<GridPos> _reached(GridPos aim) => [
+    for (var i = 0; i < reach; i++)
+      if (aim + GridPos(-i, 0) case final cell when cell.inBounds) cell,
+  ];
 
   /// Stunned on the way: gives up and goes home.
   @override
@@ -814,12 +867,12 @@ class GruntMeleeBehavior extends EnemyBehavior {
       if (enemy.pos != spot) return;
     }
     enemy.stage = _returning;
-    battle.schedule(
-      enemy,
-      [aim],
-      minWarnTicks,
-      () => battle.strike(aim, damage, Team.player, enemy.element),
-    );
+    final cells = _reached(aim);
+    battle.schedule(enemy, cells, minWarnTicks, () {
+      for (final cell in cells) {
+        battle.strike(cell, damage, Team.player, enemy.element);
+      }
+    });
   }
 }
 
@@ -946,8 +999,13 @@ class SentryBehavior extends EnemyBehavior {
 /// over obstacles, hits the player and pushes them 1 panel back (a wall,
 /// unit or hole behind them adds the usual collision or fall), leaves the
 /// arena on the left and comes back on the right.
+///
+/// ET Montado ([chargeOnly]): only the charge, and it keeps trying to line
+/// up instead of falling back to missiles.
 class TankBehavior extends EnemyBehavior {
-  const TankBehavior();
+  const TankBehavior({this.chargeOnly = false});
+
+  final bool chargeOnly;
 
   static const moveTicks = 45;
 
@@ -1009,9 +1067,9 @@ class TankBehavior extends EnemyBehavior {
       return;
     }
     // [EnemyFighter.timer] goes negative while lining up.
-    var next = enemy.attackTimer % 3;
+    var next = chargeOnly ? 2 : enemy.attackTimer % 3;
     if (next != 1 && enemy.pos.y != battle.player.pos.y) {
-      if (enemy.timer > -seekLimitTicks) {
+      if (chargeOnly || enemy.timer > -seekLimitTicks) {
         enemy.timer--;
         _seekRow(enemy, battle, seekTicks);
         return;
@@ -1331,5 +1389,151 @@ class StalkerBehavior extends EnemyBehavior {
     final dy = (battle.player.pos.y - enemy.pos.y).sign;
     if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
     enemy.moveTimer = enemy.def.moveTicks;
+  }
+}
+
+// ETs (second mission): a tribe of small aliens using the ruins' old tech
+// like magic.
+
+/// ET Emboscador: wanders burrowed (only Explosivo hurts it; shots fly
+/// over it). Every [cycleTicks] it dives toward the panel the player stands
+/// on, bursts out there after a warning and stays exposed for
+/// [exposedTicks] (attack frame, hit by anything), then burrows again back
+/// home.
+class TrapBehavior extends EnemyBehavior {
+  const TrapBehavior();
+
+  static const moveTicks = 30;
+  static const cycleTicks = 4 * ticksPerSecond;
+  static const warnTicks = ticksPerSecond;
+  static const exposedTicks = ticksPerSecond;
+  static const damage = 20;
+
+  // Phases, kept in [EnemyFighter.stage].
+  static const _burrowed = 0;
+  static const _diving = 1;
+  static const _exposed = 2;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy
+    ..burrowed = true
+    ..timer = cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    switch (enemy.stage) {
+      case _diving:
+        return;
+      case _exposed:
+        enemy.attackPose = enemy.timer;
+        if (enemy.timer-- > 0) return;
+        enemy
+          ..attackPose = 0
+          ..burrowed = true
+          ..stage = _burrowed
+          ..timer = cycleTicks;
+        final home = enemy.home;
+        final free = _freeEnemyPanels(battle);
+        final back = home != null && free.contains(home)
+            ? home
+            : free.isEmpty
+            ? null
+            : free[battle.random.nextInt(free.length)];
+        if (back != null) enemy.pos = back;
+        enemy.home = null;
+        return;
+    }
+    if (enemy.timer-- > 0) {
+      _wander(enemy, battle, moveTicks);
+      return;
+    }
+    final aim = battle.player.pos;
+    enemy
+      ..stage = _diving
+      ..home = enemy.pos;
+    battle.schedule(enemy, [aim], warnTicks, () {
+      battle.strike(aim, damage, Team.player, enemy.element);
+      if (battle.unitAt(aim) case final PlayerFighter player) {
+        battle.displace(player, -1, 0, 1);
+      }
+      if (battle.unitAt(aim) == null && battle.panelAt(aim).walkable) {
+        enemy.pos = aim;
+      }
+      enemy
+        ..burrowed = false
+        ..stage = _exposed
+        ..timer = exposedTicks;
+    });
+  }
+
+  /// Stunned while diving: it stays burrowed where it is.
+  @override
+  void onInterrupted(EnemyFighter enemy, BattleState battle) {
+    if (enemy.stage != _diving) return;
+    enemy
+      ..stage = _burrowed
+      ..timer = cycleTicks;
+  }
+}
+
+/// ET Xamã: wanders and, every [cycleTicks], leaves an energy sphere on its
+/// panel and steps off it. The sphere fires the mortars (see
+/// [SphereBehavior]).
+class ShamanBehavior extends EnemyBehavior {
+  const ShamanBehavior();
+
+  static const moveTicks = 40;
+  static const cycleTicks = 5 * ticksPerSecond;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer-- > 0) {
+      _wander(enemy, battle, moveTicks);
+      return;
+    }
+    final free = _freeEnemyPanels(battle);
+    if (free.isEmpty) {
+      enemy.timer = moveTicks;
+      return;
+    }
+    enemy
+      ..timer = cycleTicks
+      ..attackPose = attackPoseTicks;
+    final spot = enemy.pos;
+    enemy.pos = free[battle.random.nextInt(free.length)];
+    battle.summon(Enemies.energySphere, spot);
+  }
+}
+
+/// Esfera de Energia: an enemy turret. Fires [shots] mortars at wherever
+/// the player stands, [gapTicks] apart, then fades away.
+class SphereBehavior extends EnemyBehavior {
+  const SphereBehavior();
+
+  static const shots = 3;
+  static const gapTicks = 20;
+  static const damage = 10;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer-- > 0) return;
+    if (enemy.stage == shots) {
+      if (!enemy.attacking) enemy.hp = 0;
+      return;
+    }
+    enemy
+      ..timer = gapTicks
+      ..stage += 1;
+    final aim = battle.player.pos;
+    battle.schedule(
+      enemy,
+      [aim],
+      basicWarnTicks,
+      lob: Lob.ball,
+      () => battle.strike(aim, damage, Team.player, enemy.element),
+    );
   }
 }

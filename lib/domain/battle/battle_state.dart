@@ -368,6 +368,10 @@ class EnemyFighter extends Fighter {
   /// Etéreo: ticks left solid after an Explosivo hit.
   int materialTicks = 0;
 
+  /// Dug into the floor (ET Emboscador): only Explosivo hurts it, and
+  /// shots fly over it.
+  bool burrowed = false;
+
   /// Etéreo out of phase: Projétil and Corpo-a-corpo pass through. It is
   /// solid while it attacks and for [materialTicks].
   bool get phased =>
@@ -1817,6 +1821,12 @@ class BattleState {
       return;
     }
     var total = amount;
+    if (target is EnemyFighter &&
+        target.burrowed &&
+        family != ChipFamily.explosive) {
+      events.add(BattleEvent(BattleEventKind.blocked, unit: target));
+      return;
+    }
     if (target is EnemyFighter && family != null) {
       final multiplier = _kindMultiplier(target, family);
       if (multiplier == 0) {
@@ -1881,8 +1891,8 @@ class BattleState {
   /// status or push (a phased Etéreo).
   bool _passesThrough(Fighter target, ChipFamily? family) =>
       target is EnemyFighter &&
-      family != null &&
-      _kindMultiplier(target, family) == 0;
+      ((target.burrowed && family != ChipFamily.explosive) ||
+          (family != null && _kindMultiplier(target, family) == 0));
 
   /// Mira Laser's extra damage on a marked target.
   int _markBonus(Fighter target) =>
