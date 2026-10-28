@@ -9,8 +9,9 @@ import '../../ui/theme.dart';
 import 'fighter_component.dart';
 import 'grid_component.dart';
 
-/// Lightning from the top of every shield source (the Rei's totems) to the
-/// enemy it keeps invulnerable, over every fighter.
+/// Lightning from the top of every shield source (the Rei's totems, the
+/// Olho do Abismo's Hemisférios) to the enemy it keeps invulnerable, over
+/// every fighter.
 class ShieldLinkLayer extends Component with ParentIsA<GridComponent> {
   ShieldLinkLayer(this.battle, this.viewOf) : super(priority: 1000);
 
@@ -20,7 +21,11 @@ class ShieldLinkLayer extends Component with ParentIsA<GridComponent> {
   final FighterComponent? Function(Fighter fighter) viewOf;
 
   /// Enemies that shield another one while they stand.
-  static const sources = {Enemies.totem, Enemies.ragingTotem};
+  static const sources = {
+    Enemies.totem,
+    Enemies.ragingTotem,
+    Enemies.hemisphere,
+  };
 
   /// Kinks along each bolt.
   static const _segments = 6;
