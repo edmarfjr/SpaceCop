@@ -240,6 +240,8 @@ abstract final class SpriteFiles {
     Events.undercoverAgent.title: 'events/agenteInfiltrado.png',
     Events.clinic.title: 'events/enfermaria.png',
     Events.hangar.title: 'events/contrabando.png',
+    Events.clinic.title: 'events/enfermaria.png',
+    Events.hangar.title: 'events/contrabando.png',
   };
 
   static const nodes = <NodeType, String>{
