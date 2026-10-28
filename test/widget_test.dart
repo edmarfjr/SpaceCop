@@ -39,7 +39,11 @@ void main() {
     for (var i = 0; i < 5; i++) {
       battle.tick();
     }
-    expect(battle.enemies.map((e) => e.hp), everyElement(30 - 10));
+    // Canhão Móvel is a Máquina: Projétil does half.
+    expect(
+      battle.enemies.map((e) => e.hp),
+      everyElement(30 - (10 * machineProjectileMultiplier).round()),
+    );
     expect(battle.deck.discardPile, hasLength(1));
   });
 
@@ -176,24 +180,11 @@ void main() {
       }
     }
 
-    test('weakness doubles damage only when the attack element wins', () {
-      expect(Element.fire.beats(Element.wood), isTrue);
-      expect(Element.wood.beats(Element.elec), isTrue);
-      expect(Element.elec.beats(Element.aqua), isTrue);
-      expect(Element.aqua.beats(Element.fire), isTrue);
-      expect(Element.wood.beats(Element.fire), isFalse);
-      expect(Element.neutral.beats(Element.wood), isFalse);
-
-      final weak = battleWith([shotOf(Element.fire)], dummyOf(Element.wood))
+    test('elements have no weakness: only terrain and statuses', () {
+      final battle = battleWith([shotOf(Element.fire)], dummyOf(Element.wood))
         ..tick();
-      fire(weak);
-      expect(weak.enemies.single.hp, 100 - 10);
-
-      final neutral = battleWith([
-        shotOf(Element.fire),
-      ], dummyOf(Element.neutral))..tick();
-      fire(neutral);
-      expect(neutral.enemies.single.hp, 100 - 5);
+      fire(battle);
+      expect(battle.enemies.single.hp, 100 - 5);
     });
 
     test('burning deals 3 damage per second for 3 seconds', () {

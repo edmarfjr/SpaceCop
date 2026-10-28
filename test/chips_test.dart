@@ -43,7 +43,8 @@ void main() {
       spawns: [dummyAt(3, 1), dummyAt(4, 1), dummyAt(3, 0), dummyAt(5, 2)],
     )..setPanel(const GridPos(3, 2), PanelState.grass);
     use(battle, Chips.crossFlame);
-    expect(battle.enemies.map((e) => e.hp), [85, 85, 85, 100]);
+    final hit = 100 - boom(Chips.crossFlame.damage);
+    expect(battle.enemies.map((e) => e.hp), [hit, hit, hit, 100]);
     expect(battle.panelAt(const GridPos(3, 2)).state, PanelState.normal);
   });
 
@@ -60,7 +61,7 @@ void main() {
     wait(battle, playerTossTicks - 2);
     expect(battle.enemies.single.hp, 100);
     wait(battle, 1);
-    expect(battle.enemies.single.hp, 100 - Chips.crossFlame.damage);
+    expect(battle.enemies.single.hp, 100 - boom(Chips.crossFlame.damage));
   });
 
   test('Lança Trovão hits columns 3 to 5 of the row, double on Wet', () {

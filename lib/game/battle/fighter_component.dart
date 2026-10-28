@@ -55,6 +55,9 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   static final _hurtPaint = Paint()
     ..colorFilter = const ColorFilter.mode(Pico.white, BlendMode.srcATop);
 
+  /// A phased Etéreo is drawn see-through.
+  static final _phasedPaint = Paint()..color = const Color(0x80FFFFFF);
+
   /// Seconds each energy shield frame stays on screen.
   static const _shieldFrameTime = 0.1;
 
@@ -137,7 +140,11 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
       canvas,
       position: Vector2(0, size.y * buried),
       size: size,
-      overridePaint: _flashing ? _hurtPaint : null,
+      overridePaint: _flashing
+          ? _hurtPaint
+          : fighter is EnemyFighter && (fighter as EnemyFighter).phased
+          ? _phasedPaint
+          : null,
     );
     canvas.restore();
     // Energy shield: the player's barrier, or the Brute's while it blocks.

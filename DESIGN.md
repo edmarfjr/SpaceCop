@@ -48,8 +48,11 @@ ou tamanhos direto nos widgets: crie um token.
 - A grade da batalha fica em (72, 40), centralizada, com 240×96 px.
 - O status da jogadora fica no canto superior esquerdo (x 2–66): HP e
   Energia numa linha, o gauge embaixo. Corrente e fusão ficam sobre a grade.
-- À direita da grade, abaixo dos ícones, cada inimigo tem nome e barra de
-  vida (vermelha, borda branca); nomes repetidos são numerados ("Prisma 2").
+- À direita da grade, abaixo dos ícones, cada inimigo tem nome, tipo
+  (Máquina, Orgânico, Etéreo, em `Pico.lightGray`) e barra de vida
+  (vermelha, borda branca); nomes repetidos são numerados ("Prisma 2").
+- Um Etéreo em fase (balas e golpes o atravessam) é desenhado com metade
+  da opacidade.
   O HP não aparece mais sobre os inimigos, só sobre os obstáculos.
 - A mão fica numa linha embaixo, encostada à direita. Os ícones de deck e
   pausa ficam no canto superior direito.

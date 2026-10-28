@@ -16,7 +16,7 @@ void main() {
     use(battle, Chips.cryoGrenade);
     final [center, side, outside] = battle.enemies;
     for (final hit in [center, side]) {
-      expect(hit.hp, 90);
+      expect(hit.hp, 100 - boom(Chips.cryoGrenade.damage));
       expect(hit.has(Status.wet), isTrue);
     }
     expect(outside.has(Status.wet), isFalse);

@@ -4,6 +4,27 @@ import '../element.dart';
 import '../grid.dart';
 import 'enemy_behaviors.dart';
 
+/// What an enemy is made of, which sets how much each card family hurts it
+/// (see `BattleState.damage`).
+enum EnemyKind {
+  /// Armored: Projétil does half, Energia double.
+  machine,
+
+  /// Flesh: Explosivo does +50%.
+  organic,
+
+  /// Phased out of normal matter: Projétil and Corpo-a-corpo pass through
+  /// it, except while it attacks or for a moment after an Explosivo hit.
+  ethereal;
+
+  /// Name shown in game.
+  String get label => switch (this) {
+    EnemyKind.machine => 'Máquina',
+    EnemyKind.organic => 'Orgânico',
+    EnemyKind.ethereal => 'Etéreo',
+  };
+}
+
 /// Enemy stats. Timings are in simulation ticks (30 per second).
 class EnemyDef {
   const EnemyDef({
@@ -14,6 +35,7 @@ class EnemyDef {
     this.shotDamage = 0,
     this.shotStepTicks = 20,
     this.element = Element.neutral,
+    this.kind = EnemyKind.organic,
     this.behavior = const MobileCannonBehavior(),
     this.footprint = const [GridPos(0, 0)],
     this.pushable = true,
@@ -35,6 +57,7 @@ class EnemyDef {
   /// Ticks the enemy shot waits on each cell (lower = faster).
   final int shotStepTicks;
   final Element element;
+  final EnemyKind kind;
 
   /// The AI. Stateless; per-unit state lives on the `EnemyFighter`.
   final EnemyBehavior behavior;
@@ -52,7 +75,6 @@ class EnemyDef {
   /// Reflects straight projectiles unless lined up with its partner (Dupla
   /// Prisma).
   final bool prism;
-
 }
 
 class EnemySpawn {
@@ -73,6 +95,7 @@ abstract final class Enemies {
   /// hp 30. Shot damage 5 is the cart's `m_atq` default.
   static const mobileCannon = EnemyDef(
     name: 'Canhão Móvel',
+    kind: EnemyKind.machine,
     hp: 30,
     moveTicks: 30,
     attackTicks: 60,
@@ -96,6 +119,7 @@ abstract final class Enemies {
 
   static const cannon = EnemyDef(
     name: 'Canhão Fixo',
+    kind: EnemyKind.machine,
     hp: 50,
     pushable: false,
     behavior: CannonBehavior(),
@@ -134,6 +158,7 @@ abstract final class Enemies {
 
   static const colossus = EnemyDef(
     name: 'Colosso Sísmico',
+    kind: EnemyKind.machine,
     hp: 300,
     footprint: [GridPos(0, 0), GridPos(0, 1)],
     pushable: false,
@@ -143,6 +168,7 @@ abstract final class Enemies {
   /// The Colossus's weak point; damage to it goes to the body, doubled.
   static const colossusFist = EnemyDef(
     name: 'Punho',
+    kind: EnemyKind.machine,
     hp: 1,
     pushable: false,
     summon: true,
@@ -151,6 +177,7 @@ abstract final class Enemies {
 
   static const maestro = EnemyDef(
     name: 'Maestro Elemental',
+    kind: EnemyKind.ethereal,
     hp: 350,
     element: Element.fire,
     pushable: false,
@@ -159,6 +186,7 @@ abstract final class Enemies {
 
   static const note = EnemyDef(
     name: 'Nota',
+    kind: EnemyKind.ethereal,
     hp: 20,
     pushable: false,
     summon: true,
@@ -205,6 +233,7 @@ abstract final class Enemies {
 
   static const sentry = EnemyDef(
     name: 'Torreta',
+    kind: EnemyKind.machine,
     hp: 40,
     shotDamage: 10,
     shotStepTicks: 8,
@@ -215,6 +244,7 @@ abstract final class Enemies {
   /// The first mission's boss. Two panels wide: [pos] is the front one.
   static const tank = EnemyDef(
     name: 'Tanque de Guerra',
+    kind: EnemyKind.machine,
     hp: 300,
     shotDamage: 10,
     shotStepTicks: 6,

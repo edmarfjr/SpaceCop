@@ -40,6 +40,14 @@ const int fallStunTicks = ticksPerSecond;
 /// A chain is kept by using a chip of the same family within this window.
 const int chainWindowTicks = 2 * ticksPerSecond;
 
+/// Card family against enemy type (see `BattleState._kindMultiplier`).
+const double machineProjectileMultiplier = 0.5;
+const double machineEnergyMultiplier = 2;
+const double organicExplosiveMultiplier = 1.5;
+
+/// An Etéreo hit by an Explosivo stays solid this long.
+const int materializeTicks = 2 * ticksPerSecond;
+
 /// Damage of the 2nd and 3rd chip of a chain.
 const double chain2Multiplier = 1.25;
 const double chain3Multiplier = 1.5;
@@ -351,6 +359,14 @@ class EnemyFighter extends Fighter {
   double buried = 0;
   int shieldDown = 0;
 
+  /// Etéreo: ticks left solid after an Explosivo hit.
+  int materialTicks = 0;
+
+  /// Etéreo out of phase: Projétil and Corpo-a-corpo pass through. It is
+  /// solid while it attacks and for [materialTicks].
+  bool get phased =>
+      def.kind == EnemyKind.ethereal && materialTicks == 0 && !attacking;
+
   /// Body this unit is a weak point of (the Colossus's fist).
   EnemyFighter? linkedTo;
 
@@ -406,6 +422,7 @@ class Projectile {
     required this.damage,
     required this.pattern,
     this.element = Element.neutral,
+    this.family,
     this.onHit,
     this.status,
   }) : stepTimer = stepTicks;
@@ -419,6 +436,9 @@ class Projectile {
   final int damage;
   final List<GridPos> pattern;
   final Element element;
+
+  /// Family of the card that fired it; null for enemy and object shots.
+  final ChipFamily? family;
 
   /// Extra effect on the unit at the impact cell (push, pull, crack).
   final ChipEffect? onHit;
@@ -1087,6 +1107,7 @@ class BattleState {
           damage: damage,
           pattern: pattern,
           element: def.element,
+          family: def.family,
           status: status,
         );
         damageBonus = 0;
@@ -1110,6 +1131,7 @@ class BattleState {
           damage: damage,
           pattern: pattern,
           element: def.element,
+          family: def.family,
           status: status,
         );
         damageBonus = 0;
@@ -1171,6 +1193,7 @@ class BattleState {
             damage,
             Team.enemy,
             def.element,
+            family: def.family,
             status: status,
             struck: struck,
             flash: !slash,
@@ -1189,6 +1212,7 @@ class BattleState {
             damage,
             Team.enemy,
             def.element,
+            family: def.family,
             status: status,
           );
         }
@@ -1227,6 +1251,7 @@ class BattleState {
                 damage,
                 Team.enemy,
                 def.element,
+                family: def.family,
                 status: status,
                 struck: struck,
               );
@@ -1238,7 +1263,7 @@ class BattleState {
         for (var x = player.pos.x + 1; x < gridColumns; x++) {
           final cell = GridPos(x, player.pos.y);
           if (_targetAt(cell, Team.enemy) case final target?) {
-            strike(cell, damage, Team.enemy, def.element, status: status);
+            strike(cell, damage, Team.enemy, def.element, status: status, family: def.family);
             displace(target, 1, 0, 1, byPlayer: true);
             break;
           }
@@ -1255,6 +1280,7 @@ class BattleState {
               damage,
               Team.enemy,
               def.element,
+              family: def.family,
               status: status,
               struck: struck,
             );
@@ -1287,7 +1313,7 @@ class BattleState {
           final unit = unitAt(GridPos(x, player.pos.y));
           if (unit is! EnemyFighter) continue;
           _pull(unit);
-          strike(unit.pos, damage, Team.enemy, def.element, status: status);
+          strike(unit.pos, damage, Team.enemy, def.element, status: status, family: def.family);
           break;
         }
         damageBonus = 0;
@@ -1311,6 +1337,7 @@ class BattleState {
         damage: damage,
         pattern: pattern,
         element: def.element,
+        family: def.family,
         onHit: onHit,
         status: status,
       ),
@@ -1652,6 +1679,7 @@ class BattleState {
     int amount,
     Team opponent,
     Element element, {
+    ChipFamily? family,
     Status? status,
     Set<Fighter>? struck,
     bool flash = true,
@@ -1660,8 +1688,16 @@ class BattleState {
     if (flash) flashes.add(HitFlash(cell));
     final target = _targetAt(cell, opponent);
     if (target != null && (struck?.add(target) ?? true)) {
-      damage(target, amount + _markBonus(target), element: element);
-      if (status != null) target.applyStatus(status, statusTicks(status));
+      final through = _passesThrough(target, family);
+      damage(
+        target,
+        amount + _markBonus(target),
+        element: element,
+        family: family,
+      );
+      if (status != null && !through) {
+        target.applyStatus(status, statusTicks(status));
+      }
     }
     _scorch(cell, element);
   }
@@ -1672,7 +1708,8 @@ class BattleState {
   /// - a front shield stops straight shots coming from the player's side;
   /// - the Escudo Refletor can't be hurt; the player's barrier cancels the
   ///   hit;
-  /// - weakness doubles the damage;
+  /// - the card [family] against the enemy's kind ([_kindMultiplier]); a
+  ///   phased Etéreo lets it through, and an Explosivo makes it solid;
   /// - Elec on a Wet target doubles it again and dries the target;
   /// - Elec on a unit standing on ice stuns it;
   /// - Fire on a unit standing on grass doubles it.
@@ -1680,13 +1717,19 @@ class BattleState {
     Fighter target,
     int amount, {
     Element element = Element.neutral,
+    ChipFamily? family,
     HitKind kind = HitKind.area,
     Projectile? shot,
   }) {
     if (target is EnemyFighter) {
       if (target.invulnerable || target.hidden) return;
       if (target.linkedTo case final body?) {
-        damage(body, amount * weakPointMultiplier, element: element);
+        damage(
+          body,
+          amount * weakPointMultiplier,
+          element: element,
+          family: family,
+        );
         return;
       }
       final twin = target.partner;
@@ -1724,8 +1767,19 @@ class BattleState {
       return;
     }
     var total = amount;
+    if (target is EnemyFighter && family != null) {
+      final multiplier = _kindMultiplier(target, family);
+      if (multiplier == 0) {
+        events.add(BattleEvent(BattleEventKind.blocked, unit: target));
+        return;
+      }
+      total = (total * multiplier).round();
+      if (target.def.kind == EnemyKind.ethereal &&
+          family == ChipFamily.explosive) {
+        target.materialTicks = materializeTicks;
+      }
+    }
     final panel = panelAt(target.pos).state;
-    if (element.beats(target.element)) total *= weaknessMultiplier;
     if (element == Element.elec) {
       if (target.has(Status.wet)) {
         total *= 2;
@@ -1744,6 +1798,28 @@ class BattleState {
     target.takeDamage(total);
     if (total > 0) hits.add((target: target, amount: total));
   }
+
+  /// How much a card of [family] hurts [target], by what it is made of; 0
+  /// when the hit passes through a phased Etéreo.
+  double _kindMultiplier(EnemyFighter target, ChipFamily family) =>
+      switch ((target.def.kind, family)) {
+        (EnemyKind.machine, ChipFamily.projectile) =>
+          machineProjectileMultiplier,
+        (EnemyKind.machine, ChipFamily.energy) => machineEnergyMultiplier,
+        (EnemyKind.organic, ChipFamily.explosive) =>
+          organicExplosiveMultiplier,
+        (EnemyKind.ethereal, ChipFamily.projectile || ChipFamily.melee)
+            when target.phased =>
+          0,
+        _ => 1,
+      };
+
+  /// A hit of [family] on [target] goes through it untouched: no damage,
+  /// status or push (a phased Etéreo).
+  bool _passesThrough(Fighter target, ChipFamily? family) =>
+      target is EnemyFighter &&
+      family != null &&
+      _kindMultiplier(target, family) == 0;
 
   /// Mira Laser's extra damage on a marked target.
   int _markBonus(Fighter target) =>
@@ -1764,6 +1840,7 @@ class BattleState {
         damage: shot.damage * 2,
         pattern: const [GridPos(0, 0)],
         element: shot.element,
+        family: shot.family,
       ),
     );
   }
@@ -1783,6 +1860,7 @@ class BattleState {
   void _updateEnemies() {
     for (final enemy in List.of(enemies)) {
       if (enemy.shieldDown > 0) enemy.shieldDown--;
+      if (enemy.materialTicks > 0) enemy.materialTicks--;
       if (enemy.attackPose > 0) enemy.attackPose--;
       if (enemy.isDead) continue;
       if (enemy.has(Status.stunned)) {
@@ -1879,7 +1957,9 @@ class BattleState {
   void _updateProjectiles() {
     for (final shot in List.of(projectiles)) {
       final opponent = shot.team == Team.player ? Team.enemy : Team.player;
-      if (_targetAt(shot.pos, opponent) != null) {
+      // A phased Etéreo lets the shot fly on through it.
+      if (_targetAt(shot.pos, opponent) case final target?
+          when !_passesThrough(target, shot.family)) {
         _impact(shot, opponent);
         continue;
       }
@@ -1915,17 +1995,21 @@ class BattleState {
       final straight = offset == const GridPos(0, 0);
       final target = _targetAt(cell, opponent);
       if (target != null && struck.add(target)) {
+        final through = _passesThrough(target, shot.family);
         damage(
           target,
           shot.damage + _markBonus(target),
           element: shot.element,
+          family: shot.family,
           kind: straight ? HitKind.straight : HitKind.spread,
           shot: shot,
         );
-        if (shot.status case final status?) {
-          target.applyStatus(status, statusTicks(status));
+        if (!through) {
+          if (shot.status case final status?) {
+            target.applyStatus(status, statusTicks(status));
+          }
+          if (straight) _applyOnHit(shot, target);
         }
-        if (straight) _applyOnHit(shot, target);
       }
       _scorch(cell, shot.element);
     }

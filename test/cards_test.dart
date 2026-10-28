@@ -52,7 +52,8 @@ void main() {
     );
     use(battle, Chips.missile);
     wait(battle, 5);
-    expect(battle.enemies.map((e) => e.hp), [85, 85, 85, 100]);
+    final hit = 100 - boom(Chips.missile.damage);
+    expect(battle.enemies.map((e) => e.hp), [hit, hit, hit, 100]);
   });
 
   BattleState atFront(List<GridPos> enemies, List<ChipDef> chips) {
@@ -103,7 +104,8 @@ void main() {
       spawns: [dummyAt(4, 1), dummyAt(4, 0), dummyAt(5, 0), dummyAt(3, 0)],
     );
     use(battle, Chips.grenade);
-    expect(battle.enemies.map((e) => e.hp), [75, 75, 100, 100]);
+    final hit = 100 - boom(Chips.grenade.damage);
+    expect(battle.enemies.map((e) => e.hp), [hit, hit, 100, 100]);
     expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.normal);
   });
 
@@ -113,7 +115,8 @@ void main() {
       spawns: [dummyAt(5, 1), dummyAt(4, 2)],
     );
     use(battle, Chips.incendiaryGrenade);
-    expect(battle.enemies.map((e) => e.hp), [85, 85]);
+    final hit = 100 - boom(Chips.incendiaryGrenade.damage);
+    expect(battle.enemies.map((e) => e.hp), [hit, hit]);
     expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.lava);
     expect(Chips.incendiaryGrenade.element, Element.fire);
   });
@@ -144,7 +147,8 @@ void main() {
         spawns: [dummyAt(4, 1), dummyAt(5, 1)],
       );
       use(battle, Chips.smokeGrenade);
-      expect(battle.enemies.map((e) => e.hp), [90, 90]);
+      final hit = 100 - boom(Chips.smokeGrenade.damage);
+      expect(battle.enemies.map((e) => e.hp), [hit, hit]);
       final panel = battle.panelAt(const GridPos(4, 1));
       expect(panel.smoky, isTrue);
       expect(battle.panelAt(const GridPos(5, 1)).smoky, isFalse);

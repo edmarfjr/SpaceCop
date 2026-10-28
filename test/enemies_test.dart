@@ -5,6 +5,7 @@ import 'package:starcop/domain/battle/battle_state.dart';
 import 'package:starcop/domain/battle/enemies.dart';
 import 'package:starcop/domain/battle/enemy_behaviors.dart';
 import 'package:starcop/domain/battle/panels.dart';
+import 'package:starcop/domain/chips/battle_chip.dart';
 import 'package:starcop/domain/chips/chip_library.dart';
 import 'package:starcop/domain/element.dart';
 import 'package:starcop/domain/grid.dart';
@@ -24,6 +25,74 @@ void freeze(BattleState battle) {
 }
 
 void main() {
+  group('enemy kinds', () {
+    int hitWith(ChipFamily family, EnemyKind kind) {
+      final chip = shotOf(Element.neutral, family: family);
+      final battle = battleWith([chip], spawns: [dummyAt(3, 1, kind: kind)]);
+      freeze(battle);
+      use(battle, chip);
+      return 100 - battle.enemies.single.hp;
+    }
+
+    test('Máquina: Projétil half, Energia double', () {
+      expect(hitWith(ChipFamily.projectile, EnemyKind.machine), 5);
+      expect(hitWith(ChipFamily.energy, EnemyKind.machine), 20);
+      expect(hitWith(ChipFamily.melee, EnemyKind.machine), 10);
+      expect(hitWith(ChipFamily.explosive, EnemyKind.machine), 10);
+    });
+
+    test('Orgânico: Explosivo +50%, the rest plain', () {
+      expect(hitWith(ChipFamily.explosive, EnemyKind.organic), 15);
+      expect(hitWith(ChipFamily.projectile, EnemyKind.organic), 10);
+      expect(hitWith(ChipFamily.energy, EnemyKind.organic), 10);
+    });
+
+    test('Etéreo in phase: Projétil and Corpo-a-corpo pass through', () {
+      expect(hitWith(ChipFamily.projectile, EnemyKind.ethereal), 0);
+      expect(hitWith(ChipFamily.melee, EnemyKind.ethereal), 0);
+      expect(hitWith(ChipFamily.energy, EnemyKind.ethereal), 10);
+      expect(hitWith(ChipFamily.explosive, EnemyKind.ethereal), 10);
+    });
+
+    test('a shot flies through a phased Etéreo to the enemy behind', () {
+      final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
+      final battle = battleWith(
+        [shot],
+        spawns: [
+          dummyAt(3, 1, kind: EnemyKind.ethereal),
+          dummyAt(5, 1),
+        ],
+      );
+      freeze(battle);
+      use(battle, shot);
+      wait(battle, 5);
+      expect(battle.enemies.map((e) => e.hp), [100, 90]);
+    });
+
+    test('Etéreo is solid while it attacks and for 2 s after an Explosivo', () {
+      final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
+      final blast = shotOf(Element.neutral, family: ChipFamily.explosive);
+      final battle = battleWith(
+        [shot, blast, shot, shot],
+        spawns: [dummyAt(3, 1, kind: EnemyKind.ethereal)],
+      );
+      freeze(battle);
+      final enemy = battle.enemies.single;
+      expect(enemy.phased, isTrue);
+      enemy.attackPose = 5;
+      expect(enemy.phased, isFalse, reason: 'attacking');
+      enemy.attackPose = 0;
+      use(battle, blast);
+      expect(enemy.phased, isFalse);
+      use(battle, shot);
+      expect(enemy.hp, 100 - 10 - 10);
+      wait(battle, materializeTicks);
+      expect(enemy.phased, isTrue);
+      use(battle, shot);
+      expect(enemy.hp, 100 - 10 - 10);
+    });
+  });
+
   test('Canhão Móvel outlines its row for 1 s before shooting', () {
     final battle = battleWith(
       [],

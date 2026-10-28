@@ -227,8 +227,8 @@ class _PlayerStatus extends StatelessWidget {
   );
 }
 
-/// Right of the grid: each enemy's name and life bar. Enemies sharing a
-/// name are numbered ("Capanga Atirador 2").
+/// Right of the grid: each enemy's name, kind and life bar. Enemies sharing
+/// a name are numbered ("Capanga Atirador 2").
 class _EnemyBars extends StatelessWidget {
   const _EnemyBars({required this.battle});
 
@@ -254,6 +254,10 @@ class _EnemyBars extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: GbText.small.copyWith(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              enemy.def.kind.label,
+              style: GbText.small.copyWith(color: Pico.lightGray),
             ),
             const SizedBox(height: 1),
             Container(

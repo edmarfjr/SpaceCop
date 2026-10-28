@@ -28,23 +28,23 @@ void main() {
     final zap = shotOf(Element.neutral, family: ChipFamily.energy);
 
     test('2nd chip +25%, 3rd +50% and applies the family status', () {
-      final battle = battleWith([blast, blast, blast]);
+      final battle = battleWith([shot, shot, shot]);
       final enemy = battle.enemies.single;
-      use(battle, blast);
+      use(battle, shot);
       expect(enemy.hp, 100 - 10);
       expect(battle.chainCount, 1);
-      expect(battle.chainFamily, ChipFamily.explosive);
-      use(battle, blast);
+      expect(battle.chainFamily, ChipFamily.projectile);
+      use(battle, shot);
       expect(enemy.hp, 100 - 10 - 13);
-      use(battle, blast);
+      use(battle, shot);
       expect(enemy.hp, 100 - 10 - 13 - 15);
-      expect(enemy.has(Status.burning), isTrue);
+      expect(enemy.has(Status.marked), isTrue);
       expect(battle.chainCount, 0);
     });
 
     test('each damage family has its own finishing status', () {
       for (final (family, status) in [
-        (ChipFamily.projectile, Status.marked),
+        (ChipFamily.explosive, Status.burning),
         (ChipFamily.energy, Status.stunned),
         (ChipFamily.melee, Status.rooted),
       ]) {
@@ -73,7 +73,7 @@ void main() {
       wait(battle, chainWindowTicks);
       expect(battle.chainCount, 0);
       use(battle, shot);
-      expect(enemy.hp, 100 - 10 - 10 - 13 - 10 - 10);
+      expect(enemy.hp, 100 - 10 - 10 - 13 - boom(10) - 10);
     });
 
     test('a complete chain fires Gatilho de Corrente', () {
@@ -104,7 +104,7 @@ void main() {
       expect(battle.hand, isEmpty);
       expect(battle.energy, baseEnergy - 2);
       expect(enemy.pos, const GridPos(3, 1));
-      expect(enemy.hp, 100 - Chips.magnetTrap.damage);
+      expect(enemy.hp, 100 - boom(Chips.magnetTrap.damage));
     });
 
     test('releasing Use early uses the selected chip alone', () {
@@ -148,7 +148,7 @@ void main() {
       );
       hold(battle, Chips.rock, fusionChargeTicks);
       final enemy = battle.enemies.single;
-      expect(enemy.hp, 100 - 40);
+      expect(enemy.hp, 100 - boom(40));
       expect(enemy.pos, const GridPos(5, 1));
       for (final x in [2, 3]) {
         expect(battle.panelAt(GridPos(x, 1)).state, PanelState.cracked);

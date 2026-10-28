@@ -7,18 +7,25 @@ import 'package:starcop/domain/element.dart';
 import 'package:starcop/domain/grid.dart';
 
 /// Harmless target: 100 HP, shoots for [shotDamage] (0 by default).
-EnemyDef dummyOf(Element element, {int shotDamage = 0}) => EnemyDef(
+EnemyDef dummyOf(
+  Element element, {
+  int shotDamage = 0,
+  EnemyKind kind = EnemyKind.organic,
+}) => EnemyDef(
   name: 'Alvo',
   hp: 100,
   moveTicks: 30,
   attackTicks: 60,
   shotDamage: shotDamage,
   element: element,
+  kind: kind,
 );
 
-/// Single-target shot of [element], 10 damage, free.
-/// Plain shot of [element]. Its family defaults to one that doesn't chain,
-/// so repeated shots keep their plain damage.
+/// Damage of an Explosivo hit on an Orgânico, like the test dummies.
+int boom(int damage) => (damage * organicExplosiveMultiplier).round();
+
+/// Single-target shot of [element], 10 damage, free. Its family defaults to
+/// one that doesn't chain, so repeated shots keep their plain damage.
 ChipDef shotOf(
   Element element, {
   int damage = 10,
@@ -67,5 +74,5 @@ void use(BattleState battle, ChipDef def) {
   wait(battle, playerAttackCooldown);
 }
 
-EnemySpawn dummyAt(int x, int y) =>
-    EnemySpawn(dummyOf(Element.neutral), GridPos(x, y));
+EnemySpawn dummyAt(int x, int y, {EnemyKind kind = EnemyKind.organic}) =>
+    EnemySpawn(dummyOf(Element.neutral, kind: kind), GridPos(x, y));
