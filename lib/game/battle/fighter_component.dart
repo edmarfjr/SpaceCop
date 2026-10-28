@@ -150,8 +150,8 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     // Energy shield: the player's barrier, or the Brute's while it blocks.
     final shielded = switch (fighter) {
       PlayerFighter(:final barrierTicks) => barrierTicks > 0,
-      EnemyFighter(:final def, :final shieldDown) =>
-        def.frontShield && shieldDown == 0,
+      EnemyFighter(:final def, :final shieldDown, :final invulnerable) =>
+        invulnerable || (def.frontShield && shieldDown == 0),
       _ => false,
     };
     if (shielded) {

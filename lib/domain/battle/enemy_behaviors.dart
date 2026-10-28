@@ -1177,6 +1177,341 @@ class TankBehavior extends EnemyBehavior {
   }
 }
 
+/// Panels between [a] and [b], walking.
+int _steps(GridPos a, GridPos b) => (a.x - b.x).abs() + (a.y - b.y).abs();
+
+/// ET Escudeiro: holds an ancient shield that stops straight shots from
+/// the front ([EnemyDef.frontShield]). It keeps in front of an ally when it
+/// can and, lined up with the player, fires a shot every [cycleTicks].
+class ShieldBearerBehavior extends EnemyBehavior {
+  const ShieldBearerBehavior();
+
+  static const moveTicks = 40;
+  static const cycleTicks = 4 * ticksPerSecond;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer > 0) enemy.timer--;
+    if (enemy.timer <= 0 && enemy.pos.y == battle.player.pos.y) {
+      enemy.timer = cycleTicks;
+      battle.schedule(
+        enemy,
+        _rowAhead(enemy),
+        basicWarnTicks,
+        () => battle.enemyShot(enemy),
+      );
+      return;
+    }
+    if (enemy.attacking || enemy.moveTimer-- > 0) return;
+    enemy.moveTimer = moveTicks;
+    // The panel in front of the ally closest to it, if one is free.
+    final guard = [
+      for (final ally in battle.enemies)
+        if (ally != enemy && !ally.def.frontShield && !ally.isDead)
+          if (ally.pos + const GridPos(-1, 0) case final spot
+              when spot == enemy.pos ||
+                  (battle.ownerAt(spot) == Team.enemy &&
+                      battle.panelAt(spot).walkable &&
+                      battle.unitAt(spot) == null))
+            spot,
+    ]..sort((a, b) => _steps(a, enemy.pos).compareTo(_steps(b, enemy.pos)));
+    if (guard.isEmpty) {
+      _wander(enemy, battle, 0);
+      return;
+    }
+    final to = guard.first;
+    if (to == enemy.pos) return;
+    final step = to.x != enemy.pos.x
+        ? GridPos((to.x - enemy.pos.x).sign, 0)
+        : GridPos(0, (to.y - enemy.pos.y).sign);
+    battle.tryMove(enemy, step);
+  }
+}
+
+/// ET Curandeiro: wanders and, every [cycleTicks], channels for
+/// [castTicks] (a stun calls it off) and heals the most hurt ally by
+/// [heal].
+class HealerBehavior extends EnemyBehavior {
+  const HealerBehavior();
+
+  static const moveTicks = 40;
+  static const cycleTicks = 5 * ticksPerSecond;
+  static const castTicks = ticksPerSecond;
+  static const heal = 15;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer-- > 0) {
+      _wander(enemy, battle, moveTicks);
+      return;
+    }
+    enemy.timer = cycleTicks;
+    final hurt = [
+      for (final ally in battle.enemies)
+        if (!ally.isDead && ally.hp < ally.maxHp) ally,
+    ]..sort((a, b) => (a.hp / a.maxHp).compareTo(b.hp / b.maxHp));
+    if (hurt.isEmpty) return;
+    final target = hurt.first;
+    battle.schedule(enemy, const [], castTicks, telegraph: false, () {
+      if (target.isDead) return;
+      target.hp = (target.hp + heal).clamp(0, target.maxHp);
+      enemy.attackPose = attackPoseTicks;
+    });
+  }
+}
+
+/// Sentinela Ancestral: never moves; every [cycleTicks] sweeps the next
+/// row of the player's side (top to bottom, then again) with a laser.
+class SentinelBehavior extends EnemyBehavior {
+  const SentinelBehavior();
+
+  static const cycleTicks = 3 * ticksPerSecond;
+  static const warnTicks = ticksPerSecond;
+  static const damage = 15;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer-- > 0) return;
+    enemy.timer = cycleTicks;
+    final row = enemy.stage % gridRows;
+    enemy.stage++;
+    final cells = [
+      for (final cell in _side(battle, Team.player))
+        if (cell.y == row) cell,
+    ];
+    battle.schedule(enemy, cells, warnTicks, () {
+      for (final cell in cells) {
+        battle.strike(cell, damage, Team.player, enemy.element);
+      }
+    });
+  }
+}
+
+/// Sacerdotisa ET: every [cycleTicks] blinks to a free panel and conjures
+/// [illusions] copies of herself on others (the old ones fade). She casts
+/// first, a lob at the player; the copies cast the same [lateTicks] later.
+/// Copies die to any hit without hurting her.
+class PriestessBehavior extends EnemyBehavior {
+  const PriestessBehavior();
+
+  static const cycleTicks = 4 * ticksPerSecond;
+  static const illusions = 2;
+  static const castDelay = ticksPerSecond;
+  static const lateTicks = 20;
+  static const damage = 15;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = ticksPerSecond;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer-- > 0) return;
+    enemy.timer = cycleTicks;
+    for (final copy in battle.enemies) {
+      if (copy.def == Enemies.illusion) copy.hp = 0;
+    }
+    final free = _freeEnemyPanels(battle)..shuffle(battle.random);
+    if (free.isNotEmpty) enemy.pos = free.removeLast();
+    _cast(enemy, battle, castDelay);
+    for (final spot in free.take(illusions)) {
+      _cast(
+        battle.summon(Enemies.illusion, spot),
+        battle,
+        castDelay + lateTicks,
+      );
+    }
+  }
+
+  static void _cast(EnemyFighter caster, BattleState battle, int ticks) {
+    final aim = battle.player.pos;
+    battle.schedule(
+      caster,
+      [aim],
+      ticks,
+      lob: Lob.ball,
+      () => battle.strike(aim, damage, Team.player, caster.element),
+    );
+  }
+}
+
+/// Portal Ancestral: never moves. Opens every [spawnEvery] and lets out an
+/// ET Guerreiro or ET Atirador (at most [maxOut] at once). Its energy ring
+/// ([EnemyDef.frontShield]) stops shots from the front, except for
+/// [openTicks] after each opening.
+class PortalBehavior extends EnemyBehavior {
+  const PortalBehavior();
+
+  static const spawnEvery = 5 * ticksPerSecond;
+  static const openTicks = 2 * ticksPerSecond;
+  static const maxOut = 2;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = spawnEvery;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer-- > 0) return;
+    enemy
+      ..timer = spawnEvery
+      ..shieldDown = openTicks
+      ..attackPose = attackPoseTicks;
+    final out = battle.enemies.where(
+      (e) => e.def == Enemies.etWarrior || e.def == Enemies.etGunner,
+    );
+    if (out.length >= maxOut) return;
+    final free = _freeEnemyPanels(battle);
+    if (free.isEmpty) return;
+    final front = enemy.pos + const GridPos(-1, 0);
+    battle.summon(
+      battle.random.nextBool() ? Enemies.etWarrior : Enemies.etGunner,
+      free.contains(front) ? front : free[battle.random.nextInt(free.length)],
+    );
+  }
+}
+
+/// Rei da Tribo: two panels wide, drifts toward the player's row and cycles
+/// three attacks every [attackEvery]:
+/// - Onda Crescente: a crescent sweeps the player's side column by column,
+///   on every row but one (warned free);
+/// - Raio do Cajado: lightning on 3 panels of the player's side, which
+///   crack; the staff then overheats and he takes double damage for
+///   [overheatTicks];
+/// - Chamado da Tribo: an ET Guerreiro or ET Atirador joins him.
+/// He starts behind 2 Totens and can't be hurt while one stands; they come
+/// back [totemReturn] after the last falls. Below half HP (Fúria) he takes
+/// column 2, attacks faster, sends two crescents and his totems are tougher.
+class TribeKingBehavior extends EnemyBehavior {
+  const TribeKingBehavior();
+
+  static const moveTicks = 60;
+  static const attackEvery = 3 * ticksPerSecond;
+  static const crescentWarn = ticksPerSecond;
+  static const crescentStagger = 6;
+  static const crescentDamage = 25;
+  static const lightningBolts = 3;
+  static const lightningWarn = ticksPerSecond;
+  static const lightningDamage = 20;
+  static const overheatTicks = 2 * ticksPerSecond;
+  static const totemReturn = 15 * ticksPerSecond;
+
+  // [EnemyFighter.stage]: 0 calm, 1 Fúria. The next attack is
+  // [EnemyFighter.attackTimer] % 3; [EnemyFighter.moveTimer] paces moves
+  // and [EnemyFighter.timer] the attacks.
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    _guard(enemy, battle);
+    if (enemy.stage == 0 && enemy.hp * 2 < enemy.maxHp) _rage(enemy, battle);
+    if (!enemy.attacking && enemy.moveTimer-- <= 0) {
+      enemy.moveTimer = moveTicks;
+      final dy = (battle.player.pos.y - enemy.pos.y).sign;
+      if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
+    }
+    if (enemy.attacking || enemy.timer-- > 0) return;
+    enemy.timer = enemy.stage == 1 ? attackEvery * 3 ~/ 4 : attackEvery;
+    switch (enemy.attackTimer++ % 3) {
+      case 0:
+        _crescent(enemy, battle, 0);
+        if (enemy.stage == 1) _crescent(enemy, battle, ticksPerSecond);
+      case 1:
+        _lightning(enemy, battle);
+      case _:
+        final free = _freeEnemyPanels(battle);
+        if (free.isEmpty) return;
+        battle.summon(
+          battle.random.nextBool() ? Enemies.tribeWarrior : Enemies.tribeGunner,
+          free[battle.random.nextInt(free.length)],
+        );
+        enemy.attackPose = attackPoseTicks;
+    }
+  }
+
+  /// Invulnerable while a totem stands; new totems [totemReturn] after the
+  /// last one fell. [EnemyFighter.shieldDown] counts that wait.
+  void _guard(EnemyFighter enemy, BattleState battle) {
+    final standing = battle.enemies.any(
+      (e) => e.def == Enemies.totem || e.def == Enemies.ragingTotem,
+    );
+    if (enemy.invulnerable && !standing) enemy.shieldDown = totemReturn;
+    enemy.invulnerable = standing;
+    if (standing || enemy.shieldDown > 0) return;
+    _plantTotems(enemy, battle);
+  }
+
+  static void _plantTotems(EnemyFighter enemy, BattleState battle) {
+    final free = _freeEnemyPanels(battle)..shuffle(battle.random);
+    for (final spot in free.take(2)) {
+      battle.summon(
+        enemy.stage == 1 ? Enemies.ragingTotem : Enemies.totem,
+        spot,
+      );
+    }
+    enemy.invulnerable = free.isNotEmpty;
+  }
+
+  void _rage(EnemyFighter enemy, BattleState battle) {
+    enemy.stage = 1;
+    battle.setColumnOwner(playerColumns - 1, Team.enemy);
+    for (final cell in _column(playerColumns - 1)) {
+      final unit = battle.unitAt(cell);
+      if (unit != null && unit.team == Team.player) {
+        battle.displace(unit, -1, 0, 1);
+      }
+    }
+  }
+
+  /// One crescent, [delay] ticks late: all rows but a free one, from the
+  /// front column of the player's side to the back.
+  void _crescent(EnemyFighter enemy, BattleState battle, int delay) {
+    final free = battle.random.nextInt(gridRows);
+    final columns = {
+      for (final cell in _side(battle, Team.player)) cell.x,
+    }.toList()..sort((a, b) => b.compareTo(a));
+    for (final (i, x) in columns.indexed) {
+      final cells = [
+        for (var y = 0; y < gridRows; y++)
+          if (y != free) GridPos(x, y),
+      ];
+      battle.schedule(
+        enemy,
+        cells,
+        crescentWarn + delay + i * crescentStagger,
+        () {
+          for (final cell in cells) {
+            battle.strike(cell, crescentDamage, Team.player, enemy.element);
+          }
+        },
+      );
+    }
+  }
+
+  void _lightning(EnemyFighter enemy, BattleState battle) {
+    final cells = (_side(
+      battle,
+      Team.player,
+    )..shuffle(battle.random)).take(lightningBolts).toList();
+    battle.schedule(enemy, cells, lightningWarn, () {
+      for (final cell in cells) {
+        battle.strike(cell, lightningDamage, Team.player, Element.elec);
+      }
+      _crack(battle, cells);
+      enemy.exposedTicks = overheatTicks;
+    });
+  }
+}
+
 // Etéreos (third mission). Phased out of normal matter: Projétil and
 // Corpo-a-corpo pass through them except while they attack (see
 // [EnemyFighter.phased]).

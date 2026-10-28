@@ -301,6 +301,116 @@ abstract final class Enemies {
     behavior: TankBehavior(chargeOnly: true),
   );
 
+  static const etShieldBearer = EnemyDef(
+    name: 'ET Escudeiro',
+    hp: 60,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    frontShield: true,
+    behavior: ShieldBearerBehavior(),
+  );
+
+  static const etHealer = EnemyDef(
+    name: 'ET Curandeiro',
+    hp: 40,
+    behavior: HealerBehavior(),
+  );
+
+  static const sentinel = EnemyDef(
+    name: 'Sentinela Ancestral',
+    kind: EnemyKind.machine,
+    hp: 60,
+    pushable: false,
+    behavior: SentinelBehavior(),
+  );
+
+  static const scarab = EnemyDef(
+    name: 'Escaravelho Mecânico',
+    kind: EnemyKind.machine,
+    hp: 15,
+    behavior: TickBehavior(),
+  );
+
+  // Second mission elites.
+
+  /// The Colosso's moves, scaled down to an elite.
+  static const ruinGolem = EnemyDef(
+    name: 'Golem das Ruínas',
+    kind: EnemyKind.machine,
+    hp: 200,
+    footprint: [GridPos(0, 0), GridPos(0, 1)],
+    pushable: false,
+    behavior: ColossusBehavior(),
+  );
+
+  static const priestess = EnemyDef(
+    name: 'Sacerdotisa ET',
+    hp: 120,
+    behavior: PriestessBehavior(),
+  );
+
+  /// The Sacerdotisa's copies: any hit dispels them.
+  static const illusion = EnemyDef(
+    name: 'Sacerdotisa ET',
+    hp: 1,
+    summon: true,
+    behavior: IdleBehavior(),
+  );
+
+  static const portal = EnemyDef(
+    name: 'Portal Ancestral',
+    kind: EnemyKind.machine,
+    hp: 180,
+    pushable: false,
+    frontShield: true,
+    behavior: PortalBehavior(),
+  );
+
+  /// The second mission's boss. Two panels wide: [pos] is the front one.
+  static const tribeKing = EnemyDef(
+    name: 'Rei da Tribo',
+    hp: 350,
+    pushable: false,
+    footprint: [GridPos(0, 0), GridPos(1, 0)],
+    behavior: TribeKingBehavior(),
+  );
+
+  static const totem = EnemyDef(
+    name: 'Totem Ancestral',
+    kind: EnemyKind.machine,
+    hp: 30,
+    pushable: false,
+    summon: true,
+    behavior: IdleBehavior(),
+  );
+
+  /// The Rei's totems in Fúria.
+  static const ragingTotem = EnemyDef(
+    name: 'Totem Ancestral',
+    kind: EnemyKind.machine,
+    hp: 50,
+    pushable: false,
+    summon: true,
+    behavior: IdleBehavior(),
+  );
+
+  /// Called by the Rei: don't count toward winning.
+  static const tribeWarrior = EnemyDef(
+    name: 'ET Guerreiro',
+    hp: 45,
+    summon: true,
+    behavior: GruntMeleeBehavior(reach: 2, wanderTicks: 20, flee: true),
+  );
+
+  static const tribeGunner = EnemyDef(
+    name: 'ET Atirador',
+    hp: 40,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    summon: true,
+    behavior: GruntGunBehavior(wanderTicks: 20, flee: true),
+  );
+
   // Etéreos: the third mission's enemies. Out of every pool until that
   // mission exists.
 

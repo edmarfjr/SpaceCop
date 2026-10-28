@@ -372,6 +372,9 @@ class EnemyFighter extends Fighter {
   /// shots fly over it.
   bool burrowed = false;
 
+  /// Ticks left taking double damage (Rei da Tribo's overheated staff).
+  int exposedTicks = 0;
+
   /// Etéreo out of phase: Projétil and Corpo-a-corpo pass through. It is
   /// solid while it attacks and for [materialTicks].
   bool get phased =>
@@ -1842,6 +1845,7 @@ class BattleState {
         relic.onHit?.call(this, target, family);
       }
     }
+    if (target is EnemyFighter && target.exposedTicks > 0) total *= 2;
     final panel = panelAt(target.pos).state;
     if (element == Element.elec) {
       if (target.has(Status.wet)) {
@@ -1934,6 +1938,7 @@ class BattleState {
     for (final enemy in List.of(enemies)) {
       if (enemy.shieldDown > 0) enemy.shieldDown--;
       if (enemy.materialTicks > 0) enemy.materialTicks--;
+      if (enemy.exposedTicks > 0) enemy.exposedTicks--;
       if (enemy.attackPose > 0) enemy.attackPose--;
       if (enemy.isDead) continue;
       if (enemy.has(Status.stunned)) {

@@ -55,6 +55,19 @@ abstract final class SpriteFiles {
     Enemies.etShaman: 'actors/inimigos2_etShaman.png',
     Enemies.energySphere: 'actors/inimigos2_esfera.png',
     Enemies.etRider: 'actors/inimigos2_etRider.png',
+    Enemies.etShieldBearer: 'actors/inimigos2_etEscudo.png',
+    Enemies.etHealer: 'actors/inimigos2_etCura.png',
+    Enemies.sentinel: 'actors/inimigos2_sentinelaAncestral.png',
+    Enemies.scarab: 'actors/inimigos2_escaravelho.png',
+    Enemies.ruinGolem: 'actors/bosses_colosso.png',
+    Enemies.priestess: 'actors/inimigos2_etShaman.png',
+    Enemies.illusion: 'actors/inimigos2_etShaman.png',
+    Enemies.portal: 'chips/stasisGen.png',
+    Enemies.tribeKing: 'actors/etRei.png',
+    Enemies.totem: 'actors/inimigos2_totem.png',
+    Enemies.ragingTotem: 'actors/inimigos2_totem.png',
+    Enemies.tribeWarrior: 'actors/inimigos2_etMellee.png',
+    Enemies.tribeGunner: 'actors/inimigos2_etGun.png',
     Enemies.shadowGun: 'actors/inimigos3_shadowGun.png',
     Enemies.shadowFly: 'actors/inimigos3_shadowFly.png',
     Enemies.shadowJumper: 'actors/inimigos3_shadowJumper.png',
@@ -318,8 +331,11 @@ class GameSprites {
   /// [def]'s idle frame, or its attack frame when [attacking].
   Sprite enemy(EnemyDef def, {bool attacking = false}) {
     final path = SpriteFiles.enemies[def] ?? SpriteFiles._fallback;
-    final frame = _images[path]!.height.toDouble();
-    return _frame(path, attacking ? 1 : 0, frame);
+    final image = _images[path]!;
+    final frame = image.height.toDouble();
+    // Single-frame art (the Portal) has no attack frame.
+    final hasAttack = image.width >= 2 * image.height;
+    return _frame(path, attacking && hasAttack ? 1 : 0, frame);
   }
 
   Sprite obstacle(ObstacleKind kind) => _file(SpriteFiles.obstacles[kind]!);
