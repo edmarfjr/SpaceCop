@@ -1872,3 +1872,148 @@ class SphereBehavior extends EnemyBehavior {
     );
   }
 }
+
+/// Olho do Abismo: the third mission's boss, two panels by two. Phased like
+/// any Etéreo: only solid while it attacks. Every [attackEvery] it cycles:
+/// - Olhar Abissal: a beam down the player's row and column;
+/// - Chuva de Fragmentos: [shards] shards on panels of the player's side;
+/// - Ninhada: [broodSize] Carrapatos.
+/// Below [splitAt] of its HP (Cisão) it sheds two Hemisférios and can't be
+/// hurt while one lives. With both gone it reels, stunned and taking double
+/// damage for [reelTicks], then wakes up (Despertar): solid for good,
+/// faster, and every gaze comes with a second one.
+class VoidEyeBehavior extends EnemyBehavior {
+  const VoidEyeBehavior();
+
+  static const moveTicks = 60;
+  static const attackEvery = 3 * ticksPerSecond;
+  static const gazeWarn = ticksPerSecond;
+  static const gazeDamage = 20;
+  static const shards = 5;
+  static const shardStagger = 8;
+  static const shardDamage = 12;
+  static const broodSize = 2;
+  static const splitAt = 0.6;
+  static const reelTicks = 3 * ticksPerSecond;
+
+  // Phases, kept in [EnemyFighter.stage]; the sprite strip follows them.
+  static const _eye = 0;
+  static const _split = 1;
+  static const _awake = 2;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    switch (enemy.stage) {
+      case _eye when enemy.hp < enemy.maxHp * splitAt:
+        _cleave(enemy, battle);
+      case _split:
+        final halves = battle.enemies.any((e) => e.def == Enemies.hemisphere);
+        enemy.invulnerable = halves;
+        if (!halves) {
+          enemy
+            ..stage = _awake
+            ..exposedTicks = reelTicks
+            ..materialTicks = reelTicks
+            ..applyStatus(Status.stunned, reelTicks);
+          return;
+        }
+      case _awake:
+        enemy.materialTicks = 2;
+    }
+    if (!enemy.attacking && enemy.moveTimer-- <= 0) {
+      enemy.moveTimer = moveTicks;
+      final y = battle.player.pos.y;
+      final dy = y < enemy.pos.y
+          ? -1
+          : y > enemy.pos.y + 1
+          ? 1
+          : 0;
+      if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
+    }
+    if (enemy.attacking || enemy.timer-- > 0) return;
+    enemy.timer = enemy.stage == _awake ? attackEvery * 7 ~/ 10 : attackEvery;
+    switch (enemy.attackTimer++ % 3) {
+      case 0:
+        _gaze(enemy, battle, battle.player.pos, 0);
+        if (enemy.stage == _awake) {
+          final side = _side(battle, Team.player);
+          _gaze(
+            enemy,
+            battle,
+            side[battle.random.nextInt(side.length)],
+            ticksPerSecond ~/ 2,
+          );
+        }
+      case 1:
+        final cells = (_side(
+          battle,
+          Team.player,
+        )..shuffle(battle.random)).take(shards);
+        for (final (i, cell) in cells.indexed) {
+          battle.schedule(
+            enemy,
+            [cell],
+            basicWarnTicks + i * shardStagger,
+            lob: Lob.ball,
+            () => battle.strike(cell, shardDamage, Team.player, enemy.element),
+          );
+        }
+      case _:
+        final free = _freeEnemyPanels(battle)..shuffle(battle.random);
+        for (final spot in free.take(broodSize)) {
+          battle.summon(Enemies.shadowTick, spot);
+        }
+        enemy.attackPose = attackPoseTicks;
+    }
+  }
+
+  /// Cisão: two Hemisférios break off; it can't be hurt while one lives.
+  void _cleave(EnemyFighter enemy, BattleState battle) {
+    enemy.stage = _split;
+    final free = _freeEnemyPanels(battle)..shuffle(battle.random);
+    for (final spot in free.take(2)) {
+      battle.summon(Enemies.hemisphere, spot);
+    }
+    enemy.invulnerable = free.isNotEmpty;
+  }
+
+  /// A beam down [aim]'s row and column of the player's side, [delay]
+  /// ticks after the usual warning.
+  void _gaze(EnemyFighter enemy, BattleState battle, GridPos aim, int delay) {
+    final cells = [
+      for (final cell in _side(battle, Team.player))
+        if (cell.x == aim.x || cell.y == aim.y) cell,
+    ];
+    battle.schedule(enemy, cells, gazeWarn + delay, () {
+      for (final cell in cells) {
+        battle.strike(cell, gazeDamage, Team.player, enemy.element);
+      }
+    });
+  }
+}
+
+/// Hemisfério: a piece of the Olho do Abismo. Never moves; fires down its
+/// row every [cycleTicks].
+class HemisphereBehavior extends EnemyBehavior {
+  const HemisphereBehavior();
+
+  static const cycleTicks = 3 * ticksPerSecond;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer-- > 0) return;
+    enemy.timer = cycleTicks;
+    battle.schedule(
+      enemy,
+      _rowAhead(enemy),
+      basicWarnTicks,
+      () => battle.enemyShot(enemy),
+    );
+  }
+}

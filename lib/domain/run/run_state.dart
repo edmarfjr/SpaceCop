@@ -127,9 +127,16 @@ class RunState {
   );
 
   /// Picks [count] distinct chips to offer, by rarity; [elite] and Chip da
-  /// Sorte roll rare ones more often.
-  List<ChipDef> rollRewards(int count, {bool elite = false}) => pickByRarity(
-    Chips.all,
+  /// Sorte roll rare ones more often, and a [boss] offers only rare ones.
+  List<ChipDef> rollRewards(
+    int count, {
+    bool elite = false,
+    bool boss = false,
+  }) => pickByRarity(
+    [
+      for (final chip in Chips.all)
+        if (!boss || chip.rarity == Rarity.rare) chip,
+    ],
     (c) => c.rarity,
     count,
     random,

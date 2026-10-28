@@ -207,7 +207,11 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
           };
       rewardRelic = run.winBattle(elite: elite);
       rewardCredits = run.credits - before;
-      rewardOptions = run.rollRewards(3, elite: elite);
+      rewardOptions = run.rollRewards(
+        3,
+        elite: elite,
+        boss: run.current?.type == NodeType.boss,
+      );
       GameAudio.instance.play(Sfx.reward);
       _goTo(GamePhase.reward);
     }

@@ -68,6 +68,8 @@ abstract final class SpriteFiles {
     Enemies.ragingTotem: 'actors/inimigos2_totem.png',
     Enemies.tribeWarrior: 'actors/inimigos2_etMellee.png',
     Enemies.tribeGunner: 'actors/inimigos2_etGun.png',
+    Enemies.voidEye: 'actors/boss3.png',
+    Enemies.hemisphere: 'actors/inimigos3_hemisferio.png',
     Enemies.shadowGun: 'actors/inimigos3_shadowGun.png',
     Enemies.shadowFly: 'actors/inimigos3_shadowFly.png',
     Enemies.shadowJumper: 'actors/inimigos3_shadowJumper.png',
@@ -76,6 +78,10 @@ abstract final class SpriteFiles {
     Enemies.predator: 'actors/inimigos3_shadowPredator.png',
     Enemies.stalker: 'actors/inimigos3_shadowStalker.png',
   };
+
+  /// Strips with one frame per [EnemyFighter.stage] instead of idle and
+  /// attack (Olho do Abismo: eye, Cisão, Despertar).
+  static const stageStrips = {Enemies.voidEye};
 
   /// Projectiles and effects, 16x16 frames side by side.
   static const shot = 'projeteis/tiro.png';
@@ -328,14 +334,18 @@ class GameSprites {
     for (var i = 0; i < 4; i++) _frame(SpriteFiles.explosion, i, 16),
   ];
 
-  /// [def]'s idle frame, or its attack frame when [attacking].
-  Sprite enemy(EnemyDef def, {bool attacking = false}) {
+  /// [def]'s idle frame, or its attack frame when [attacking]; for
+  /// [SpriteFiles.stageStrips], the frame of [stage].
+  Sprite enemy(EnemyDef def, {bool attacking = false, int stage = 0}) {
     final path = SpriteFiles.enemies[def] ?? SpriteFiles._fallback;
     final image = _images[path]!;
     final frame = image.height.toDouble();
+    final frames = image.width ~/ image.height;
+    if (SpriteFiles.stageStrips.contains(def)) {
+      return _frame(path, stage.clamp(0, frames - 1), frame);
+    }
     // Single-frame art (the Portal) has no attack frame.
-    final hasAttack = image.width >= 2 * image.height;
-    return _frame(path, attacking && hasAttack ? 1 : 0, frame);
+    return _frame(path, attacking && frames > 1 ? 1 : 0, frame);
   }
 
   Sprite obstacle(ObstacleKind kind) => _file(SpriteFiles.obstacles[kind]!);

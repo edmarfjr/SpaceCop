@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:starcop/domain/battle/enemies.dart';
+import 'package:starcop/domain/rarity.dart';
 import 'package:starcop/domain/run/run_state.dart';
 
 void main() {
@@ -30,10 +31,10 @@ void main() {
 
   test('normal battles come from the act pool', () {
     expect(rolled((r) => Encounters.normal(r)), Enemies.basics.toSet());
-    expect(
-      rolled((r) => Encounters.normal(r, act: 2)),
-      {...Enemies.ruinsBasics, Enemies.scarab},
-    );
+    expect(rolled((r) => Encounters.normal(r, act: 2)), {
+      ...Enemies.ruinsBasics,
+      Enemies.scarab,
+    });
     expect(
       rolled((r) => Encounters.normal(r, act: 3)),
       Enemies.shadowBasics.toSet(),
@@ -67,5 +68,18 @@ void main() {
       Encounters.boss(Random(), act: 2).spawns.single.def,
       Enemies.tribeKing,
     );
+    expect(
+      Encounters.boss(Random(), act: 3).spawns.single.def,
+      Enemies.voidEye,
+    );
+  });
+
+  test('bosses offer only rare cards', () {
+    final run = RunState(random: Random(4));
+    for (var i = 0; i < 20; i++) {
+      for (final chip in run.rollRewards(3, boss: true)) {
+        expect(chip.rarity, Rarity.rare);
+      }
+    }
   });
 }

@@ -148,4 +148,59 @@ void main() {
       expect(battle.panelAt(const GridPos(3, 1)).state, PanelState.cracked);
     });
   });
+
+  group('Olho do Abismo', () {
+    BattleState eyeFight() => battleWith(
+      [],
+      spawns: [const EnemySpawn(Enemies.voidEye, GridPos(4, 0))],
+    );
+
+    test('Olhar Abissal beams down the player row and column', () {
+      final battle = eyeFight();
+      final eye = battle.enemies.single;
+      expect(eye.phased, isTrue);
+      wait(battle, VoidEyeBehavior.attackEvery + 1);
+      expect(eye.phased, isFalse, reason: 'solid while it attacks');
+      expect(warned(battle), {
+        const GridPos(0, 1),
+        const GridPos(1, 1),
+        const GridPos(2, 1),
+        const GridPos(1, 0),
+        const GridPos(1, 2),
+      });
+      wait(battle, VoidEyeBehavior.gazeWarn);
+      expect(battle.player.hp, 100 - VoidEyeBehavior.gazeDamage);
+    });
+
+    test('Cisão: invulnerable while a Hemisfério lives, then reels and '
+        'wakes up', () {
+      final battle = eyeFight();
+      final eye = battle.enemies.single..hp = 200;
+      battle.tick();
+      final halves = battle.enemies
+          .where((e) => e.def == Enemies.hemisphere)
+          .toList();
+      expect(halves, hasLength(2));
+      expect(eye.invulnerable, isTrue);
+      battle.damage(eye, 50);
+      expect(eye.hp, 200);
+      for (final half in halves) {
+        half.hp = 0;
+      }
+      wait(battle, 2);
+      expect(eye.stage, 2);
+      expect(eye.invulnerable, isFalse);
+      expect(eye.has(Status.stunned), isTrue);
+      expect(eye.phased, isFalse);
+      battle.damage(eye, 10);
+      expect(eye.hp, 200 - 20, reason: 'double damage while reeling');
+    });
+
+    test('Despertar: always solid', () {
+      final battle = eyeFight();
+      final eye = battle.enemies.single..stage = 2;
+      wait(battle, 5);
+      expect(eye.phased, isFalse);
+    });
+  });
 }

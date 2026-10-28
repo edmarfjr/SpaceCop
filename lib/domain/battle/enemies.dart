@@ -412,6 +412,29 @@ abstract final class Enemies {
 
   // Etéreos: the third mission's enemies.
 
+  /// The third mission's boss. Two panels by two: [pos] is the top front
+  /// one.
+  static const voidEye = EnemyDef(
+    name: 'Olho do Abismo',
+    kind: EnemyKind.ethereal,
+    hp: 400,
+    pushable: false,
+    footprint: [GridPos(0, 0), GridPos(1, 0), GridPos(0, 1), GridPos(1, 1)],
+    behavior: VoidEyeBehavior(),
+  );
+
+  /// Breaks off the Olho do Abismo; doesn't count toward winning.
+  static const hemisphere = EnemyDef(
+    name: 'Hemisfério',
+    kind: EnemyKind.ethereal,
+    hp: 60,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    pushable: false,
+    summon: true,
+    behavior: HemisphereBehavior(),
+  );
+
   static const shadowGun = EnemyDef(
     name: 'Sombra Atiradora',
     kind: EnemyKind.ethereal,
@@ -566,14 +589,10 @@ abstract final class Encounters {
     },
   };
 
-  /// Each act's boss. The third act has no boss of its own yet: the two
-  /// Etéreo elites together stand in.
+  /// Each act's boss.
   static Encounter boss(Random random, {int act = 1}) => switch (act) {
     2 => const Encounter([EnemySpawn(Enemies.tribeKing, GridPos(4, 1))]),
-    3 => const Encounter([
-      EnemySpawn(Enemies.predator, GridPos(4, 0)),
-      EnemySpawn(Enemies.stalker, GridPos(5, 2)),
-    ]),
+    3 => const Encounter([EnemySpawn(Enemies.voidEye, GridPos(4, 0))]),
     _ => const Encounter([EnemySpawn(Enemies.tank, GridPos(4, 1))]),
   };
 }

@@ -29,7 +29,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
 
   Sprite get _idleSprite {
     return switch (fighter) {
-      EnemyFighter(:final def) => sprites.enemy(def),
+      EnemyFighter(:final def, :final stage) => sprites.enemy(def, stage: stage),
       Obstacle(:final kind) => sprites.obstacle(kind),
       _ => sprites.playerIdle,
     };
@@ -120,10 +120,9 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   void render(Canvas canvas) {
     if (fighter.hidden) return;
     final sprite = switch (fighter) {
-      EnemyFighter(:final def, attackFrame: true) => sprites.enemy(
-        def,
-        attacking: true,
-      ),
+      EnemyFighter(:final def, :final stage, attackFrame: true) =>
+        sprites.enemy(def, attacking: true, stage: stage),
+      EnemyFighter(:final def, :final stage) => sprites.enemy(def, stage: stage),
       _ when _shooting => sprites.playerAttack,
       _ when _attacking => sprites.playerMelee,
       _ => _idleSprite,
