@@ -54,6 +54,10 @@ class RunState {
   /// Added to the base energy of every battle. Can go negative (events).
   int energyBaseBonus = 0;
 
+  /// Added to the next battle's base energy only (Festa da Colheita); used
+  /// up by that battle.
+  int nextBattleEnergy = 0;
+
   final List<RelicDef> relics = [];
 
   MapNode? current;

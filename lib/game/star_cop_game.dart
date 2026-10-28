@@ -148,7 +148,8 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
           case UnknownRoom.event:
             // TODO: events shouldn't repeat in a run; they still do while
             // there are only a few.
-            event = Events.all[run.random.nextInt(Events.all.length)];
+            final pool = Events.of(run.act);
+            event = pool[run.random.nextInt(pool.length)];
             eventChoice = null;
             eventPick = null;
             _goTo(GamePhase.event);
@@ -172,11 +173,13 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       encounter: encounter,
       random: run.random,
       relics: run.relics,
-      energyBaseBonus: run.energyBaseBonus,
+      energyBaseBonus: run.energyBaseBonus + run.nextBattleEnergy,
       openingStunTicks: run.openingStunTicks,
       pauseOnNewHand: true,
     );
-    run.openingStunTicks = 0;
+    run
+      ..openingStunTicks = 0
+      ..nextBattleEnergy = 0;
     _goTo(
       GamePhase.battle,
       world: BattleWorld(battle: battle, onFinished: _onBattleFinished),
@@ -250,13 +253,14 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       case final PickCard pick:
         eventPick = pick;
         _goTo(GamePhase.event);
-      case StartFight(:final elite, :final onWin):
+      case StartFight(:final elite, :final onWin, :final encounter):
         _eliteFight = elite;
         _fightReward = onWin;
         _startBattle(
-          elite
-              ? Encounters.elite(run.random, act: run.act)
-              : Encounters.normal(run.random, act: run.act),
+          encounter?.call(run) ??
+              (elite
+                  ? Encounters.elite(run.random, act: run.act)
+                  : Encounters.normal(run.random, act: run.act)),
         );
     }
   }
