@@ -253,6 +253,64 @@ abstract final class Enemies {
     behavior: TankBehavior(),
   );
 
+  // Etéreos: the third mission's enemies. Out of every pool until that
+  // mission exists.
+
+  static const shadowGun = EnemyDef(
+    name: 'Sombra Atiradora',
+    kind: EnemyKind.ethereal,
+    hp: 40,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    behavior: GruntGunBehavior(),
+  );
+
+  static const shadowFly = EnemyDef(
+    name: 'Sombra Alada',
+    kind: EnemyKind.ethereal,
+    hp: 30,
+    behavior: ShadowFlyBehavior(),
+  );
+
+  static const shadowJumper = EnemyDef(
+    name: 'Sombra Saltadora',
+    kind: EnemyKind.ethereal,
+    hp: 45,
+    behavior: ShadowJumperBehavior(),
+  );
+
+  static const shadowNest = EnemyDef(
+    name: 'Ninho',
+    kind: EnemyKind.ethereal,
+    hp: 40,
+    pushable: false,
+    behavior: NestBehavior(),
+  );
+
+  /// Hatched by the Ninho; doesn't count toward winning.
+  static const shadowTick = EnemyDef(
+    name: 'Carrapato',
+    kind: EnemyKind.ethereal,
+    hp: 10,
+    summon: true,
+    behavior: TickBehavior(),
+  );
+
+  static const predator = EnemyDef(
+    name: 'Predador',
+    kind: EnemyKind.ethereal,
+    hp: 120,
+    behavior: PredatorBehavior(),
+  );
+
+  static const stalker = EnemyDef(
+    name: 'Espreitador',
+    kind: EnemyKind.ethereal,
+    hp: 150,
+    pushable: false,
+    behavior: StalkerBehavior(),
+  );
+
   /// Pool of normal battles. Canhão Móvel, Raiz, Bolhador and Canhão Fixo
   /// are out of it for now.
   static const basics = [

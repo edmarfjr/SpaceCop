@@ -132,6 +132,48 @@ abstract final class Chips {
     pose: ChipPose.melee,
   );
 
+  static const shoulderBash = ChipDef(
+    id: 'shoulder_bash',
+    name: 'Ombrada',
+    description: 'Golpeia o painel à frente e empurra o alvo 1 painel.',
+    cost: 1,
+    family: ChipFamily.melee,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 10,
+    effect: MeleeEffect(pattern: [GridPos(1, 0)], push: 1),
+    pose: ChipPose.melee,
+  );
+
+  static const energyWhip = ChipDef(
+    id: 'energy_whip',
+    name: 'Chicote de Energia',
+    description: 'Golpeia os 2 painéis à frente na sua linha.',
+    cost: 1,
+    family: ChipFamily.melee,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    element: Element.elec,
+    effect: MeleeEffect(pattern: [GridPos(1, 0), GridPos(2, 0)]),
+    pose: ChipPose.melee,
+  );
+
+  static const seismicHammer = ChipDef(
+    id: 'seismic_hammer',
+    name: 'Martelo Sísmico',
+    description: 'Golpeia o painel à frente e o racha.',
+    cost: 2,
+    family: ChipFamily.melee,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 30,
+    effect: MeleeEffect(pattern: [GridPos(1, 0)], crack: true),
+    pose: ChipPose.melee,
+  );
+
   static const grenade = ChipDef(
     id: 'grenade',
     name: 'Granada',
@@ -663,6 +705,9 @@ abstract final class Chips {
         effect: const MeleeEffect(stunTicks: 3 * ticksPerSecond),
       ),
       _up(sword, damage: 30),
+      _up(shoulderBash, damage: 15),
+      _up(energyWhip, damage: 20),
+      _up(seismicHammer, damage: 40),
       _up(grenade, damage: 35),
       _up(incendiaryGrenade, damage: 25),
       _up(
@@ -791,6 +836,9 @@ abstract final class Chips {
     missile,
     baton,
     sword,
+    shoulderBash,
+    energyWhip,
+    seismicHammer,
     grenade,
     incendiaryGrenade,
     smokeGrenade,

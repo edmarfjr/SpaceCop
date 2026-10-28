@@ -108,16 +108,21 @@ class BurstEffect extends ChipEffect {
 }
 
 /// Instant hit on the cells of [pattern], relative to the user (+x = in
-/// front), stunning whoever it hits for [stunTicks].
+/// front), stunning whoever it hits for [stunTicks] and pushing them
+/// [push] panels away. With [crack] the panels hit crack.
 class MeleeEffect extends ChipEffect {
   const MeleeEffect({
     this.pattern = const [GridPos(1, -1), GridPos(1, 0), GridPos(1, 1)],
     this.stunTicks = 0,
+    this.push = 0,
+    this.crack = false,
     this.slash = false,
   });
 
   final List<GridPos> pattern;
   final int stunTicks;
+  final int push;
+  final bool crack;
 
   /// Shown as one vertical slash on the panel in front instead of an
   /// explosion on each panel hit (Espada).

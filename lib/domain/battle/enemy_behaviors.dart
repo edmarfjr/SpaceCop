@@ -1118,3 +1118,218 @@ class TankBehavior extends EnemyBehavior {
     }
   }
 }
+
+// Etéreos (third mission). Phased out of normal matter: Projétil and
+// Corpo-a-corpo pass through them except while they attack (see
+// [EnemyFighter.phased]).
+
+/// Sombra Alada: every [cycleTicks] blinks to a free panel of its side and
+/// lobs a ball at the player's panel.
+class ShadowFlyBehavior extends EnemyBehavior {
+  const ShadowFlyBehavior();
+
+  static const cycleTicks = 3 * ticksPerSecond;
+  static const damage = 10;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer-- > 0) return;
+    enemy.timer = cycleTicks;
+    final spots = _freeEnemyPanels(battle);
+    if (spots.isNotEmpty) {
+      enemy.pos = spots[battle.random.nextInt(spots.length)];
+    }
+    final aim = battle.player.pos;
+    battle.schedule(
+      enemy,
+      [aim],
+      basicWarnTicks,
+      lob: Lob.ball,
+      () => battle.strike(aim, damage, Team.player, enemy.element),
+    );
+  }
+}
+
+/// Sombra Saltadora: the Capanga Corpo-a-Corpo's attack, but it stays solid
+/// from the moment it leaps until it is back home.
+class ShadowJumperBehavior extends GruntMeleeBehavior {
+  const ShadowJumperBehavior();
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    super.tick(enemy, battle);
+    if (enemy.stage != GruntMeleeBehavior._wandering) enemy.materialTicks = 2;
+  }
+}
+
+/// Ninho: never moves; every [cycleTicks] hatches a Carrapato in front of
+/// it (at most [maxTicks] alive), and stays solid for a moment after.
+class NestBehavior extends EnemyBehavior {
+  const NestBehavior();
+
+  static const cycleTicks = 4 * ticksPerSecond;
+  static const maxTicks = 3;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.timer-- > 0) return;
+    enemy.timer = cycleTicks;
+    final alive = battle.enemies.where((e) => e.def == Enemies.shadowTick);
+    if (alive.length >= maxTicks) return;
+    final front = enemy.pos + const GridPos(-1, 0);
+    final free = _freeEnemyPanels(battle);
+    final spot = free.contains(front)
+        ? front
+        : free.isEmpty
+        ? null
+        : free[battle.random.nextInt(free.length)];
+    if (spot == null) return;
+    battle.summon(Enemies.shadowTick, spot);
+    enemy
+      ..attackPose = attackPoseTicks
+      ..materialTicks = ticksPerSecond;
+  }
+}
+
+/// Carrapato: crawls one panel per [stepTicks] down its row toward the
+/// player, into their side. Next to anything in its way it stops and blows
+/// up after a short warning, then dies. Always solid while it crawls.
+class TickBehavior extends EnemyBehavior {
+  const TickBehavior();
+
+  static const stepTicks = ticksPerSecond;
+  static const damage = 15;
+
+  // Phases, kept in [EnemyFighter.stage].
+  static const _exploding = 1;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    enemy.materialTicks = 2;
+    if (enemy.stage == _exploding || enemy.moveTimer-- > 0) return;
+    enemy.moveTimer = stepTicks;
+    final next = enemy.pos + const GridPos(-1, 0);
+    if (!next.inBounds || !battle.panelAt(next).walkable) {
+      enemy.hp = 0;
+      return;
+    }
+    final blocker = battle.unitAt(next);
+    if (blocker == null) {
+      battle.stepOver(enemy, next);
+      return;
+    }
+    if (blocker.team == Team.enemy) return;
+    enemy.stage = _exploding;
+    battle.schedule(enemy, [next], minWarnTicks, () {
+      battle.strike(next, damage, Team.player, enemy.element);
+      enemy.hp = 0;
+    });
+  }
+
+  /// Stunned while about to blow up: it fizzles out.
+  @override
+  void onInterrupted(EnemyFighter enemy, BattleState battle) {
+    if (enemy.stage == _exploding) enemy.hp = 0;
+  }
+}
+
+/// Predador: vanishes (untouchable) for [hiddenTicks], reappears on its
+/// side in the player's row and, after a short warning, slashes the whole
+/// column the player stands in. It stays solid for [recoverTicks] after.
+class PredatorBehavior extends EnemyBehavior {
+  const PredatorBehavior();
+
+  static const visibleTicks = 2 * ticksPerSecond;
+  static const hiddenTicks = 2 * ticksPerSecond;
+  static const recoverTicks = ticksPerSecond;
+  static const damage = 25;
+
+  // Phases, kept in [EnemyFighter.stage].
+  static const _visible = 0;
+  static const _hidden = 1;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = visibleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.attacking || enemy.timer-- > 0) return;
+    if (enemy.stage == _visible) {
+      enemy
+        ..stage = _hidden
+        ..hidden = true
+        ..timer = hiddenTicks;
+      return;
+    }
+    final row = battle.player.pos.y;
+    final free = _freeEnemyPanels(battle);
+    final inRow = free.where((c) => c.y == row).toList()
+      ..sort((a, b) => a.x.compareTo(b.x));
+    final spot = inRow.isNotEmpty
+        ? inRow.first
+        : free.isEmpty
+        ? enemy.pos
+        : free[battle.random.nextInt(free.length)];
+    enemy
+      ..pos = spot
+      ..hidden = false
+      ..stage = _visible
+      ..timer = visibleTicks;
+    final cells = _column(battle.player.pos.x);
+    battle.schedule(enemy, cells, minWarnTicks, () {
+      for (final cell in cells) {
+        battle.strike(cell, damage, Team.player, enemy.element);
+      }
+      enemy.materialTicks = recoverTicks;
+    });
+  }
+
+  /// Stunned while hidden would leave it stuck out of reach: it shows up.
+  @override
+  void onInterrupted(EnemyFighter enemy, BattleState battle) {
+    if (!enemy.hidden) return;
+    enemy
+      ..hidden = false
+      ..stage = _visible
+      ..timer = visibleTicks;
+  }
+}
+
+/// Espreitador: follows the player's row and, every [chargeEvery], charges
+/// down it, cracking the panels it runs over. Solid while charging and for
+/// [recoverTicks] after.
+class StalkerBehavior extends EnemyBehavior {
+  const StalkerBehavior();
+
+  static const chargeEvery = 4 * ticksPerSecond;
+  static const warnTicks = 45;
+  static const recoverTicks = ticksPerSecond;
+  static const damage = 30;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.attacking) return;
+    if (++enemy.timer >= chargeEvery) {
+      enemy.timer = 0;
+      final cells = _rowAhead(enemy);
+      battle.schedule(enemy, cells, warnTicks, () {
+        for (final cell in cells) {
+          battle.strike(cell, damage, Team.player, enemy.element);
+        }
+        _crack(battle, cells);
+        enemy.materialTicks = recoverTicks;
+      });
+      return;
+    }
+    if (enemy.moveTimer-- > 0) return;
+    final dy = (battle.player.pos.y - enemy.pos.y).sign;
+    if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
+    enemy.moveTimer = enemy.def.moveTicks;
+  }
+}

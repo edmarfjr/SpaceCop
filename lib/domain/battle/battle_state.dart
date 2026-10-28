@@ -1209,7 +1209,13 @@ class BattleState {
             telegraph: false,
           );
         }
-      case MeleeEffect(:final pattern, :final stunTicks, :final slash):
+      case MeleeEffect(
+        :final pattern,
+        :final stunTicks,
+        :final push,
+        :final crack,
+        :final slash,
+      ):
         final struck = <Fighter>{};
         final front = player.pos + const GridPos(1, 0);
         if (slash && front.inBounds) {
@@ -1227,11 +1233,20 @@ class BattleState {
             flash: !slash,
           );
         }
+        final steps = push + (hasRelic(Relics.servoArm) ? 1 : 0);
         for (final unit in struck) {
           if (_passesThrough(unit, def.family)) continue;
           if (stunTicks > 0) unit.applyStatus(Status.stunned, stunTicks);
-          if (hasRelic(Relics.servoArm) && !unit.isDead) {
-            displace(unit, 1, 0, 1, byPlayer: true);
+          if (steps > 0 && !unit.isDead) {
+            displace(unit, 1, 0, steps, byPlayer: true);
+          }
+        }
+        if (crack) {
+          for (final offset in pattern) {
+            final cell = player.pos + offset;
+            if (cell.inBounds && panelAt(cell).state == PanelState.normal) {
+              setPanel(cell, PanelState.cracked);
+            }
           }
         }
         damageBonus = 0;

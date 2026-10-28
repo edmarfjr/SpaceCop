@@ -27,7 +27,8 @@ abstract final class SpriteFiles {
 
   /// Frames side by side, square: idle (also moving), attack. The older art
   /// is 16x16, the capangas, Colosso and Maestro 24x24 (the capanga strips
-  /// have 6 empty frames after those two), the tank 40x40.
+  /// have 6 empty frames after those two), the Etéreos 32x32, the tank
+  /// 40x40.
   static const enemies = <EnemyDef, String>{
     Enemies.gruntGun: 'actors/inimigos_gruntGun.png',
     Enemies.gruntDuck: 'actors/inimigos_gruntDuck.png',
@@ -48,6 +49,13 @@ abstract final class SpriteFiles {
     Enemies.colossusFist: 'actors/inimigos_punho.png',
     Enemies.maestro: 'actors/bosses_maestro.png',
     Enemies.note: 'actors/inimigos_nota.png',
+    Enemies.shadowGun: 'actors/inimigos3_shadowGun.png',
+    Enemies.shadowFly: 'actors/inimigos3_shadowFly.png',
+    Enemies.shadowJumper: 'actors/inimigos3_shadowJumper.png',
+    Enemies.shadowNest: 'actors/inimigos3_shadowTick.png',
+    Enemies.shadowTick: 'actors/inimigos3_shadowTickP.png',
+    Enemies.predator: 'actors/inimigos3_shadowPredator.png',
+    Enemies.stalker: 'actors/inimigos3_shadowStalker.png',
   };
 
   /// Projectiles and effects, 16x16 frames side by side.
