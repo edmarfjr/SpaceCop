@@ -1201,6 +1201,7 @@ class BattleState {
         }
         if (stunTicks > 0) {
           for (final unit in struck) {
+            if (_passesThrough(unit, def.family)) continue;
             unit.applyStatus(Status.stunned, stunTicks);
           }
         }

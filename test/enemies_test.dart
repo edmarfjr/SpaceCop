@@ -54,6 +54,17 @@ void main() {
       expect(hitWith(ChipFamily.explosive, EnemyKind.ethereal), 10);
     });
 
+    test('Cacetete neither hurts nor stuns a phased Etéreo', () {
+      final battle = battleWith(
+        [Chips.baton],
+        spawns: [dummyAt(3, 1, kind: EnemyKind.ethereal)],
+      )..player.pos = const GridPos(2, 1);
+      final enemy = battle.enemies.single;
+      use(battle, Chips.baton);
+      expect(enemy.hp, 100);
+      expect(enemy.has(Status.stunned), isFalse);
+    });
+
     test('a shot flies through a phased Etéreo to the enemy behind', () {
       final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
       final battle = battleWith(
