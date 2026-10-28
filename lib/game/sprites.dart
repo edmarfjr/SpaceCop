@@ -162,6 +162,9 @@ abstract final class SpriteFiles {
     Chips.tractorBeam.id: 'chips/raioTrator.png',
     Chips.teslaCoil.id: 'chips/teslaCoil.png',
     Chips.overclock.id: 'chips/overclock.png',
+    Chips.shoulderBash.id: 'chips/ombreiras.png',
+    Chips.energyWhip.id: 'chips/chicote.png',
+    Chips.seismicHammer.id: 'chips/marreta.png',
   };
 
   /// Frame drawn over every panel, by the side that owns it.
@@ -208,6 +211,21 @@ abstract final class SpriteFiles {
     Relics.collisionCore.id: 'relics/circulos.png',
     Relics.chainTrigger.id: 'relics/corrente.png',
     Relics.iceBoots.id: 'relics/bota.png',
+    Relics.piercingAmmo.id: 'relics/piercingBlt.png',
+    Relics.extendedMag.id: 'relics/penteAlongado.png',
+    Relics.doubleCharge.id: 'relics/cargaDupla.png',
+    Relics.shortFuse.id: 'relics/pavioCurto.png',
+    Relics.superconductor.id: 'relics/bobina.png',
+    Relics.capacitor.id: 'relics/capacitor.png',
+    Relics.servoArm.id: 'relics/exoArm.png',
+    Relics.monoBlade.id: 'relics/lamina.png',
+    Relics.engineeringKit.id: 'relics/chaveFenda.png',
+    Relics.armorPlate.id: 'relics/armor.png',
+    Relics.tacticalPack.id: 'relics/mochila.png',
+    Relics.symbiote.id: 'relics/simbionte.png',
+    Relics.phaseTuner.id: 'relics/antena.png',
+    Relics.decoder.id: 'relics/criptografia.png',
+    Relics.luckyChip.id: 'relics/chipSorte.png',
   };
 
   /// Event art, 80x80, by event title. Events without one show a
