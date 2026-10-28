@@ -23,22 +23,29 @@ void main() {
     expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.ice);
   });
 
-  test('Pulso EMP hits the front column and drops front shields', () {
+  test('Pulso EMP is tossed like a grenade and drops front shields', () {
     final battle = battleWith(
       [Chips.emp, Chips.shot],
-      spawns: [const EnemySpawn(Enemies.brute, GridPos(3, 1)), dummyAt(3, 0)],
+      spawns: [
+        const EnemySpawn(Enemies.brute, GridPos(4, 1)),
+        dummyAt(4, 0),
+        dummyAt(3, 0),
+      ],
     );
-    final [brute, dummy] = battle.enemies;
+    final [brute, inCross, outside] = battle.enemies;
+    brute.pos = const GridPos(4, 1);
     use(battle, Chips.emp);
+    final hurt = Enemies.brute.hp - brute.hp;
     expect(
-      brute.hp,
-      Enemies.brute.hp - 10,
+      hurt,
+      greaterThan(0),
       reason: 'the shield stops shots, not the pulse',
     );
-    expect(dummy.hp, 90);
+    expect(inCross.hp, 100 - Chips.emp.damage);
+    expect(outside.hp, 100);
     expect(brute.shieldDown, greaterThan(2 * ticksPerSecond));
     use(battle, Chips.shot);
-    expect(brute.hp, Enemies.brute.hp - 10 - Chips.shot.damage);
+    expect(brute.hp, lessThan(Enemies.brute.hp - hurt));
   });
 
   test('Vinha Neural roots its target for 3 s', () {

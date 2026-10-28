@@ -1036,8 +1036,7 @@ class BattleState {
   }
 
   /// Restores [amount] of the player's HP, up to the max.
-  void heal(int amount) =>
-      player.hp = min(player.maxHp, player.hp + amount);
+  void heal(int amount) => player.hp = min(player.maxHp, player.hp + amount);
 
   /// Chain bookkeeping for a chip of [family] about to be used. Returns the
   /// damage multiplier ([chain2Multiplier], [chain3Multiplier]). The 3rd
@@ -1156,6 +1155,7 @@ class BattleState {
         :final smokeTicks,
         :final stunTicks,
         :final wetTicks,
+        :final shieldTicks,
       ):
         final target = player.pos + GridPos(distance, 0);
         final shot = Projectile(
@@ -1173,10 +1173,16 @@ class BattleState {
         _toss(target, () {
           // Who is in the blast, before the hit can push or kill them.
           final caught = {
-            if (stunTicks > 0 || wetTicks > 0)
+            if (stunTicks > 0 || wetTicks > 0 || shieldTicks > 0)
               for (final offset in pattern)
                 ?_targetAt(target + offset, Team.enemy),
           };
+          // The pulse drops shields first, so they don't stop its own hit.
+          for (final unit in caught) {
+            if (unit is EnemyFighter && unit.def.frontShield) {
+              unit.shieldDown = max(unit.shieldDown, shieldTicks);
+            }
+          }
           _impact(shot, Team.enemy);
           for (final unit in caught) {
             if (stunTicks > 0) unit.applyStatus(Status.stunned, stunTicks);
@@ -1189,10 +1195,7 @@ class BattleState {
             panelAt(target).smokeTicks = smokeTicks;
           }
         });
-      case CrackEffect() ||
-          PushEffect() ||
-          PullEffect() ||
-          StatusShotEffect():
+      case CrackEffect() || PushEffect() || PullEffect() || StatusShotEffect():
         _fire(def, damage, onHit: def.effect, status: status);
       case HealEffect(:final amount):
         heal(amount);
@@ -1315,33 +1318,18 @@ class BattleState {
         for (var x = player.pos.x + 1; x < gridColumns; x++) {
           final cell = GridPos(x, player.pos.y);
           if (_targetAt(cell, Team.enemy) case final target?) {
-            strike(cell, damage, Team.enemy, def.element, status: status, family: def.family);
+            strike(
+              cell,
+              damage,
+              Team.enemy,
+              def.element,
+              status: status,
+              family: def.family,
+            );
             displace(target, 1, 0, 1, byPlayer: true);
             break;
           }
           if (panelAt(cell).walkable) setPanel(cell, PanelState.cracked);
-        }
-        damageBonus = 0;
-      case EmpEffect(:final shieldTicks):
-        final x = _frontEnemyColumn();
-        final struck = <Fighter>{};
-        if (x != null) {
-          for (var y = 0; y < gridRows; y++) {
-            strike(
-              GridPos(x, y),
-              damage,
-              Team.enemy,
-              def.element,
-              family: def.family,
-              status: status,
-              struck: struck,
-            );
-          }
-        }
-        for (final unit in struck) {
-          if (unit is EnemyFighter && unit.def.frontShield) {
-            unit.shieldDown = max(unit.shieldDown, shieldTicks);
-          }
         }
         damageBonus = 0;
       case TractorEffect(:final steps):
@@ -1365,7 +1353,14 @@ class BattleState {
           final unit = unitAt(GridPos(x, player.pos.y));
           if (unit is! EnemyFighter) continue;
           _pull(unit);
-          strike(unit.pos, damage, Team.enemy, def.element, status: status, family: def.family);
+          strike(
+            unit.pos,
+            damage,
+            Team.enemy,
+            def.element,
+            status: status,
+            family: def.family,
+          );
           break;
         }
         damageBonus = 0;
@@ -1872,24 +1867,23 @@ class BattleState {
     var multiplier = _kindBase(target, family);
     for (final relic in relics) {
       multiplier =
-          relic.modifyHit?.call(this, target, family, multiplier) ??
-          multiplier;
+          relic.modifyHit?.call(this, target, family, multiplier) ?? multiplier;
     }
     return multiplier;
   }
 
-  double _kindBase(EnemyFighter target, ChipFamily family) =>
-      switch ((target.def.kind, family)) {
-        (EnemyKind.machine, ChipFamily.projectile) =>
-          machineProjectileMultiplier,
-        (EnemyKind.machine, ChipFamily.energy) => machineEnergyMultiplier,
-        (EnemyKind.organic, ChipFamily.explosive) =>
-          organicExplosiveMultiplier,
-        (EnemyKind.ethereal, ChipFamily.projectile || ChipFamily.melee)
-            when target.phased =>
-          0,
-        _ => 1,
-      };
+  double _kindBase(EnemyFighter target, ChipFamily family) => switch ((
+    target.def.kind,
+    family,
+  )) {
+    (EnemyKind.machine, ChipFamily.projectile) => machineProjectileMultiplier,
+    (EnemyKind.machine, ChipFamily.energy) => machineEnergyMultiplier,
+    (EnemyKind.organic, ChipFamily.explosive) => organicExplosiveMultiplier,
+    (EnemyKind.ethereal, ChipFamily.projectile || ChipFamily.melee)
+        when target.phased =>
+      0,
+    _ => 1,
+  };
 
   /// A hit of [family] on [target] goes through it untouched: no damage,
   /// status or push (a phased Etéreo).
@@ -1899,8 +1893,7 @@ class BattleState {
           (family != null && _kindMultiplier(target, family) == 0));
 
   /// Mira Laser's extra damage on a marked target.
-  int _markBonus(Fighter target) =>
-      target.has(Status.marked) ? markBonus : 0;
+  int _markBonus(Fighter target) => target.has(Status.marked) ? markBonus : 0;
 
   /// Escudo Refletor: [shot] bounces off [reflector] and flies back down
   /// the row, doubled.

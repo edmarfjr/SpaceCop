@@ -485,7 +485,7 @@ abstract final class Chips {
     id: 'emp',
     name: 'Pulso EMP',
     description:
-        'Atinge a coluna inimiga da frente inteira e derruba escudos '
+        'Lançado no 3º painel à frente: pulso em cruz que derruba escudos '
         'frontais por 3 s.',
     cost: 2,
     family: ChipFamily.energy,
@@ -494,7 +494,8 @@ abstract final class Chips {
     target: ChipTarget.self,
     damage: 10,
     element: Element.elec,
-    effect: EmpEffect(shieldTicks: 3 * ticksPerSecond),
+    effect: GrenadeEffect(shieldTicks: 3 * ticksPerSecond),
+    pose: ChipPose.toss,
   );
 
   static const neuralVine = ChipDef(

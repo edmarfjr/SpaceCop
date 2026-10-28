@@ -148,6 +148,7 @@ class GrenadeEffect extends ChipEffect {
     this.smokeTicks = 0,
     this.stunTicks = 0,
     this.wetTicks = 0,
+    this.shieldTicks = 0,
   });
 
   final int distance;
@@ -156,6 +157,9 @@ class GrenadeEffect extends ChipEffect {
   final int smokeTicks;
   final int stunTicks;
   final int wetTicks;
+
+  /// Front shields in the blast stay down this long (Pulso EMP).
+  final int shieldTicks;
 }
 
 /// Projectile that cracks the panel under the first target it hits.
@@ -188,14 +192,6 @@ class StatusShotEffect extends ChipEffect {
 
   final Status status;
   final int ticks;
-}
-
-/// Instant hit on the whole front enemy column; front shields it touches
-/// stay down for [shieldTicks] (Pulso EMP).
-class EmpEffect extends ChipEffect {
-  const EmpEffect({required this.shieldTicks});
-
-  final int shieldTicks;
 }
 
 /// Pulls every enemy of the user's row [steps] panels forward, front one
