@@ -297,6 +297,15 @@ abstract final class Relics {
     onBattleStart: _armorPlate,
   );
 
+  /// Read by the battle when the player is hit.
+  static const armor = RelicDef(
+    id: 'armor',
+    name: 'Armadura',
+    description: 'Anula o primeiro dano que você sofre em cada luta.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+  );
+
   /// Read by the battle when a single-use card is used.
   static const tacticalPack = RelicDef(
     id: 'tactical_pack',
@@ -361,6 +370,7 @@ abstract final class Relics {
     monoBlade,
     engineeringKit,
     armorPlate,
+    armor,
     tacticalPack,
     symbiote,
     phaseTuner,

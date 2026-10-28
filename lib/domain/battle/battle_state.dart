@@ -614,6 +614,9 @@ class BattleState {
   /// Mochila Tática already saved a single-use card in this battle.
   bool packUsed = false;
 
+  /// The Armadura already stopped this battle's first hit.
+  bool armorUsed = false;
+
   /// Hundredths of a gauge tick carried over from the speed bonuses.
   int _gaugeProgress = 0;
 
@@ -1854,6 +1857,14 @@ class BattleState {
     if (element == Element.fire && panel == PanelState.grass) total *= 2;
     if (target is PlayerFighter && target.barrierTicks > 0) {
       target.barrierTicks = 0;
+      events.add(BattleEvent(BattleEventKind.blocked, unit: target));
+      return;
+    }
+    if (target is PlayerFighter &&
+        total > 0 &&
+        !armorUsed &&
+        hasRelic(Relics.armor)) {
+      armorUsed = true;
       events.add(BattleEvent(BattleEventKind.blocked, unit: target));
       return;
     }

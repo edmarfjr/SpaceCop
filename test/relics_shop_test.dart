@@ -138,6 +138,14 @@ void main() {
       );
     });
 
+    test('Armadura: the first hit of each battle does nothing', () {
+      final battle = withRelics([Relics.armor], []);
+      battle.damage(battle.player, 20);
+      expect(battle.player.hp, 100);
+      battle.damage(battle.player, 20);
+      expect(battle.player.hp, 80);
+    });
+
     test('Servo-braço: melee hits push the target 1 panel', () {
       final battle = withRelics([Relics.servoArm], [Chips.sword])
         ..player.pos = const GridPos(2, 1);

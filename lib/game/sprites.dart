@@ -221,6 +221,7 @@ abstract final class SpriteFiles {
     Relics.monoBlade.id: 'relics/lamina.png',
     Relics.engineeringKit.id: 'relics/chaveFenda.png',
     Relics.armorPlate.id: 'relics/armor.png',
+    Relics.armor.id: 'relics/armor.png',
     Relics.tacticalPack.id: 'relics/mochila.png',
     Relics.symbiote.id: 'relics/simbionte.png',
     Relics.phaseTuner.id: 'relics/antena.png',
