@@ -144,7 +144,7 @@ abstract final class SpriteFiles {
     Chips.barrier.id: 'chips/energyShield.png',
     Chips.mirror.id: 'chips/stasisGen.png',
     Chips.seedGrass.id: 'chips/broto.png',
-    Chips.areaSteal.id: 'chips/boot.png',
+    Chips.areaSteal.id: 'chips/roubaColuna.png',
     Chips.rock.id: 'chips/pedra.png',
     Chips.mine.id: 'chips/mina.png',
     Chips.turret.id: 'chips/droneItn.png',
@@ -220,7 +220,7 @@ abstract final class SpriteFiles {
     Relics.servoArm.id: 'relics/exoArm.png',
     Relics.monoBlade.id: 'relics/lamina.png',
     Relics.engineeringKit.id: 'relics/chaveFenda.png',
-    Relics.armorPlate.id: 'relics/armor.png',
+    Relics.armorPlate.id: 'relics/barreira.png',
     Relics.armor.id: 'relics/armor.png',
     Relics.tacticalPack.id: 'relics/mochila.png',
     Relics.symbiote.id: 'relics/simbionte.png',
@@ -238,6 +238,8 @@ abstract final class SpriteFiles {
     Events.vault.title: 'events/cofre.png',
     Events.shootingRange.title: 'events/campoTiro.png',
     Events.undercoverAgent.title: 'events/agenteInfiltrado.png',
+    Events.clinic.title: 'events/enfermaria.png',
+    Events.hangar.title: 'events/contrabando.png',
   };
 
   static const nodes = <NodeType, String>{
