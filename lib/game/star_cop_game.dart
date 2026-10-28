@@ -133,11 +133,11 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     run.enter(node);
     switch (node.type!) {
       case NodeType.battle:
-        _startBattle(Encounters.normal(run.random));
+        _startBattle(Encounters.normal(run.random, act: run.act));
       case NodeType.elite:
-        _startBattle(Encounters.elite(run.random));
+        _startBattle(Encounters.elite(run.random, act: run.act));
       case NodeType.boss:
-        _startBattle(Encounters.boss(run.random));
+        _startBattle(Encounters.boss(run.random, act: run.act));
       case NodeType.rest:
         _goTo(GamePhase.rest);
       case NodeType.shop:
@@ -153,10 +153,10 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
             eventPick = null;
             _goTo(GamePhase.event);
           case UnknownRoom.battle:
-            _startBattle(Encounters.normal(run.random));
+            _startBattle(Encounters.normal(run.random, act: run.act));
           case UnknownRoom.elite:
             _eliteFight = true;
-            _startBattle(Encounters.elite(run.random));
+            _startBattle(Encounters.elite(run.random, act: run.act));
           case UnknownRoom.shop:
             shop = Shop(run);
             _goTo(GamePhase.shop);
@@ -193,11 +193,18 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       _goTo(GamePhase.gameOver);
     } else if (fightReward != null) {
       _showFollowUp(fightReward(run));
-    } else if (run.current?.type == NodeType.boss) {
+    } else if (run.current?.type == NodeType.boss && run.lastAct) {
       _goTo(GamePhase.victory);
     } else {
       final before = run.credits;
-      final elite = run.current?.type == NodeType.elite || eliteFight;
+      // A boss before the last act pays like an elite; the next act starts
+      // once its reward is picked.
+      final elite =
+          eliteFight ||
+          switch (run.current?.type) {
+            NodeType.elite || NodeType.boss => true,
+            _ => false,
+          };
       rewardRelic = run.winBattle(elite: elite);
       rewardCredits = run.credits - before;
       rewardOptions = run.rollRewards(3, elite: elite);
@@ -243,7 +250,9 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
         _eliteFight = elite;
         _fightReward = onWin;
         _startBattle(
-          elite ? Encounters.elite(run.random) : Encounters.normal(run.random),
+          elite
+              ? Encounters.elite(run.random, act: run.act)
+              : Encounters.normal(run.random, act: run.act),
         );
     }
   }
@@ -269,7 +278,10 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   }
 
   /// Back to the map after any non-battle node or reward.
-  void finishNode() => _goTo(GamePhase.map);
+  void finishNode() {
+    if (run.current?.type == NodeType.boss && !run.lastAct) run.nextAct();
+    _goTo(GamePhase.map);
+  }
 
   void _goTo(GamePhase next, {World? world}) {
     this.world = world ?? World();

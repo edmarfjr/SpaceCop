@@ -254,7 +254,6 @@ abstract final class Enemies {
   );
 
   // ETs: the second mission's enemies, a tribe living in ancient ruins.
-  // Out of every pool until that mission exists.
 
   static const etWarrior = EnemyDef(
     name: 'ET Guerreiro',
@@ -411,8 +410,7 @@ abstract final class Enemies {
     behavior: GruntGunBehavior(wanderTicks: 20, flee: true),
   );
 
-  // Etéreos: the third mission's enemies. Out of every pool until that
-  // mission exists.
+  // Etéreos: the third mission's enemies.
 
   static const shadowGun = EnemyDef(
     name: 'Sombra Atiradora',
@@ -469,8 +467,26 @@ abstract final class Enemies {
     behavior: StalkerBehavior(),
   );
 
-  /// Pool of normal battles. Canhão Móvel, Raiz, Bolhador and Canhão Fixo
-  /// are out of it for now.
+  /// Normal battles of each act. Canhão Móvel, Raiz, Bolhador and Canhão
+  /// Fixo are out of them for now.
+  static List<EnemyDef> basicsOf(int act) => switch (act) {
+    2 => ruinsBasics,
+    3 => shadowBasics,
+    _ => basics,
+  };
+
+  static const ruinsBasics = [
+    etWarrior,
+    etGunner,
+    etTrap,
+    etShaman,
+    etShieldBearer,
+    etHealer,
+    sentinel,
+  ];
+
+  static const shadowBasics = [shadowGun, shadowFly, shadowJumper, shadowNest];
+
   static const basics = [
     gruntGun,
     gruntDuck,
@@ -482,18 +498,35 @@ abstract final class Enemies {
 }
 
 abstract final class Encounters {
-  /// One or two basic enemies on distinct cells. The fixed ones stay at the
-  /// back: Artilharia in column 5, Agachado and Torreta in columns 4-5.
-  static Encounter normal(Random random) {
+  /// Column the enemy may stand in, at least: the fixed and back-line ones
+  /// stay at the back.
+  static int _minX(EnemyDef def) => switch (def) {
+    Enemies.gruntArtillery || Enemies.cannon || Enemies.sentinel => 5,
+    Enemies.gruntDuck ||
+    Enemies.sentry ||
+    Enemies.bubbler ||
+    Enemies.etHealer ||
+    Enemies.shadowNest => 4,
+    _ => playerColumns,
+  };
+
+  /// One or two basic enemies of [act] on distinct cells. In the ruins the
+  /// Escaravelhos come three at a time, and the Curandeiro never alone.
+  static Encounter normal(Random random, {int act = 1}) {
+    final pool = Enemies.basicsOf(act);
+    if (act == 2 && random.nextInt(6) == 0) {
+      return const Encounter([
+        EnemySpawn(Enemies.scarab, GridPos(4, 0)),
+        EnemySpawn(Enemies.scarab, GridPos(5, 1)),
+        EnemySpawn(Enemies.scarab, GridPos(4, 2)),
+      ]);
+    }
     final spawns = <EnemySpawn>[];
     final count = 1 + random.nextInt(2);
     while (spawns.length < count) {
-      final def = Enemies.basics[random.nextInt(Enemies.basics.length)];
-      final minX = switch (def) {
-        Enemies.gruntArtillery || Enemies.cannon => 5,
-        Enemies.gruntDuck || Enemies.sentry || Enemies.bubbler => 4,
-        _ => playerColumns,
-      };
+      final def = pool[random.nextInt(pool.length)];
+      if (def == Enemies.etHealer && count == 1) continue;
+      final minX = _minX(def);
       final pos = GridPos(
         minX + random.nextInt(gridColumns - minX),
         random.nextInt(gridRows),
@@ -504,19 +537,43 @@ abstract final class Encounters {
     return Encounter(spawns);
   }
 
-  static Encounter elite(Random random) => switch (random.nextInt(4)) {
-    0 => Encounter([
-      EnemySpawn(Enemies.brute, GridPos(4, random.nextInt(gridRows))),
-    ]),
-    1 => const Encounter([EnemySpawn(Enemies.digger, GridPos(4, 1))]),
-    2 => const Encounter([
-      EnemySpawn(Enemies.prism, GridPos(4, 0)),
-      EnemySpawn(Enemies.prism, GridPos(5, 2)),
-    ]),
-    _ => const Encounter([EnemySpawn(Enemies.lavaGuard, GridPos(5, 1))]),
+  static Encounter elite(Random random, {int act = 1}) => switch (act) {
+    2 => switch (random.nextInt(4)) {
+      0 => Encounter([
+        EnemySpawn(Enemies.etRider, GridPos(4, random.nextInt(gridRows))),
+      ]),
+      1 => const Encounter([EnemySpawn(Enemies.ruinGolem, GridPos(4, 0))]),
+      2 => const Encounter([EnemySpawn(Enemies.priestess, GridPos(4, 1))]),
+      _ => const Encounter([
+        EnemySpawn(Enemies.portal, GridPos(5, 1)),
+        EnemySpawn(Enemies.etShieldBearer, GridPos(4, 1)),
+      ]),
+    },
+    3 =>
+      random.nextBool()
+          ? const Encounter([EnemySpawn(Enemies.predator, GridPos(4, 1))])
+          : const Encounter([EnemySpawn(Enemies.stalker, GridPos(4, 1))]),
+    _ => switch (random.nextInt(4)) {
+      0 => Encounter([
+        EnemySpawn(Enemies.brute, GridPos(4, random.nextInt(gridRows))),
+      ]),
+      1 => const Encounter([EnemySpawn(Enemies.digger, GridPos(4, 1))]),
+      2 => const Encounter([
+        EnemySpawn(Enemies.prism, GridPos(4, 0)),
+        EnemySpawn(Enemies.prism, GridPos(5, 2)),
+      ]),
+      _ => const Encounter([EnemySpawn(Enemies.lavaGuard, GridPos(5, 1))]),
+    },
   };
 
-  /// Colosso Sísmico and Maestro Elemental are out of the pool for now.
-  static Encounter boss(Random random) =>
-      const Encounter([EnemySpawn(Enemies.tank, GridPos(4, 1))]);
+  /// Each act's boss. The third act has no boss of its own yet: the two
+  /// Etéreo elites together stand in.
+  static Encounter boss(Random random, {int act = 1}) => switch (act) {
+    2 => const Encounter([EnemySpawn(Enemies.tribeKing, GridPos(4, 1))]),
+    3 => const Encounter([
+      EnemySpawn(Enemies.predator, GridPos(4, 0)),
+      EnemySpawn(Enemies.stalker, GridPos(5, 2)),
+    ]),
+    _ => const Encounter([EnemySpawn(Enemies.tank, GridPos(4, 1))]),
+  };
 }

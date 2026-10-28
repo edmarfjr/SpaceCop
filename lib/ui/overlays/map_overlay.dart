@@ -101,7 +101,10 @@ class _MapOverlayState extends State<MapOverlay> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('HP ${run.hp}/${run.maxHp} · ', style: GbText.small),
+            Text(
+              'Ato ${run.act} · HP ${run.hp}/${run.maxHp} · ',
+              style: GbText.small,
+            ),
             TextButton(
               onPressed: withTap(game.showDeck),
               child: Text('Deck ${run.deck.length}', style: GbText.small),

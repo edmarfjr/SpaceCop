@@ -13,6 +13,12 @@ const int eliteCredits = 40;
 /// Créditos a new run starts with.
 const int startCredits = 99;
 
+/// Missions in a run: the capangas, the ruins' ETs, the Etéreos.
+const int actCount = 3;
+
+/// Share of the missing HP restored when a new act starts.
+const double actHeal = 0.75;
+
 /// Everything that persists between nodes of one run: HP, deck, map
 /// position. Battles copy from here and write HP back when they end.
 class RunState {
@@ -23,7 +29,14 @@ class RunState {
       deck = Chips.starterDeck();
 
   final Random random;
-  final RunMap map;
+
+  /// The current act's map; a new one each act.
+  RunMap map;
+
+  /// 1 to [actCount].
+  int act = 1;
+
+  bool get lastAct => act == actCount;
 
   /// The permanent deck (StS "master deck").
   final List<ChipCard> deck;
@@ -54,6 +67,16 @@ class RunState {
     assert(availableNodes.contains(node), 'node not reachable');
     node.visited = true;
     current = node;
+  }
+
+  /// The act's boss fell: on to the next act, with a new map and
+  /// [actHeal] of the missing HP back.
+  void nextAct() {
+    assert(!lastAct, 'no act after the last');
+    act++;
+    map = MapGenerator(random: random).generate();
+    current = null;
+    hp += ((maxHp - hp) * actHeal).round();
   }
 
   /// Campfire: heal 30% of max HP.
