@@ -2,21 +2,26 @@ import '../chips/battle_chip.dart';
 import 'relics.dart';
 import 'run_state.dart';
 
-const int chipPrice = 50;
-const int removalPrice = 75;
-const int relicPrice = 150;
+/// Base prices by rarity, before Cartão de Sócio.
+int chipPrice(Rarity rarity) => switch (rarity) {
+  Rarity.common => 40,
+  Rarity.uncommon => 65,
+  Rarity.rare => 100,
+};
 
-/// One visit to a shop node: 5 chips and 3 relics for sale, plus one chip
-/// removal. Cartão de Sócio takes 25% off and makes the removal free.
+int relicPrice(Rarity rarity) => switch (rarity) {
+  Rarity.common => 110,
+  Rarity.uncommon => 150,
+  Rarity.rare => 200,
+};
+
+const int removalPrice = 75;
+
+/// One visit to a shop node: 5 chips and 3 relics for sale, priced by
+/// rarity, plus one chip removal. Cartão de Sócio takes 25% off and makes
+/// the removal free.
 class Shop {
-  Shop(this.run)
-    : chips = run.rollRewards(5),
-      relics = [
-        for (final r in Relics.all)
-          if (!run.relics.contains(r)) r,
-      ]..shuffle(run.random) {
-    if (relics.length > 3) relics.removeRange(3, relics.length);
-  }
+  Shop(this.run) : chips = run.rollRewards(5), relics = run.rollRelics(3);
 
   final RunState run;
 
@@ -30,8 +35,8 @@ class Shop {
 
   int _price(int base) => _member ? (base * 0.75).round() : base;
 
-  int get chipCost => _price(chipPrice);
-  int get relicCost => _price(relicPrice);
+  int chipCost(ChipDef def) => _price(chipPrice(def.rarity));
+  int relicCost(RelicDef relic) => _price(relicPrice(relic.rarity));
   int get removalCost => _member ? 0 : _price(removalPrice);
 
   /// Only one card can be removed per visit.
@@ -44,14 +49,14 @@ class Shop {
   }
 
   bool buyChip(ChipDef def) {
-    if (!chips.contains(def) || !_pay(chipCost)) return false;
+    if (!chips.contains(def) || !_pay(chipCost(def))) return false;
     chips.remove(def);
     run.deck.add(ChipCard(def));
     return true;
   }
 
   bool buyRelic(RelicDef relic) {
-    if (!relics.contains(relic) || !_pay(relicCost)) return false;
+    if (!relics.contains(relic) || !_pay(relicCost(relic))) return false;
     relics.remove(relic);
     run.relics.add(relic);
     return true;

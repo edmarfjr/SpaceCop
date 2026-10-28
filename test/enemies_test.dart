@@ -242,11 +242,11 @@ void main() {
     expect(battle.player.hp, 100 - Chips.shot.damage);
 
     use(battle, Chips.thunderLance);
-    expect(a.hp, 40 - 15);
+    expect(a.hp, 40 - Chips.thunderLance.damage);
 
     b.pos = const GridPos(5, 0);
     use(battle, Chips.shot);
-    expect(a.hp, 40 - 15 - Chips.shot.damage);
+    expect(a.hp, 40 - Chips.thunderLance.damage - Chips.shot.damage);
   });
 
   test('Guardião de Lava puts lava on the player side and flames columns '

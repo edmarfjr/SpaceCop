@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../domain/rarity.dart';
+
 /// Design tokens. See DESIGN.md.
 ///
 /// The Picotron palette (PICO-8's 16 colors plus 16 more): the only colors
@@ -73,6 +75,14 @@ const Size virtualScreen = Size(256, 192);
 /// Wide virtual screen of the battle and the map, same as the Flame camera
 /// (2:1, close to a phone held sideways).
 const Size wideScreen = Size(384, 192);
+
+/// Rarity of a card or relic: its label in the shop and the outline of a
+/// card's name bar (common cards keep the frame's own).
+Color rarityColor(Rarity rarity) => switch (rarity) {
+  Rarity.common => Pico.lightGray,
+  Rarity.uncommon => Pico.blue,
+  Rarity.rare => Pico.orange,
+};
 
 /// Width of the focus border.
 const double focusBorder = 1.5;

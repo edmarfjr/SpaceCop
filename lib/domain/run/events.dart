@@ -133,13 +133,10 @@ EventFollowUp? _disconnect(RunState run, ChipCard? _) => null;
 
 /// 1 of 2 relics the run doesn't own yet; null if none is left.
 OfferChoice? relicChoice(RunState run) {
-  final pool = [
-    for (final r in Relics.all)
-      if (!run.relics.contains(r)) r,
-  ]..shuffle(run.random);
+  final pool = run.rollRelics(2);
   if (pool.isEmpty) return null;
   return OfferChoice('Escolha uma relíquia', [
-    for (final relic in pool.take(2))
+    for (final relic in pool)
       EventOffer(
         relic.name,
         (run) => run.relics.add(relic),
@@ -262,7 +259,8 @@ EventFollowUp? _cover(RunState run, ChipCard? picked) {
 }
 
 EventFollowUp? _sendAway(RunState run, ChipCard? _) {
-  _addRandom(run, 3);
+  final pool = Chips.all.where((c) => c.rarity == Rarity.rare).toList();
+  run.deck.add(ChipCard(pool[run.random.nextInt(pool.length)]));
   return null;
 }
 
@@ -308,12 +306,14 @@ EventFollowUp? _mysteryBox(RunState run, ChipCard? _) {
   return _notice('Dentro da caixa: ${relic.name}');
 }
 
-bool _tradeable(ChipDef def) => def.cost < 3;
+bool _tradeable(ChipDef def) => def.rarity != Rarity.rare;
 
-/// The picked card becomes a random card of a higher cost.
+/// The picked card becomes a random card of a higher rarity.
 EventFollowUp? _trade(RunState run, ChipCard? picked) {
   if (picked == null) return null;
-  final pool = Chips.all.where((c) => c.cost > picked.def.cost).toList();
+  final pool = Chips.all
+      .where((c) => c.rarity.index > picked.def.rarity.index)
+      .toList();
   final def = pool[run.random.nextInt(pool.length)];
   run.deck[run.deck.indexOf(picked)] = ChipCard(def);
   return _notice('${picked.def.name} virou ${def.name}');
@@ -493,7 +493,7 @@ abstract final class Events {
       ),
       EventOption(
         label: 'Mandar ela sair dali',
-        reward: '1 carta aleatória de custo 3',
+        reward: '1 carta Rara aleatória',
         apply: _sendAway,
       ),
     ],
@@ -536,8 +536,8 @@ abstract final class Events {
       ),
       EventOption(
         label: 'Trocar mercadoria',
-        cost: '1 carta de custo 0 a 2',
-        reward: '1 carta aleatória de custo maior',
+        cost: '1 carta Comum ou Incomum',
+        reward: '1 carta aleatória de raridade maior',
         pick: EventPick.deckChip,
         pickable: _tradeable,
         apply: _trade,

@@ -162,10 +162,10 @@ void main() {
       expect(run.deck.where((c) => c.def.upgraded), hasLength(1));
     });
 
-    test('Mandar sair: a random cost-3 card', () {
+    test('Mandar sair: a random rare card', () {
       final run = newRun();
       away.apply(run, null);
-      expect(run.deck.last.def.cost, 3);
+      expect(run.deck.last.def.rarity, Rarity.rare);
     });
   });
 
@@ -213,17 +213,19 @@ void main() {
       expect(bugs, greaterThan(0));
     });
 
-    test('Trocar: a card of cost 0-2 becomes one that costs more', () {
-      final run = newRun()..deck.add(ChipCard(Chips.thunderLance));
+    test('Trocar: a common or uncommon card becomes a rarer one', () {
+      final run = newRun()..deck.add(ChipCard(Chips.overclock));
       expect(
         trade.pickableCards(run).map((c) => c.def),
-        isNot(contains(Chips.thunderLance)),
+        isNot(contains(Chips.overclock)),
       );
       final card = run.deck.first;
-      final cost = card.def.cost;
       trade.apply(run, card);
       expect(run.deck, isNot(contains(card)));
-      expect(run.deck.first.def.cost, greaterThan(cost));
+      expect(
+        run.deck.first.def.rarity.index,
+        greaterThan(card.def.rarity.index),
+      );
       expect(run.deck, hasLength(11));
     });
   });

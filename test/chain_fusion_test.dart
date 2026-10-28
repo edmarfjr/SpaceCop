@@ -111,7 +111,10 @@ void main() {
       );
       hold(battle, Chips.bubblePush, fusionChargeTicks);
       expect(battle.enemies.map((e) => e.hp), [60, 60]);
-      expect(battle.energy, baseEnergy - 4);
+      expect(
+        battle.energy,
+        baseEnergy - Chips.bubblePush.cost - Chips.thunderLance.cost,
+      );
     });
 
     test('Avalanche cracks its path, hits for 40 and pushes', () {

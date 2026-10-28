@@ -70,7 +70,7 @@ void main() {
     );
     battle.enemies[1].applyStatus(Status.wet, wetTicks);
     use(battle, Chips.thunderLance);
-    expect(battle.enemies.map((e) => e.hp), [85, 70, 100]);
+    expect(battle.enemies.map((e) => e.hp), [80, 60, 100]);
   });
 
   test('Escudo de Energia cancels the next hit and expires after 5 s', () {

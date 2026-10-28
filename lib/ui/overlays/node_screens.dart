@@ -200,8 +200,8 @@ class _ShopOverlayState extends State<ShopOverlay> {
   int? _priceOf(Object? item) {
     final shop = game.shop!;
     return switch (item) {
-      ChipDef() => shop.chipCost,
-      RelicDef() => shop.relicCost,
+      ChipDef() => shop.chipCost(item),
+      RelicDef() => shop.relicCost(item),
       _removalService when shop.canRemove && game.run.deck.isNotEmpty =>
         shop.removalCost,
       _ => null,
@@ -287,11 +287,11 @@ class _ShopOverlayState extends State<ShopOverlay> {
                           sprites: game.sprites,
                           width: _shopCardWidth,
                           autofocus: i == 0,
-                          dimmed: run.credits < shop.chipCost,
+                          dimmed: run.credits < shop.chipCost(def),
                           onTap: () => _select(def),
                         ),
                       ),
-                      price(shop.chipCost),
+                      price(shop.chipCost(def)),
                     ],
                   ),
                 ],
@@ -327,7 +327,7 @@ class _ShopOverlayState extends State<ShopOverlay> {
                               scale: 3,
                             ),
                           ),
-                          price(shop.relicCost),
+                          price(shop.relicCost(relic)),
                         ],
                       ),
                     ),
@@ -426,11 +426,19 @@ class _ShopInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (name, text) = switch (item) {
-      ChipDef(:final name, :final description) => (name, description),
-      RelicDef(:final name, :final description) => (name, description),
-      _removalService => ('Remover carta', 'Tira uma carta do deck.'),
-      _ => ('', 'Toque num item para ver o que é.'),
+    final (name, rarity, text) = switch (item) {
+      ChipDef(:final name, :final rarity, :final description) => (
+        name,
+        rarity,
+        description,
+      ),
+      RelicDef(:final name, :final rarity, :final description) => (
+        name,
+        rarity,
+        description,
+      ),
+      _removalService => ('Remover carta', null, 'Tira uma carta do deck.'),
+      _ => ('', null, 'Toque num item para ver o que é.'),
     };
     return Container(
       height: double.infinity,
@@ -443,8 +451,13 @@ class _ShopInfo extends StatelessWidget {
           children: [
             if (name.isNotEmpty)
               TextSpan(
-                text: '$name\n',
+                text: rarity == null ? '$name\n' : '$name ',
                 style: const TextStyle(color: Pico.yellow),
+              ),
+            if (rarity != null)
+              TextSpan(
+                text: '(${rarity.label})\n',
+                style: TextStyle(color: rarityColor(rarity)),
               ),
             TextSpan(text: text),
           ],
@@ -548,8 +561,10 @@ class _EventPicture extends StatelessWidget {
       final sprite? => LayoutBuilder(
         builder: (context, box) => SheetSprite(
           sprite: sprite,
-          scale: max(1, (box.biggest.shortestSide / sprite.srcSize.x).floor())
-              .toDouble(),
+          scale: max(
+            1,
+            (box.biggest.shortestSide / sprite.srcSize.x).floor(),
+          ).toDouble(),
         ),
       ),
       null => Text(

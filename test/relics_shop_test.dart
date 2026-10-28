@@ -144,10 +144,11 @@ void main() {
       final def = shop.chips.first;
       final deckSize = run.deck.length;
       expect(shop.buyChip(def), isTrue);
-      expect(run.credits, 200 - chipPrice);
+      expect(run.credits, 200 - chipPrice(def.rarity));
       expect(run.deck, hasLength(deckSize + 1));
       expect(shop.chips, isNot(contains(def)));
       final relic = shop.relics.first;
+      run.credits = relicPrice(relic.rarity);
       expect(shop.buyRelic(relic), isTrue);
       expect(run.relics, [relic]);
       expect(shop.relics, hasLength(2));
@@ -179,10 +180,52 @@ void main() {
         ..credits = 100
         ..relics.add(Relics.memberCard);
       final shop = Shop(run);
-      expect(shop.chipCost, 38);
+      expect(shop.chipCost(Chips.shot), 30);
+      expect(shop.chipCost(Chips.overclock), 75);
       expect(shop.removalCost, 0);
       shop.removeChip(run.deck.first);
       expect(run.credits, 100);
+    });
+  });
+
+  group('rarity', () {
+    test('commons are offered most, rares least', () {
+      final run = RunState(random: Random(3));
+      final counts = {for (final r in Rarity.values) r: 0};
+      for (var i = 0; i < 3000; i++) {
+        final rarity = run.rollRewards(1).single.rarity;
+        counts[rarity] = counts[rarity]! + 1;
+      }
+      expect(counts[Rarity.common], greaterThan(counts[Rarity.uncommon]!));
+      expect(counts[Rarity.uncommon], greaterThan(counts[Rarity.rare]!));
+      expect(counts[Rarity.rare], inInclusiveRange(150, 450));
+    });
+
+    test('elite rewards roll rares more often', () {
+      int rares({required bool elite}) {
+        final run = RunState(random: Random(4));
+        var n = 0;
+        for (var i = 0; i < 3000; i++) {
+          if (run.rollRewards(1, elite: elite).single.rarity == Rarity.rare) {
+            n++;
+          }
+        }
+        return n;
+      }
+
+      expect(rares(elite: true), greaterThan(rares(elite: false) * 3 ~/ 2));
+    });
+
+    test('rolls are distinct and fall back when a rarity runs out', () {
+      final run = RunState(random: Random(5));
+      final all = run.rollRewards(Chips.all.length);
+      expect(all.toSet(), hasLength(Chips.all.length));
+      run.relics.addAll(Relics.all.where((r) => r.rarity != Rarity.rare));
+      expect(run.rollRelics(3), [Relics.extraBattery]);
+    });
+
+    test('upgrades keep the rarity', () {
+      expect(Chips.upgradeOf(Chips.overclock)!.rarity, Rarity.rare);
     });
   });
 }

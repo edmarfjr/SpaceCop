@@ -57,6 +57,7 @@ class _ChipCardViewState extends State<ChipCardView> {
   /// window, the cost (blue) and damage (red) circles, the element icon
   /// between them, and the description box.
   static const _name = Rect.fromLTWH(3, 3, 26, 3);
+  static const _nameOutline = Rect.fromLTWH(2, 2, 28, 5);
   static const _art = Rect.fromLTWH(5, 14, 22, 13);
   static const _left = Rect.fromLTWH(1, 8, 6, 6);
   static const _right = Rect.fromLTWH(25, 8, 6, 6);
@@ -117,6 +118,18 @@ class _ChipCardViewState extends State<ChipCardView> {
                     : widget.sprites.chipFrame,
                 scale: scale,
               ),
+              if (def.rarity != Rarity.common)
+                at(
+                  _nameOutline,
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: rarityColor(def.rarity),
+                        width: scale,
+                      ),
+                    ),
+                  ),
+                ),
               at(
                 _name,
                 Center(
@@ -142,10 +155,7 @@ class _ChipCardViewState extends State<ChipCardView> {
                   ),
                 ),
               ),
-              at(
-                _left,
-                Center(child: fitted('${def.cost}', 5 * scale * 0.8)),
-              ),
+              at(_left, Center(child: fitted('${def.cost}', 5 * scale * 0.8))),
               if (def.damage > 0)
                 at(
                   _right,
@@ -214,7 +224,7 @@ class _CostBadge extends StatelessWidget {
     width: size,
     height: size,
     alignment: Alignment.center,
-   // decoration: const BoxDecoration(color: Pico.blue, shape: BoxShape.circle),
+    // decoration: const BoxDecoration(color: Pico.blue, shape: BoxShape.circle),
     child: Text(
       '$cost',
       style: TextStyle(

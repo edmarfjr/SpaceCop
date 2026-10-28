@@ -80,13 +80,16 @@ void main() {
     });
 
     test('card costing more than the energy left stays in hand', () {
-      final battle = battleWith([Chips.thunderLance, Chips.thunderLance]);
+      final battle = battleWith([
+        for (var i = 0; i < 3; i++) Chips.thunderLance,
+      ]);
       battle.tick();
       use(battle, battle.hand.first);
-      expect(battle.energy, baseEnergy - 3);
+      use(battle, battle.hand.first);
+      expect(battle.energy, baseEnergy - 4);
       use(battle, battle.hand.first);
       expect(battle.hand, hasLength(1));
-      expect(battle.energy, baseEnergy - 3);
+      expect(battle.energy, baseEnergy - 4);
     });
 
     test('Energy drink pays for an extra chip and its bonus ends with the hand', () {
@@ -95,13 +98,15 @@ void main() {
         Chips.energyDrink,
         Chips.shotgun,
         Chips.smg,
+        Chips.atkBoost,
       ]);
       battle.tick();
       use(battle, inHand(battle, Chips.thunderLance));
       use(battle, inHand(battle, Chips.energyDrink));
-      expect(battle.energy, baseEnergy - 3 - 1 + 2);
+      expect(battle.energy, baseEnergy - 2 - 1 + 2);
       use(battle, inHand(battle, Chips.shotgun));
       use(battle, inHand(battle, Chips.smg));
+      use(battle, inHand(battle, Chips.atkBoost));
       expect(battle.hand, isEmpty);
       expect(battle.energy, 0);
       // The refill happens inside the tick that fills the gauge.

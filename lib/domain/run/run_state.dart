@@ -3,6 +3,7 @@ import 'dart:math';
 import '../chips/battle_chip.dart';
 import '../chips/chip_library.dart';
 import '../map/run_map.dart';
+import '../rarity.dart';
 import 'relics.dart';
 
 /// Credits for winning a normal or elite battle.
@@ -84,16 +85,26 @@ class RunState {
     return relic;
   }
 
-  /// A relic the run doesn't own yet, optionally of one [kind].
+  /// A relic the run doesn't own yet, optionally of one [kind], rarer ones
+  /// less often.
   RelicDef? randomRelic({RelicKind? kind}) {
-    final pool = [
-      for (final r in Relics.all)
-        if (!relics.contains(r) && (kind == null || r.kind == kind)) r,
-    ];
-    return pool.isEmpty ? null : pool[random.nextInt(pool.length)];
+    final picked = rollRelics(1, kind: kind);
+    return picked.isEmpty ? null : picked.single;
   }
 
-  /// Picks [count] distinct chips to offer after a battle.
-  List<ChipDef> rollRewards(int count) =>
-      (List.of(Chips.all)..shuffle(random)).take(count).toList();
+  /// Up to [count] distinct relics the run doesn't own yet, by rarity.
+  List<RelicDef> rollRelics(int count, {RelicKind? kind}) => pickByRarity(
+    [
+      for (final r in Relics.all)
+        if (!relics.contains(r) && (kind == null || r.kind == kind)) r,
+    ],
+    (r) => r.rarity,
+    count,
+    random,
+  );
+
+  /// Picks [count] distinct chips to offer, by rarity; [elite] rolls rare
+  /// ones more often.
+  List<ChipDef> rollRewards(int count, {bool elite = false}) =>
+      pickByRarity(Chips.all, (c) => c.rarity, count, random, elite: elite);
 }

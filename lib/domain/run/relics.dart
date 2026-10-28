@@ -1,5 +1,6 @@
 import '../battle/battle_state.dart';
 import '../grid.dart';
+import '../rarity.dart';
 
 enum RelicKind {
   /// Works on the map, shop or energy.
@@ -17,6 +18,7 @@ class RelicDef {
     required this.name,
     required this.description,
     required this.kind,
+    this.rarity = Rarity.common,
     this.onBattleStart,
     this.modifyDamage,
     this.onCollision,
@@ -28,6 +30,9 @@ class RelicDef {
   final String name;
   final String description;
   final RelicKind kind;
+
+  /// How often it is offered and its shop price.
+  final Rarity rarity;
 
   final void Function(BattleState battle)? onBattleStart;
 
@@ -70,6 +75,7 @@ abstract final class Relics {
     name: 'Bateria Extra',
     description: '+1 de Energia base.',
     kind: RelicKind.global,
+    rarity: Rarity.rare,
     onBattleStart: _extraEnergy,
   );
 
@@ -79,6 +85,7 @@ abstract final class Relics {
     description:
         'Na recarga, mostra as 2 próximas cartas; mande 1 para o fundo do deck.',
     kind: RelicKind.global,
+    rarity: Rarity.uncommon,
     onHandRefill: _peekTop,
   );
 
@@ -87,6 +94,7 @@ abstract final class Relics {
     name: 'Cartão de Sócio',
     description: 'Loja 25% mais barata; remover carta é grátis.',
     kind: RelicKind.global,
+    rarity: Rarity.uncommon,
   );
 
   static const frontLine = RelicDef(
@@ -112,6 +120,7 @@ abstract final class Relics {
     description:
         'Corrente de 3 completa: o próximo gauge enche 50% mais rápido.',
     kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
     onChainComplete: _fastGauge,
   );
 

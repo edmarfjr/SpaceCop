@@ -2,6 +2,9 @@ import '../battle/battle_state.dart' show ObstacleKind, Status;
 import '../battle/panels.dart';
 import '../element.dart';
 import '../grid.dart';
+import '../rarity.dart';
+
+export '../rarity.dart' show Rarity;
 
 /// Broad category, used by the UI (card color) and by future rules
 /// (e.g. "attack chips cost +1 in this elite fight").
@@ -267,6 +270,7 @@ class ChipDef {
     this.pose = ChipPose.shoot,
     this.exhaust = false,
     this.upgraded = false,
+    this.rarity = Rarity.common,
   });
 
   final String id;
@@ -289,6 +293,9 @@ class ChipDef {
   /// The "+" version from a campfire (see `Chips.upgradeOf`). It keeps the
   /// [id] of the card it came from.
   final bool upgraded;
+
+  /// How often it is offered and its shop price.
+  final Rarity rarity;
 }
 
 /// One copy of a chip in the player's deck.

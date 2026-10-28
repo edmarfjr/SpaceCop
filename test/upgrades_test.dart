@@ -38,7 +38,7 @@ void main() {
     expect(up(Chips.crossFlame).damage, 20);
     expect(up(Chips.energyDrink).cost, 0);
     expect(up(Chips.energyTank).cost, 1);
-    expect(up(Chips.thunderLance).cost, 2);
+    expect(up(Chips.thunderLance).cost, 1);
     expect(up(Chips.seedGrass).cost, 0);
     expect(up(Chips.hook).cost, 0);
     expect(up(Chips.recover).exhaust, isTrue);
