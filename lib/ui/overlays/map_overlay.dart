@@ -112,21 +112,37 @@ class _MapOverlayState extends State<MapOverlay> {
             const Text(' · ', style: GbText.small),
             SheetSprite(sprite: game.sprites.credits, scale: 1),
             Text(': ${run.credits}', style: GbText.small),
-            for (final relic in run.relics)
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onLongPressStart: (_) => setState(() => _held = relic),
-                onLongPressEnd: (_) => setState(() => _held = null),
-                onLongPressCancel: () => setState(() => _held = null),
-                // The padding makes the 8 px icon easier to hold.
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(3, 2, 1, 2),
-                  child: SheetSprite(
-                    sprite: game.sprites.relic(relic),
-                    scale: 1,
-                  ),
+            // Many relics scroll sideways instead of overflowing.
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final relic in run.relics)
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onLongPressStart: (_) => setState(() => _held = relic),
+                        onLongPressEnd: (_) => setState(() => _held = null),
+                        onLongPressCancel: () => setState(() => _held = null),
+                        // The padding makes the icon easier to hold.
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(3, 2, 1, 2),
+                          // Bigger art shrinks to the usual 16 px.
+                          child: SizedBox.square(
+                            dimension: 16,
+                            child: FittedBox(
+                              child: SheetSprite(
+                                sprite: game.sprites.relic(relic),
+                                scale: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
+            ),
           ],
         ),
       ),

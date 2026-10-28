@@ -49,65 +49,89 @@ class RewardOverlay extends StatelessWidget {
 
   final StarCopGame game;
 
+  /// Width of the relic's column beside the cards.
+  static const double _relicWidth = 110;
+
   @override
-  Widget build(BuildContext context) => _Panel(
-    title: 'Escolha uma carta',
-    children: [
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SheetSprite(sprite: game.sprites.credits, scale: 0.4),
-          Text(
-            ' +${game.rewardCredits}',
-            style: GbText.small.copyWith(color: Pico.yellow),
+  Widget build(BuildContext context) {
+    final relic = game.rewardRelic;
+    final credits = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SheetSprite(sprite: game.sprites.credits, scale: 0.4),
+        Text(
+          ' +${game.rewardCredits}',
+          style: GbText.small.copyWith(color: Pico.yellow),
+        ),
+      ],
+    );
+    final cards = Wrap(
+      spacing: 6,
+      children: [
+        for (final (i, def) in game.rewardOptions.indexed)
+          ChipCardView(
+            def: def,
+            sprites: game.sprites,
+            width: 76,
+            autofocus: i == 0,
+            onTap: () => game.pickReward(def),
           ),
-          if (game.rewardRelic case final relic?) ...[
-            const SizedBox(width: 6),
-            SheetSprite(sprite: game.sprites.relic(relic), scale: 1),
-            Text(
-              ' ${relic.name}',
-              style: GbText.small.copyWith(color: Pico.yellow),
+      ],
+    );
+    return _Panel(
+      title: 'Escolha uma carta',
+      children: [
+        if (relic == null) ...[
+          credits,
+          const SizedBox(height: 6),
+          cards,
+        ] else
+          // The relic goes beside the cards, in the width they leave.
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              cards,
+              const SizedBox(width: 6),
+              SizedBox(
+                width: _relicWidth,
+                child: Column(
+                  children: [
+                    credits,
+                    const SizedBox(height: 4),
+                    SheetSprite(sprite: game.sprites.relic(relic), scale: 1),
+                    Text(
+                      relic.name,
+                      textAlign: TextAlign.center,
+                      style: GbText.small.copyWith(color: Pico.yellow),
+                    ),
+                    Text(
+                      relic.description,
+                      textAlign: TextAlign.center,
+                      style: GbText.small.copyWith(color: Pico.lightGray),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              onPressed: withTap(game.showDeck),
+              child: const Text('Ver deck'),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: withTap(() => game.pickReward(null)),
+              child: const Text('Pular'),
             ),
           ],
-        ],
-      ),
-      if (game.rewardRelic case final relic?)
-        Text(
-          relic.description,
-          textAlign: TextAlign.center,
-          style: GbText.small.copyWith(color: Pico.lightGray),
         ),
-      const SizedBox(height: 6),
-      Wrap(
-        spacing: 6,
-        children: [
-          for (final (i, def) in game.rewardOptions.indexed)
-            ChipCardView(
-              def: def,
-              sprites: game.sprites,
-              width: 76,
-              autofocus: i == 0,
-              onTap: () => game.pickReward(def),
-            ),
-        ],
-      ),
-      const SizedBox(height: 6),
-      Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextButton(
-            onPressed: withTap(game.showDeck),
-            child: const Text('Ver deck'),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: withTap(() => game.pickReward(null)),
-            child: const Text('Pular'),
-          ),
-        ],
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 /// Campfire: rest, or upgrade one card instead.
