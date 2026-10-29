@@ -176,13 +176,19 @@ void main() {
       expect(argos.pose, ArgosBehavior.closedPose + 3);
     });
 
-    test('Torres: 2 turrets that do not keep the fight going', () {
+    test('Torres: 2 turrets that shoot, and do not keep the fight going', () {
       final (battle, argos) = argosAbout(2);
       battle.tick();
-      expect(
-        battle.enemies.where((e) => e.def == Enemies.argosTurret),
-        hasLength(ArgosBehavior.turrets),
-      );
+      final turrets = [
+        for (final e in battle.enemies)
+          if (e.def == Enemies.argosTurret) e,
+      ];
+      expect(turrets, hasLength(ArgosBehavior.turrets));
+      argos.timer = 100000;
+      wait(battle, SentryBehavior.riseTicks + 1);
+      for (final turret in turrets) {
+        expect(warned(battle).any((c) => c.y == turret.pos.y), isTrue);
+      }
       argos.hp = 0;
       battle.tick();
       expect(battle.phase, BattlePhase.won);

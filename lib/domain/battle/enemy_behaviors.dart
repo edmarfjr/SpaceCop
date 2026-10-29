@@ -1015,6 +1015,14 @@ class SentryBehavior extends EnemyBehavior {
     ..stage = _up
     ..timer = hiddenTicks;
 
+  /// One summoned mid-battle (ARGOS's Torres): it climbs out of the floor
+  /// and fires right away. Left alone it would wait in [_hidden] without
+  /// being hidden, blocked by itself on its own panel.
+  static void emerge(EnemyFighter enemy) => enemy
+    ..stage = _rising
+    ..timer = riseTicks
+    ..buried = 1;
+
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
     switch (enemy.stage) {
@@ -2450,7 +2458,7 @@ class ArgosBehavior extends EnemyBehavior {
         .length;
     final free = _freeEnemyPanels(battle)..shuffle(battle.random);
     for (final spot in free.take(min(turrets, maxTurrets - standing))) {
-      battle.summon(Enemies.argosTurret, spot);
+      SentryBehavior.emerge(battle.summon(Enemies.argosTurret, spot));
     }
     enemy.attackPose = attackPoseTicks;
   }

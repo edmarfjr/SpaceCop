@@ -415,8 +415,8 @@ abstract final class Chips {
 
   static const rock = ChipDef(
     id: 'rock',
-    name: 'Rocha',
-    description: 'Rocha de 40 HP à sua frente. Bloqueia tiros.',
+    name: 'Barreira',
+    description: 'Barreira de 40 HP à sua frente. Bloqueia tiros.',
     cost: 1,
     family: ChipFamily.equipment,
     type: ChipType.support,
@@ -717,7 +717,7 @@ abstract final class Chips {
       ),
       _up(
         rock,
-        description: 'Rocha de 60 HP à sua frente. Bloqueia tiros.',
+        description: 'Barreira de 60 HP à sua frente. Bloqueia tiros.',
         effect: const SpawnObstacleEffect(ObstacleKind.rock, amount: 60),
       ),
       _up(
