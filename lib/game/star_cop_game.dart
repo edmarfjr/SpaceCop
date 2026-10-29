@@ -20,6 +20,7 @@ import 'sprites.dart';
 /// Flutter overlays over an empty world.
 enum GamePhase {
   menu,
+  compendium,
   map,
   battle,
   reward,
@@ -33,6 +34,7 @@ enum GamePhase {
 /// Overlay keys registered in `GameWidget.overlayBuilderMap`.
 abstract final class Overlays {
   static const menu = 'menu';
+  static const compendium = 'compendium';
   static const map = 'map';
   static const hud = 'hud';
   static const reward = 'reward';
@@ -48,6 +50,7 @@ abstract final class Overlays {
 
   static String forPhase(GamePhase phase) => switch (phase) {
     GamePhase.menu => menu,
+    GamePhase.compendium => compendium,
     GamePhase.map => map,
     GamePhase.battle => hud,
     GamePhase.reward => reward,
@@ -142,6 +145,10 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     run = RunState();
     _goTo(GamePhase.map);
   }
+
+  void openCompendium() => _goTo(GamePhase.compendium);
+
+  void backToMenu() => _goTo(GamePhase.menu);
 
   /// Menu: back to the saved run, on its map.
   void continueRun() {
@@ -345,7 +352,10 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       RunSave.clear();
     }
     GameAudio.instance.music(switch (next) {
-      GamePhase.menu || GamePhase.map || GamePhase.reward => Music.map,
+      GamePhase.menu ||
+      GamePhase.compendium ||
+      GamePhase.map ||
+      GamePhase.reward => Music.map,
       GamePhase.battle =>
         run.current?.type == NodeType.boss ? Music.boss : Music.battle,
       GamePhase.rest || GamePhase.shop || GamePhase.event => Music.shop,

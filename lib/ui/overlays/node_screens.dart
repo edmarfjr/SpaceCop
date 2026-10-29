@@ -1006,6 +1006,11 @@ class MenuOverlay extends StatelessWidget {
         onPressed: withTap(game.startNewRun),
         child: const Text('Novo jogo'),
       ),
+      const SizedBox(height: 6),
+      FilledButton(
+        onPressed: withTap(game.openCompendium),
+        child: const Text('Compêndio'),
+      ),
     ],
   );
 }
