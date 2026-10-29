@@ -26,6 +26,9 @@ void main() {
         case OfferChoice(:final offers):
           offers.first.apply(run);
           next = null;
+        case CardChoice(:final cards):
+          run.deck.add(ChipCard(cards.first));
+          next = null;
         case final PickCard pick:
           final cards = pick.cards(run);
           next = cards.isEmpty ? null : pick.apply(run, cards.first);
@@ -57,10 +60,9 @@ void main() {
 
   test('Mural: Decifrar offers 3 Energia cards', () {
     final choice =
-        Events.mural.options.first.apply(newRun(), null)! as OfferChoice;
-    expect(choice.offers, hasLength(3));
-    for (final offer in choice.offers) {
-      final def = Chips.all.firstWhere((c) => c.name == offer.label);
+        Events.mural.options.first.apply(newRun(), null)! as CardChoice;
+    expect(choice.cards, hasLength(3));
+    for (final def in choice.cards) {
       expect(def.family, ChipFamily.energy);
     }
   });

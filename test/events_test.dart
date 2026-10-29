@@ -34,12 +34,10 @@ void main() {
 
     test('Saquear: -10 HP for 1 of 3 attack cards', () {
       final run = newRun();
-      final choice = loot.apply(run, null)! as OfferChoice;
+      final choice = loot.apply(run, null)! as CardChoice;
       expect(run.hp, 90);
-      expect(choice.offers, hasLength(3));
-      choice.offers.first.apply(run);
-      expect(run.deck, hasLength(11));
-      expect(run.deck.last.def.type, ChipType.attack);
+      expect(choice.cards, hasLength(3));
+      expect(choice.cards.every((c) => c.type == ChipType.attack), isTrue);
     });
 
     test('Desmontar: removes the picked card for 40', () {

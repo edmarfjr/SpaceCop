@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 
 import '../../domain/chips/battle_chip.dart';
 import '../../domain/chips/chip_library.dart';
+import '../../domain/map/run_map.dart';
 import '../../domain/run/events.dart';
 import '../../domain/run/relics.dart';
+import '../../domain/run/run_state.dart';
 import '../../game/audio.dart';
 import '../../game/star_cop_game.dart';
 import '../feedback.dart';
@@ -43,77 +45,83 @@ class _Panel extends StatelessWidget {
   );
 }
 
-/// After a won battle: add one of three chips to the deck, or skip.
-class RewardOverlay extends StatelessWidget {
+/// After a won battle, like Slay the Spire's: a box listing the spoils;
+/// tapping one takes it, the card and boss relic ones open their choice
+/// first. Whatever is left when moving on is lost.
+class RewardOverlay extends StatefulWidget {
   const RewardOverlay({super.key, required this.game});
 
   final StarCopGame game;
 
-  /// Width of the relic's column beside the cards.
-  static const double _relicWidth = 110;
+  @override
+  State<RewardOverlay> createState() => _RewardOverlayState();
+}
+
+class _RewardOverlayState extends State<RewardOverlay> {
+  /// The card or boss relic choice open over the list.
+  Spoil? _open;
+
+  StarCopGame get game => widget.game;
+
+  void _take(Spoil spoil, {ChipDef? card, RelicDef? relic}) => setState(() {
+    game.takeSpoil(spoil, card: card, relic: relic);
+    _open = null;
+  });
+
+  void _back() {
+    GameAudio.instance.play(Sfx.cancel);
+    setState(() => _open = null);
+  }
 
   @override
-  Widget build(BuildContext context) {
-    final relic = game.rewardRelic;
-    final credits = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SheetSprite(sprite: game.sprites.credits, scale: 0.4),
-        Text(
-          ' +${game.rewardCredits}',
-          style: GbText.small.copyWith(color: Pico.yellow),
-        ),
-      ],
-    );
-    final cards = Wrap(
-      spacing: 6,
-      children: [
-        for (final (i, def) in game.rewardOptions.indexed)
-          ChipCardView(
-            def: def,
-            sprites: game.sprites,
-            width: 76,
-            autofocus: i == 0,
-            onTap: () => game.pickReward(def),
-          ),
-      ],
-    );
-    return _Panel(
+  Widget build(BuildContext context) => switch (_open) {
+    final CardSpoil spoil => CardReward(
       title: 'Escolha uma carta',
+      cards: spoil.cards,
+      game: game,
+      onPick: (card) => _take(spoil, card: card),
+      onSkip: _back,
+    ),
+    final BossRelicSpoil spoil => RelicChoice(
+      title: 'Escolha uma relíquia de chefe',
+      relics: spoil.relics,
+      game: game,
+      onPick: (relic) => _take(spoil, relic: relic),
+      onSkip: _back,
+    ),
+    _ => _list(),
+  };
+
+  Widget _list() {
+    final spoils = game.spoils;
+    return _Panel(
+      title: 'Espólios!',
       children: [
-        if (relic == null) ...[
-          credits,
-          const SizedBox(height: 6),
-          cards,
-        ] else
-          // The relic goes beside the cards, in the width they leave.
-          Row(
+        Container(
+          width: 200,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Pico.black,
+            border: Border.all(color: Pico.lightGray, width: 0.5),
+          ),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              cards,
-              const SizedBox(width: 6),
-              SizedBox(
-                width: _relicWidth,
-                child: Column(
-                  children: [
-                    credits,
-                    const SizedBox(height: 4),
-                    SheetSprite(sprite: game.sprites.relic(relic), scale: 1),
-                    Text(
-                      relic.name,
-                      textAlign: TextAlign.center,
-                      style: GbText.small.copyWith(color: Pico.yellow),
-                    ),
-                    Text(
-                      relic.description,
-                      textAlign: TextAlign.center,
-                      style: GbText.small.copyWith(color: Pico.lightGray),
-                    ),
-                  ],
+              if (spoils.isEmpty)
+                Text(
+                  'Nada mais a pegar.',
+                  textAlign: TextAlign.center,
+                  style: GbText.small.copyWith(color: Pico.darkGray),
                 ),
-              ),
+              for (final (i, spoil) in spoils.indexed)
+                Padding(
+                  padding: EdgeInsets.only(top: i == 0 ? 0 : 3),
+                  child: _spoilButton(spoil, autofocus: i == 0),
+                ),
             ],
           ),
+        ),
         const SizedBox(height: 6),
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -124,14 +132,103 @@ class RewardOverlay extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             TextButton(
-              onPressed: withTap(() => game.pickReward(null)),
-              child: const Text('Pular'),
+              autofocus: spoils.isEmpty,
+              onPressed: withTap(game.finishNode),
+              child: Text(spoils.isEmpty ? 'Continuar' : 'Pular recompensas'),
             ),
           ],
         ),
       ],
     );
   }
+
+  Widget _spoilButton(Spoil spoil, {required bool autofocus}) {
+    final sprites = game.sprites;
+    final (icon, text) = switch (spoil) {
+      CreditsSpoil(:final amount) => (sprites.credits, '$amount Créditos'),
+      RelicSpoil(:final relic) => (sprites.relic(relic), relic.name),
+      CardSpoil() => (sprites.deckIcon, 'Adicione uma carta ao seu deck'),
+      BossRelicSpoil() => (
+        sprites.node(NodeType.boss),
+        'Escolha uma relíquia de chefe',
+      ),
+    };
+    return OutlinedButton(
+      autofocus: autofocus,
+      style: OutlinedButton.styleFrom(
+        alignment: Alignment.centerLeft,
+        backgroundColor: Pico.forest,
+        padding: buttonPadding,
+      ),
+      onPressed: withTap(
+        () => switch (spoil) {
+          CardSpoil() || BossRelicSpoil() => setState(() => _open = spoil),
+          _ => _take(spoil),
+        },
+      ),
+      child: Row(
+        children: [
+          SizedBox.square(
+            dimension: 12,
+            child: FittedBox(child: SheetSprite(sprite: icon, scale: 1)),
+          ),
+          const SizedBox(width: 6),
+          Expanded(child: Text(text, style: GbText.small)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Picking one of a few cards for the deck, or skipping: the battle
+/// spoils' card choice and the events' ones.
+class CardReward extends StatelessWidget {
+  const CardReward({
+    super.key,
+    required this.title,
+    required this.cards,
+    required this.game,
+    required this.onPick,
+    required this.onSkip,
+  });
+
+  final String title;
+  final List<ChipDef> cards;
+  final StarCopGame game;
+  final ValueChanged<ChipDef> onPick;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) => _Panel(
+    title: title,
+    children: [
+      Wrap(
+        spacing: 6,
+        children: [
+          for (final (i, def) in cards.indexed)
+            ChipCardView(
+              def: def,
+              sprites: game.sprites,
+              width: 76,
+              autofocus: i == 0,
+              onTap: () => onPick(def),
+            ),
+        ],
+      ),
+      const SizedBox(height: 6),
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextButton(
+            onPressed: withTap(game.showDeck),
+            child: const Text('Ver deck'),
+          ),
+          const SizedBox(width: 8),
+          TextButton(onPressed: onSkip, child: const Text('Pular')),
+        ],
+      ),
+    ],
+  );
 }
 
 /// Campfire: rest, or upgrade one card instead.
@@ -667,11 +764,27 @@ class _EventOverlayState extends State<EventOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    final event = game.event;
+    final cards = game.eventCards;
+    if (cards != null) {
+      return CardReward(
+        title: cards.title,
+        cards: cards.cards,
+        game: game,
+        onPick: game.pickEventCard,
+        onSkip: () => game.pickEventCard(null),
+      );
+    }
     final choice = game.eventChoice;
     if (choice != null && choice.offers.every((o) => o.relic != null)) {
-      return _RelicChoice(choice: choice, game: game);
+      return RelicChoice(
+        title: choice.title,
+        relics: [for (final offer in choice.offers) offer.relic!],
+        game: game,
+        onPick: (relic) =>
+            game.pickOffer(choice.offers.firstWhere((o) => o.relic == relic)),
+      );
     }
-    final event = game.event;
     if (choice != null) {
       return _EventScene(
         title: event?.title ?? '',
@@ -745,36 +858,46 @@ class _EventOverlayState extends State<EventOverlay> {
 }
 
 /// Picking one relic: the icons side by side, the selected one's text in a
-/// box below, and a button to take it.
-class _RelicChoice extends StatefulWidget {
-  const _RelicChoice({required this.choice, required this.game});
+/// box below, and a button to take it ([onSkip], if any, adds one to skip).
+class RelicChoice extends StatefulWidget {
+  const RelicChoice({
+    super.key,
+    required this.title,
+    required this.relics,
+    required this.game,
+    required this.onPick,
+    this.onSkip,
+  });
 
-  final OfferChoice choice;
+  final String title;
+  final List<RelicDef> relics;
   final StarCopGame game;
+  final ValueChanged<RelicDef> onPick;
+  final VoidCallback? onSkip;
 
   @override
-  State<_RelicChoice> createState() => _RelicChoiceState();
+  State<RelicChoice> createState() => _RelicChoiceState();
 }
 
-class _RelicChoiceState extends State<_RelicChoice> {
+class _RelicChoiceState extends State<RelicChoice> {
   int _selected = 0;
 
   @override
   Widget build(BuildContext context) {
-    final offers = widget.choice.offers;
-    final selected = offers[_selected];
+    final relics = widget.relics;
+    final selected = relics[_selected];
     return ColoredBox(
       color: Pico.darkBlue,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
         child: Column(
           children: [
-            Text(widget.choice.title, style: GbText.title),
+            Text(widget.title, style: GbText.title),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                for (final (i, offer) in offers.indexed)
+                for (final (i, relic) in relics.indexed)
                   GestureDetector(
                     onTap: withTap(() => setState(() => _selected = i)),
                     child: Container(
@@ -788,7 +911,7 @@ class _RelicChoiceState extends State<_RelicChoice> {
                         ),
                       ),
                       child: SheetSprite(
-                        sprite: widget.game.sprites.relic(offer.relic!),
+                        sprite: widget.game.sprites.relic(relic),
                         scale: 4,
                       ),
                     ),
@@ -807,7 +930,7 @@ class _RelicChoiceState extends State<_RelicChoice> {
                   TextSpan(
                     children: [
                       TextSpan(
-                        text: '${selected.label}: ',
+                        text: '${selected.name}: ',
                         style: const TextStyle(color: Pico.yellow),
                       ),
                       TextSpan(text: selected.description),
@@ -818,19 +941,28 @@ class _RelicChoiceState extends State<_RelicChoice> {
               ),
             ),
             const SizedBox(height: 6),
-            GestureDetector(
-              onTap: withTap(() => widget.game.pickOffer(selected)),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 4,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: withTap(() => widget.onPick(selected)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Pico.burgundy,
+                      border: Border.all(color: Pico.yellow, width: 2),
+                    ),
+                    child: const Text('ESCOLHER', style: GbText.body),
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: Pico.burgundy,
-                  border: Border.all(color: Pico.yellow, width: 2),
-                ),
-                child: const Text('ESCOLHER', style: GbText.body),
-              ),
+                if (widget.onSkip case final skip?) ...[
+                  const SizedBox(width: 8),
+                  TextButton(onPressed: skip, child: const Text('Pular')),
+                ],
+              ],
             ),
           ],
         ),

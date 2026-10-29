@@ -85,12 +85,8 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
 
   late final GameSprites sprites;
 
-  /// Chips offered on the reward screen after a battle.
-  List<ChipDef> rewardOptions = const [];
-
-  /// Credits and elite relic won by the last battle, for the reward screen.
-  int rewardCredits = 0;
-  RelicDef? rewardRelic;
+  /// What the last battle left on the Espólios screen, not taken yet.
+  List<Spoil> spoils = [];
 
   /// The shop being visited, while on [GamePhase.shop].
   Shop? shop;
@@ -99,6 +95,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   /// on, if any.
   EventDef? event;
   OfferChoice? eventChoice;
+  CardChoice? eventCards;
   PickCard? eventPick;
 
   /// The current battle is an elite outside an elite node ("?" node,
@@ -179,6 +176,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
             final pool = Events.of(run.act);
             event = pool[run.random.nextInt(pool.length)];
             eventChoice = null;
+            eventCards = null;
             eventPick = null;
             _goTo(GamePhase.event);
           case UnknownRoom.battle:
@@ -227,20 +225,9 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     } else if (run.current?.type == NodeType.boss && run.lastAct) {
       _goTo(GamePhase.victory);
     } else {
-      final before = run.credits;
-      // A boss before the last act pays like an elite; the next act starts
-      // once its reward is picked.
-      final elite =
-          eliteFight ||
-          switch (run.current?.type) {
-            NodeType.elite || NodeType.boss => true,
-            _ => false,
-          };
-      rewardRelic = run.winBattle(elite: elite);
-      rewardCredits = run.credits - before;
-      rewardOptions = run.rollRewards(
-        3,
-        elite: elite,
+      // The next act starts once the boss's spoils are left behind.
+      spoils = run.battleSpoils(
+        elite: eliteFight || run.current?.type == NodeType.elite,
         boss: run.current?.type == NodeType.boss,
       );
       GameAudio.instance.play(Sfx.reward);
@@ -248,10 +235,19 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     }
   }
 
-  /// Reward screen: [chip] null means "skip".
-  void pickReward(ChipDef? chip) {
+  /// Espólios: takes one item; a card or boss relic choice passes the
+  /// picked one.
+  void takeSpoil(Spoil spoil, {ChipDef? card, RelicDef? relic}) {
+    GameAudio.instance.play(Sfx.confirm);
+    run.claim(spoil, card: card, relic: relic);
+    spoils.remove(spoil);
+  }
+
+  /// Event card choice: [chip] null means "skip".
+  void pickEventCard(ChipDef? chip) {
     GameAudio.instance.play(chip == null ? Sfx.cancel : Sfx.confirm);
     if (chip != null) run.deck.add(ChipCard(chip));
+    eventCards = null;
     finishNode();
   }
 
@@ -271,12 +267,16 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
 
   void _showFollowUp(EventFollowUp? next) {
     eventChoice = null;
+    eventCards = null;
     eventPick = null;
     switch (next) {
       case null:
         finishNode();
       case final OfferChoice choice:
         eventChoice = choice;
+        _goTo(GamePhase.event);
+      case final CardChoice cards:
+        eventCards = cards;
         _goTo(GamePhase.event);
       case final PickCard pick:
         eventPick = pick;

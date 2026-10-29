@@ -107,14 +107,14 @@ abstract final class Chips {
   static const baton = ChipDef(
     id: 'baton',
     name: 'Cacetete',
-    description: 'Golpeia os 3 painéis à frente e atordoa por 2 s.',
+    description: 'Golpeia o painel à frente e atordoa por 2 s.',
     cost: 1,
     family: ChipFamily.melee,
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 10,
     element: Element.elec,
-    effect: MeleeEffect(stunTicks: 2 * ticksPerSecond),
+    effect: MeleeEffect(pattern: [GridPos(1, 0)], stunTicks: 2 * ticksPerSecond),
     pose: ChipPose.melee,
   );
 
@@ -140,7 +140,7 @@ abstract final class Chips {
     family: ChipFamily.melee,
     type: ChipType.attack,
     target: ChipTarget.self,
-    damage: 10,
+    damage: 15,
     effect: MeleeEffect(pattern: [GridPos(1, 0)], push: 1),
     pose: ChipPose.melee,
   );
@@ -178,7 +178,7 @@ abstract final class Chips {
     id: 'grenade',
     name: 'Granada',
     description: 'Lançada no 3º painel à frente: explode em cruz.',
-    cost: 1,
+    cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
     target: ChipTarget.self,
@@ -192,7 +192,7 @@ abstract final class Chips {
     name: 'Granada Incendiária',
     description:
         'Lançada no 3º painel à frente: explode em cruz e o centro vira Lava.',
-    cost: 1,
+    cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
     type: ChipType.attack,
@@ -209,7 +209,7 @@ abstract final class Chips {
     description:
         'Lançada no 3º painel à frente: explode em cruz e deixa Fumaça por '
         '10 s. Quem está na Fumaça não ataca.',
-    cost: 1,
+    cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
     target: ChipTarget.self,
@@ -470,7 +470,7 @@ abstract final class Chips {
     description:
         'Lançada no 3º painel à frente: explode em cruz, molha quem for '
         'atingido e o centro vira Gelo.',
-    cost: 1,
+    cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
     type: ChipType.attack,

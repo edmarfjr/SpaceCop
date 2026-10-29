@@ -272,16 +272,35 @@ void main() {
   });
 
   group('credits and shop', () {
-    test('battles pay credits; elites also give a relic', () {
-      final run = RunState(random: Random(1));
-      expect(run.credits, startCredits);
-      expect(startCredits, 99);
-      run.credits = 0;
-      expect(run.winBattle(elite: false), isNull);
+    test('battle spoils: credits and a card; elites add a relic, bosses a '
+        'choice of 3', () {
+      final run = RunState(random: Random(1))..credits = 0;
+      final normal = run.battleSpoils(elite: false);
+      expect(normal, [isA<CreditsSpoil>(), isA<CardSpoil>()]);
+      expect(run.credits, 0, reason: 'nothing given before it is claimed');
+      run.claim(normal.first);
       expect(run.credits, battleCredits);
-      final relic = run.winBattle(elite: true);
-      expect(run.credits, battleCredits + eliteCredits);
-      expect(run.relics, [relic]);
+
+      final elite = run.battleSpoils(elite: true);
+      expect(elite, [isA<CreditsSpoil>(), isA<RelicSpoil>(), isA<CardSpoil>()]);
+      expect(run.relics, isEmpty);
+      run.claim(elite[1]);
+      expect(run.relics, [(elite[1] as RelicSpoil).relic]);
+      final cards = (elite[2] as CardSpoil).cards;
+      expect(cards, hasLength(3));
+      run.claim(elite[2], card: cards.last);
+      expect(run.deck.last.def, cards.last);
+
+      final boss = run.battleSpoils(elite: true, boss: true);
+      expect(boss, [
+        isA<CreditsSpoil>(),
+        isA<CardSpoil>(),
+        isA<BossRelicSpoil>(),
+      ]);
+      final relics = (boss.last as BossRelicSpoil).relics;
+      expect(relics, hasLength(3));
+      expect(relics.every((r) => r.rarity == Rarity.rare), isTrue);
+      expect(relics, isNot(contains(run.relics.first)));
     });
 
     test('5 chips and 3 distinct relics; buying costs credits', () {

@@ -161,15 +161,45 @@ class RunState {
     return true;
   }
 
-  /// Credits for a won battle; elites also drop a random relic, returned so
-  /// the reward screen can show it.
-  RelicDef? winBattle({required bool elite}) {
-    credits += elite ? eliteCredits : battleCredits;
-    if (!elite) return null;
-    final relic = randomRelic();
-    if (relic != null) relics.add(relic);
-    return relic;
+  /// What a won battle leaves on the Espólios screen: Créditos, a card
+  /// choice, a relic for an [elite], and a choice of 3 relics for a [boss]
+  /// (which pays like an elite but drops no plain relic). Nothing is given
+  /// until [claim]ed.
+  List<Spoil> battleSpoils({required bool elite, bool boss = false}) {
+    final relic = elite && !boss ? randomRelic() : null;
+    final bossRelics = boss ? rollBossRelics() : const <RelicDef>[];
+    return [
+      CreditsSpoil(elite || boss ? eliteCredits : battleCredits),
+      if (relic != null) RelicSpoil(relic),
+      CardSpoil(rollRewards(3, elite: elite || boss, boss: boss)),
+      if (bossRelics.isNotEmpty) BossRelicSpoil(bossRelics),
+    ];
   }
+
+  /// Takes [spoil]; a [CardSpoil] needs the picked [card], a
+  /// [BossRelicSpoil] the picked [relic].
+  void claim(Spoil spoil, {ChipDef? card, RelicDef? relic}) {
+    switch (spoil) {
+      case CreditsSpoil(:final amount):
+        credits += amount;
+      case RelicSpoil(:final relic):
+        relics.add(relic);
+      case CardSpoil():
+        deck.add(ChipCard(card!));
+      case BossRelicSpoil():
+        relics.add(relic!);
+    }
+  }
+
+  /// Up to 3 relics the run doesn't own yet for the boss reward: rare ones
+  /// first, then uncommon and common ones if there aren't enough.
+  List<RelicDef> rollBossRelics() => [
+    for (final rarity in Rarity.values.reversed)
+      ...([
+        for (final r in Relics.all)
+          if (r.rarity == rarity && !relics.contains(r)) r,
+      ]..shuffle(random)),
+  ].take(3).toList();
 
   /// A relic the run doesn't own yet, optionally of one [kind], rarer ones
   /// less often.
@@ -206,4 +236,36 @@ class RunState {
     elite: elite,
     lucky: hasRelic(Relics.luckyChip),
   );
+}
+
+/// One item of the Espólios screen.
+sealed class Spoil {
+  const Spoil();
+}
+
+class CreditsSpoil extends Spoil {
+  const CreditsSpoil(this.amount);
+
+  final int amount;
+}
+
+/// An elite's relic.
+class RelicSpoil extends Spoil {
+  const RelicSpoil(this.relic);
+
+  final RelicDef relic;
+}
+
+/// Opens the card choice; one of [cards] goes to the deck.
+class CardSpoil extends Spoil {
+  const CardSpoil(this.cards);
+
+  final List<ChipDef> cards;
+}
+
+/// A boss's: opens the choice of one of [relics].
+class BossRelicSpoil extends Spoil {
+  const BossRelicSpoil(this.relics);
+
+  final List<RelicDef> relics;
 }

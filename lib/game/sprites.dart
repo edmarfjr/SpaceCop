@@ -276,7 +276,7 @@ abstract final class SpriteFiles {
     NodeType.event: 'icons/event.png',
     NodeType.elite: 'icons/elite.png',
     NodeType.rest: 'icons/fogueira.png',
-    NodeType.shop: 'icons/bau.png',
+    NodeType.shop: 'icons/credit.png',
     NodeType.boss: 'icons/boss.png',
   };
 

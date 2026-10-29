@@ -29,6 +29,15 @@ class OfferChoice extends EventFollowUp {
   final List<EventOffer> offers;
 }
 
+/// Pick one of [cards] for the deck, on the card reward screen; it can be
+/// skipped.
+class CardChoice extends EventFollowUp {
+  const CardChoice(this.title, this.cards);
+
+  final String title;
+  final List<ChipDef> cards;
+}
+
 class EventOffer {
   const EventOffer(this.label, this.apply, {this.description = '', this.relic});
 
@@ -174,14 +183,7 @@ EventFollowUp? _loot(RunState run, ChipCard? _) {
   _payHp(run, 10);
   final pool = Chips.all.where((c) => c.type == ChipType.attack).toList()
     ..shuffle(run.random);
-  return OfferChoice('Escolha uma arma', [
-    for (final def in pool.take(3))
-      EventOffer(
-        def.name,
-        (run) => run.deck.add(ChipCard(def)),
-        description: def.description,
-      ),
-  ]);
+  return CardChoice('Escolha uma arma', pool.take(3).toList());
 }
 
 EventFollowUp? _dismantle(RunState run, ChipCard? picked) {
@@ -377,14 +379,7 @@ OfferChoice? ambushWon(RunState run) {
 EventFollowUp? _decipher(RunState run, ChipCard? _) {
   final pool = Chips.all.where((c) => c.family == ChipFamily.energy).toList()
     ..shuffle(run.random);
-  return OfferChoice('Escolha uma carta de Energia', [
-    for (final def in pool.take(3))
-      EventOffer(
-        def.name,
-        (run) => run.deck.add(ChipCard(def)),
-        description: def.description,
-      ),
-  ]);
+  return CardChoice('Escolha uma carta de Energia', pool.take(3).toList());
 }
 
 const int _symbolsCredits = 60;
@@ -526,14 +521,7 @@ EventFollowUp? _lootFeast(RunState run, ChipCard? _) {
   run.credits += _feastCredits;
   final pool = Chips.all.where((c) => c.rarity == Rarity.common).toList()
     ..shuffle(run.random);
-  return OfferChoice('Escolha uma carta', [
-    for (final def in pool.take(3))
-      EventOffer(
-        def.name,
-        (run) => run.deck.add(ChipCard(def)),
-        description: def.description,
-      ),
-  ]);
+  return CardChoice('Escolha uma carta', pool.take(3).toList());
 }
 
 EventFollowUp? _dance(RunState run, ChipCard? _) {
@@ -577,17 +565,14 @@ EventFollowUp? _smeltSecond(RunState run, ChipCard picked) {
   return meleeChoice(run);
 }
 
-/// 1 of the Corpo-a-corpo cards above Comum (Forja Ancestral).
-OfferChoice meleeChoice(RunState run) =>
-    OfferChoice('Escolha uma arma forjada', [
-      for (final def in Chips.all)
-        if (def.family == ChipFamily.melee && def.rarity != Rarity.common)
-          EventOffer(
-            def.name,
-            (run) => run.deck.add(ChipCard(def)),
-            description: def.description,
-          ),
-    ]);
+/// 3 of the Corpo-a-corpo cards above Comum (Forja Ancestral).
+CardChoice meleeChoice(RunState run) => CardChoice(
+  'Escolha uma arma forjada',
+  ([
+    for (final def in Chips.all)
+      if (def.family == ChipFamily.melee && def.rarity != Rarity.common) def,
+  ]..shuffle(run.random)).take(3).toList(),
+);
 
 // Oráculo do Totem.
 

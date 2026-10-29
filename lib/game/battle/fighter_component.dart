@@ -241,7 +241,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
         final frame = frames[(_clock / _signFrameTime).floor() % frames.length];
         frame.render(
           canvas,
-          position: Vector2(size.x / 2, 0),
+          position: Vector2(size.x / 2, 6),
           size: frame.srcSize * _scale,
           anchor: Anchor.bottomCenter,
         );
