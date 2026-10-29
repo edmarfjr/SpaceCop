@@ -188,7 +188,7 @@ void main() {
       expect(rows, hasLength(2));
     });
 
-    test('Raio do Cajado cracks panels and overheats the staff', () {
+    test('Raio do Cajado overheats the staff, leaving the floor whole', () {
       final battle = kingFight();
       final king = battle.enemies.first..attackTimer = 1;
       for (final totem in totems(battle)) {
@@ -199,7 +199,7 @@ void main() {
       expect(bolts, hasLength(TribeKingBehavior.lightningBolts));
       wait(battle, TribeKingBehavior.lightningWarn);
       for (final cell in bolts) {
-        expect(battle.panelAt(cell).state, PanelState.cracked);
+        expect(battle.panelAt(cell).state, PanelState.normal);
       }
       expect(king.exposedTicks, greaterThan(0));
       final before = king.hp;

@@ -990,8 +990,9 @@ class SentryBehavior extends EnemyBehavior {
 }
 
 /// Tanque de Guerra: two panels wide, patrols up and down the back two
-/// columns and cycles three attacks: a 3-shot burst, missiles on random
-/// panels of the player's side and a charge down its row. The burst and the
+/// columns and cycles three attacks: a 3-shot burst, mortars on random
+/// panels of the player's side (they crack, cracked ones become holes) and
+/// a charge down its row. The burst and the
 /// charge are only triggered lined up with the player: it moves to the
 /// player's row first, and fires missiles instead if it can't get there.
 /// The charge is a real move: it cracks panels, sets off mines and falls
@@ -1089,8 +1090,10 @@ class TankBehavior extends EnemyBehavior {
             enemy,
             [cell],
             basicWarnTicks + i * missileStagger,
-            () =>
-                battle.strike(cell, missileDamage, Team.player, enemy.element),
+            () {
+              battle.strike(cell, missileDamage, Team.player, enemy.element);
+              _crack(battle, [cell]);
+            },
             lob: Lob.ball,
           );
         }
@@ -1388,8 +1391,8 @@ class PortalBehavior extends EnemyBehavior {
 /// three attacks every [attackEvery]:
 /// - Onda Crescente: a crescent sweeps the player's side column by column,
 ///   on every row but one (warned free);
-/// - Raio do Cajado: lightning on 3 panels of the player's side, which
-///   crack; the staff then overheats and he takes double damage for
+/// - Raio do Cajado: lightning on 3 panels of the player's side; the staff
+///   then overheats and he takes double damage for
 ///   [overheatTicks];
 /// - Chamado da Tribo: an ET Guerreiro or ET Atirador joins him.
 /// He starts behind 2 Totens and can't be hurt while one stands; they come
@@ -1512,7 +1515,6 @@ class TribeKingBehavior extends EnemyBehavior {
       for (final cell in cells) {
         battle.strike(cell, lightningDamage, Team.player, Element.elec);
       }
-      _crack(battle, cells);
       enemy.exposedTicks = overheatTicks;
     });
   }

@@ -299,6 +299,21 @@ void main() {
       );
     });
 
+    test('missiles crack the panels they land on', () {
+      final (battle, _) = tankAbout(1);
+      battle.tick();
+      final cells = warned(battle);
+      wait(
+        battle,
+        basicWarnTicks +
+            (TankBehavior.missiles - 1) * TankBehavior.missileStagger +
+            2,
+      );
+      for (final cell in cells) {
+        expect(battle.panelAt(cell).state, PanelState.cracked);
+      }
+    });
+
     /// Runs the charge until the tank leaves the arena; returns the ticks it
     /// took from the end of the warning.
     int charge(BattleState battle, EnemyFighter tank) {
