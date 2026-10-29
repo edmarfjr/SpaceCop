@@ -88,8 +88,9 @@ abstract final class SpriteFiles {
   static const stageStrips = {Enemies.voidEye};
 
   /// Strips with one frame per [EnemyFighter.pose], set by the behavior
-  /// (see [ColonelBehavior] and [ArgosBehavior]). A pose the art doesn't
-  /// have shows frame 0.
+  /// (see [ColonelBehavior] and [ArgosBehavior]). A pose past the end of the
+  /// art wraps around: without its alert frames ARGOS shows the normal ones,
+  /// and the Coronel without his fury frame shows the idle one.
   static const poseStrips = {Enemies.colonel, Enemies.argos};
 
   /// Projectiles and effects, 16x16 frames side by side.
@@ -396,7 +397,7 @@ class GameSprites {
     final frame = image.height.toDouble();
     final frames = image.width ~/ image.height;
     if (SpriteFiles.poseStrips.contains(def)) {
-      return _frame(path, pose < frames ? pose : 0, frame);
+      return _frame(path, pose % frames, frame);
     }
     if (SpriteFiles.stageStrips.contains(def)) {
       return _frame(path, stage.clamp(0, frames - 1), frame);
