@@ -84,7 +84,27 @@ class GridComponent extends PositionComponent {
                 overridePaint: _mine,
               );
         }
+        if (battle.runes.contains(pos)) {
+          sprites.rune[_clock ~/ _runeFrameTime % sprites.rune.length].render(
+            canvas,
+            position: cellCenter(pos),
+            size: Vector2.all(32),
+            anchor: Anchor.center,
+          );
+        }
       }
     }
+  }
+
+  /// Seconds each rune frame stays on screen.
+  static const _runeFrameTime = 0.25;
+
+  /// Time since mount, for the rune blink.
+  double _clock = 0;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _clock += dt;
   }
 }

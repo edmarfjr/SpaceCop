@@ -241,7 +241,7 @@ class _EnemyBars extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final enemy in battle.enemies)
-          if (!enemy.isDead) ...[
+          if (!enemy.isDead && !enemy.def.part) ...[
             Text(
               switch (seen.update(
                 enemy.def.name,

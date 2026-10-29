@@ -2342,3 +2342,377 @@ class ArgosBehavior extends EnemyBehavior {
     enemy.attackPose = attackPoseTicks;
   }
 }
+
+/// Sumo-Sacerdote Xul: another boss of the second mission. Blinks to a
+/// free panel of his side every [blinkTicks] and cycles three spells every
+/// [attackEvery]:
+/// - Ritual das Runas: [runeCount] runes light up on the player's side
+///   ([BattleState.runes]); stepping on one puts it out. After
+///   [ritualTicks] each rune still lit hurts the whole side for
+///   [runeDamage]. Then he is exhausted, taking double damage for
+///   [exhaustTicks];
+/// - Transmutação: [transmuteCells] panels of the player's side turn to ice
+///   or grass;
+/// - Troca de Lugar: the player is moved to another panel of their side.
+/// Below half HP (Ascensão) the ritual lights one more rune, and one of
+/// them moves every [runeMoveTicks].
+class HighPriestBehavior extends EnemyBehavior {
+  const HighPriestBehavior();
+
+  static const blinkTicks = 4 * ticksPerSecond;
+  static const attackEvery = 105;
+  static const runeCount = 3;
+  static const ritualTicks = 4 * ticksPerSecond;
+
+  /// The side lights up red this long before the runes go off.
+  static const ritualWarn = ticksPerSecond;
+  static const runeDamage = 20;
+  static const runeMoveTicks = ticksPerSecond;
+  static const exhaustTicks = 2 * ticksPerSecond;
+  static const transmuteCells = 3;
+  static const spellWarn = ticksPerSecond;
+
+  // Frames of his strip, kept in [EnemyFighter.pose].
+  static const idlePose = 0;
+  static const castPose = 1;
+  static const blinkPose = 2;
+  static const exhaustedPose = 3;
+
+  /// The blink pose shows this long after each blink.
+  static const _blinkShow = 6;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy
+    ..timer = attackEvery
+    ..moveTimer = blinkTicks - _blinkShow;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.stage == 0 && enemy.hp < enemy.maxHp / 2) enemy.stage = 1;
+    if (enemy.exposedTicks > 0) {
+      enemy.pose = exhaustedPose;
+      return;
+    }
+    if (enemy.countdown > 0) {
+      enemy.pose = castPose;
+      _ritualTick(enemy, battle);
+      return;
+    }
+    enemy.pose = enemy.attacking
+        ? castPose
+        : enemy.moveTimer > blinkTicks - _blinkShow &&
+              enemy.moveTimer <= blinkTicks
+        ? blinkPose
+        : idlePose;
+    if (!enemy.attacking && enemy.moveTimer-- <= 0) {
+      enemy.moveTimer = blinkTicks;
+      final free = _freeEnemyPanels(battle);
+      if (free.isNotEmpty) {
+        enemy.pos = free[battle.random.nextInt(free.length)];
+      }
+    }
+    if (enemy.attacking || enemy.timer-- > 0) return;
+    enemy.timer = attackEvery;
+    switch (enemy.attackTimer++ % 3) {
+      case 0:
+        _ritual(enemy, battle);
+      case 1:
+        _transmute(enemy, battle);
+      case _:
+        _swap(enemy, battle);
+    }
+  }
+
+  void _ritual(EnemyFighter enemy, BattleState battle) {
+    final spots = [
+      for (final cell in _side(battle, Team.player))
+        if (cell != battle.player.pos && battle.panelAt(cell).walkable) cell,
+    ]..shuffle(battle.random);
+    battle.runes.addAll(spots.take(runeCount + enemy.stage));
+    enemy
+      ..countdown = ritualTicks
+      ..pose = castPose;
+  }
+
+  void _ritualTick(EnemyFighter enemy, BattleState battle) {
+    final left = --enemy.countdown;
+    if (left == ritualWarn && battle.runes.isNotEmpty) {
+      battle.warn(_side(battle, Team.player), ritualWarn);
+    }
+    if (enemy.stage == 1 && left % runeMoveTicks == 0) _moveRune(battle);
+    if (left > 0) return;
+    final lit = battle.runes.length;
+    battle.runes.clear();
+    if (lit > 0) {
+      for (final cell in _side(battle, Team.player)) {
+        battle.strike(cell, runeDamage * lit, Team.player, enemy.element);
+      }
+    }
+    enemy.exposedTicks = exhaustTicks;
+  }
+
+  /// One rune steps to a panel next to it, of the player's side and free of
+  /// runes.
+  void _moveRune(BattleState battle) {
+    if (battle.runes.isEmpty) return;
+    final rune = battle.runes.elementAt(
+      battle.random.nextInt(battle.runes.length),
+    );
+    final steps = [
+      for (final step in const [
+        GridPos(1, 0),
+        GridPos(-1, 0),
+        GridPos(0, 1),
+        GridPos(0, -1),
+      ])
+        if (rune + step case final to
+            when to.inBounds &&
+                battle.ownerAt(to) == Team.player &&
+                battle.panelAt(to).walkable &&
+                to != battle.player.pos &&
+                !battle.runes.contains(to))
+          to,
+    ];
+    if (steps.isEmpty) return;
+    battle.runes
+      ..remove(rune)
+      ..add(steps[battle.random.nextInt(steps.length)]);
+  }
+
+  void _transmute(EnemyFighter enemy, BattleState battle) {
+    final cells = [
+      for (final cell in _side(battle, Team.player))
+        if (battle.panelAt(cell).walkable) cell,
+    ]..shuffle(battle.random);
+    final picked = cells.take(transmuteCells).toList();
+    battle.schedule(enemy, picked, spellWarn, kind: TelegraphKind.terrain, () {
+      for (final cell in picked) {
+        if (!battle.panelAt(cell).walkable) continue;
+        battle.setPanel(
+          cell,
+          battle.random.nextBool() ? PanelState.ice : PanelState.grass,
+        );
+      }
+    });
+  }
+
+  /// Troca de Lugar: the player lands on the warned panel, if still free.
+  void _swap(EnemyFighter enemy, BattleState battle) {
+    final free = [
+      for (final cell in _side(battle, Team.player))
+        if (cell != battle.player.pos &&
+            battle.panelAt(cell).walkable &&
+            battle.unitAt(cell) == null)
+          cell,
+    ];
+    if (free.isEmpty) return;
+    final to = free[battle.random.nextInt(free.length)];
+    battle.schedule(enemy, [to], spellWarn, kind: TelegraphKind.terrain, () {
+      if (battle.ownerAt(to) == Team.player &&
+          battle.panelAt(to).walkable &&
+          battle.unitAt(to) == null) {
+        battle.player.pos = to;
+      }
+    });
+  }
+}
+
+/// Serpente Ancestral: another boss of the second mission. A head with
+/// [segments] segments ([EnemyFighter.body]) that follow it panel by
+/// panel on its side; they take shots for it, and each one broken hurts
+/// the head for [segmentLoss]. Cycles three attacks every [attackEvery]:
+/// - Mergulho: dives (it can't be hit), bursts out under the player's
+///   panel for [diveDamage] and comes back up exposed (double damage) for
+///   [exposeTicks];
+/// - Sopro de Areia: smoke on [sandCells] panels of the player's side,
+///   which can't use cards from there;
+/// - Investida: a beam down the head's row.
+/// Below [furyAt] of its HP it moves faster and dives twice.
+class SerpentBehavior extends EnemyBehavior {
+  const SerpentBehavior();
+
+  static const segments = 4;
+  static const moveTicks = 30;
+  static const furyMoveTicks = 20;
+  static const attackEvery = 3 * ticksPerSecond;
+  static const segmentLoss = 15;
+  static const diveWarn = 45;
+  static const diveDamage = 25;
+  static const exposeTicks = 45;
+
+  /// Ticks between the two dives in fury.
+  static const diveGap = 15;
+  static const sandCells = 3;
+  static const sandTicks = 5 * ticksPerSecond;
+  static const beamWarn = ticksPerSecond;
+  static const beamDamage = 20;
+  static const furyAt = 0.4;
+
+  // Frames of the head's strip, kept in [EnemyFighter.pose].
+  static const idlePose = 0;
+  static const attackPose = 1;
+  static const exposedPose = 2;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.home == null) _grow(enemy, battle);
+    _shed(enemy, battle);
+    if (enemy.stage == 0 && enemy.hp < enemy.maxHp * furyAt) enemy.stage = 1;
+    enemy.pose = enemy.exposedTicks > 0
+        ? exposedPose
+        : enemy.attacking
+        ? attackPose
+        : idlePose;
+    if (enemy.hidden || enemy.attacking) return;
+    if (enemy.moveTimer-- <= 0) {
+      enemy.moveTimer = enemy.stage == 1 ? furyMoveTicks : moveTicks;
+      _slither(enemy, battle);
+    }
+    if (enemy.timer-- > 0) return;
+    enemy.timer = attackEvery;
+    switch (enemy.attackTimer++ % 3) {
+      case 0:
+        _dive(enemy, battle, again: enemy.stage == 1);
+      case 1:
+        _sand(enemy, battle);
+      case _:
+        _beam(enemy, battle);
+    }
+  }
+
+  /// The body, laid behind the head on free panels of its side.
+  void _grow(EnemyFighter enemy, BattleState battle) {
+    enemy.home = enemy.pos;
+    var last = enemy.pos;
+    for (var i = 0; i < segments; i++) {
+      final spot = _nextTo(battle, last, back: true);
+      if (spot == null) break;
+      final segment = battle.summon(
+        i == segments - 1 ? Enemies.serpentTail : Enemies.serpentBody,
+        spot,
+      );
+      enemy.body.add(segment);
+      last = spot;
+    }
+  }
+
+  /// Broken segments leave the body and hurt the head.
+  void _shed(EnemyFighter enemy, BattleState battle) {
+    final broken = enemy.body.where((s) => s.isDead).toList();
+    if (broken.isEmpty) return;
+    enemy.body.removeWhere((s) => s.isDead);
+    for (final _ in broken) {
+      battle.damage(enemy, segmentLoss);
+    }
+  }
+
+  /// A free panel of the enemy side next to [from], the back ones first
+  /// when [back].
+  GridPos? _nextTo(BattleState battle, GridPos from, {bool back = false}) {
+    final steps = [
+      if (back) const GridPos(1, 0),
+      const GridPos(0, 1),
+      const GridPos(0, -1),
+      const GridPos(-1, 0),
+      if (!back) const GridPos(1, 0),
+    ];
+    for (final step in steps) {
+      final to = from + step;
+      if (to.inBounds &&
+          battle.ownerAt(to) == Team.enemy &&
+          battle.panelAt(to).walkable &&
+          battle.unitAt(to) == null) {
+        return to;
+      }
+    }
+    return null;
+  }
+
+  /// One step of the head, toward the player's row when it can; each
+  /// segment takes the panel of the one before it.
+  void _slither(EnemyFighter enemy, BattleState battle) {
+    final dy = (battle.player.pos.y - enemy.pos.y).sign;
+    final options = [
+      for (final step in [
+        if (dy != 0) GridPos(0, dy),
+        ...[
+          const GridPos(-1, 0),
+          const GridPos(1, 0),
+          const GridPos(0, 1),
+          const GridPos(0, -1),
+        ]..shuffle(battle.random),
+      ])
+        if (enemy.pos + step case final to
+            when to.inBounds &&
+                battle.ownerAt(to) == Team.enemy &&
+                battle.panelAt(to).walkable &&
+                battle.unitAt(to) == null)
+          to,
+    ];
+    if (options.isEmpty) return;
+    var trail = enemy.pos;
+    enemy.pos = options.first;
+    for (final segment in enemy.body) {
+      final was = segment.pos;
+      segment.pos = trail;
+      trail = was;
+    }
+  }
+
+  void _setHidden(EnemyFighter enemy, bool hidden) {
+    enemy.hidden = hidden;
+    for (final segment in enemy.body) {
+      segment.hidden = hidden;
+    }
+  }
+
+  /// Mergulho: down, out under the player's panel, back up exposed.
+  void _dive(EnemyFighter enemy, BattleState battle, {required bool again}) {
+    final aim = battle.player.pos;
+    _setHidden(enemy, true);
+    battle.schedule(enemy, [aim], diveWarn, () {
+      battle.strike(aim, diveDamage, Team.player, enemy.element);
+      if (again) {
+        battle.schedule(
+          enemy,
+          const [],
+          diveGap,
+          () => _dive(enemy, battle, again: false),
+          telegraph: false,
+        );
+        return;
+      }
+      _setHidden(enemy, false);
+      enemy.exposedTicks = exposeTicks;
+    });
+  }
+
+  void _sand(EnemyFighter enemy, BattleState battle) {
+    final others = _side(battle, Team.player)
+      ..remove(battle.player.pos)
+      ..shuffle(battle.random);
+    final cells = [battle.player.pos, ...others.take(sandCells - 1)];
+    battle.schedule(enemy, cells, spellWarn, kind: TelegraphKind.terrain, () {
+      for (final cell in cells) {
+        battle.panelAt(cell).smokeTicks = sandTicks;
+      }
+    });
+  }
+
+  static const spellWarn = ticksPerSecond;
+
+  void _beam(EnemyFighter enemy, BattleState battle) {
+    final cells = [
+      for (final cell in _rowAhead(enemy))
+        if (battle.ownerAt(cell) == Team.player) cell,
+    ];
+    battle.schedule(enemy, cells, beamWarn, () {
+      for (final cell in cells) {
+        battle.strike(cell, beamDamage, Team.player, Element.elec);
+      }
+    });
+  }
+}

@@ -387,6 +387,13 @@ class EnemyFighter extends Fighter {
   /// Guarda-costas).
   int summonTimer = 0;
 
+  /// A countdown the behavior runs on its own, 0 when idle (the
+  /// Sumo-Sacerdote's Ritual das Runas).
+  int countdown = 0;
+
+  /// Segments that follow this unit, head first (Serpente Ancestral).
+  final List<EnemyFighter> body = [];
+
   /// Etéreo out of phase: Projétil and Corpo-a-corpo pass through. It is
   /// solid while it attacks and for [materialTicks].
   bool get phased =>
@@ -544,6 +551,10 @@ class BattleState {
   final PlayerFighter player;
   final List<EnemyFighter> enemies = [];
   final List<Obstacle> obstacles = [];
+
+  /// Lit runes on the player's side (Sumo-Sacerdote): stepping on one puts
+  /// it out.
+  final Set<GridPos> runes = {};
   final List<Projectile> projectiles = [];
   final List<HitFlash> flashes = [];
 
@@ -770,6 +781,7 @@ class BattleState {
     if (_chainTicks > 0 && --_chainTicks == 0) chainCount = 0;
     _refillHand();
     _updatePlayer(input);
+    runes.remove(player.pos);
     _updateEnemies();
     _updateObstacles();
     _updateProjectiles();

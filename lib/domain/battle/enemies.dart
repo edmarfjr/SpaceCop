@@ -40,6 +40,7 @@ class EnemyDef {
     this.footprint = const [GridPos(0, 0)],
     this.pushable = true,
     this.summon = false,
+    this.part = false,
     this.frontShield = false,
     this.prism = false,
   });
@@ -68,6 +69,10 @@ class EnemyDef {
 
   /// Spawned by another enemy; doesn't count toward winning the battle.
   final bool summon;
+
+  /// A piece of another enemy (the Serpente's segments): left out of the
+  /// HUD's list.
+  final bool part;
 
   /// Blocks straight projectile hits on its front (Brute).
   final bool frontShield;
@@ -453,6 +458,47 @@ abstract final class Enemies {
     behavior: GruntGunBehavior(wanderTicks: 20, flee: true),
   );
 
+  /// Another boss of the second mission: the tribe's high priest.
+  static const highPriest = EnemyDef(
+    name: 'Sacerdote Xul',
+    hp: 360,
+    pushable: false,
+    behavior: HighPriestBehavior(),
+  );
+
+  /// Another boss of the second mission: the ruins' mechanical guardian.
+  /// Its body follows it on its own panels.
+  static const serpent = EnemyDef(
+    name: 'Serpente Ancestral',
+    kind: EnemyKind.machine,
+    hp: 300,
+    pushable: false,
+    behavior: SerpentBehavior(),
+  );
+
+  /// A segment of the Serpente; breaking one hurts the head. Doesn't count
+  /// toward winning.
+  static const serpentBody = EnemyDef(
+    name: 'Corpo da Serpente',
+    kind: EnemyKind.machine,
+    hp: 50,
+    pushable: false,
+    summon: true,
+    part: true,
+    behavior: IdleBehavior(),
+  );
+
+  /// The Serpente's last segment.
+  static const serpentTail = EnemyDef(
+    name: 'Cauda da Serpente',
+    kind: EnemyKind.machine,
+    hp: 50,
+    pushable: false,
+    summon: true,
+    part: true,
+    behavior: IdleBehavior(),
+  );
+
   // Etéreos: the third mission's enemies.
 
   /// The third mission's boss. Two panels by two: [pos] is the top front
@@ -634,7 +680,11 @@ abstract final class Encounters {
 
   /// Each act's boss.
   static Encounter boss(Random random, {int act = 1}) => switch (act) {
-    2 => const Encounter([EnemySpawn(Enemies.tribeKing, GridPos(4, 1))]),
+    2 => switch (random.nextInt(3)) {
+      0 => const Encounter([EnemySpawn(Enemies.tribeKing, GridPos(4, 1))]),
+      1 => const Encounter([EnemySpawn(Enemies.highPriest, GridPos(5, 1))]),
+      _ => const Encounter([EnemySpawn(Enemies.serpent, GridPos(3, 1))]),
+    },
     3 => const Encounter([EnemySpawn(Enemies.voidEye, GridPos(4, 0))]),
     _ => switch (random.nextInt(3)) {
       0 => const Encounter([EnemySpawn(Enemies.tank, GridPos(4, 1))]),

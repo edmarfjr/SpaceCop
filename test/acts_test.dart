@@ -68,8 +68,8 @@ void main() {
       isIn([Enemies.tank, Enemies.colonel, Enemies.argos]),
     );
     expect(
-      Encounters.boss(Random(), act: 2).spawns.single.def,
-      Enemies.tribeKing,
+      Encounters.boss(Random(), act: 2).spawns.first.def,
+      isIn([Enemies.tribeKing, Enemies.highPriest, Enemies.serpent]),
     );
     expect(
       Encounters.boss(Random(), act: 3).spawns.single.def,

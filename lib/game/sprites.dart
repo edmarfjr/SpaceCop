@@ -68,6 +68,10 @@ abstract final class SpriteFiles {
     Enemies.argos: 'actors/bossArgos.png',
     Enemies.argosTurret: 'actors/inimigos_turret.png',
     Enemies.tribeKing: 'actors/etRei.png',
+    Enemies.highPriest: 'actors/bossSacerdote.png',
+    Enemies.serpent: 'actors/bossSerpente.png',
+    Enemies.serpentBody: 'actors/serpenteCorpo.png',
+    Enemies.serpentTail: 'actors/serpenteCauda.png',
     Enemies.totem: 'actors/inimigos2_totem.png',
     Enemies.ragingTotem: 'actors/inimigos2_totem.png',
     Enemies.tribeWarrior: 'actors/inimigos2_etMellee.png',
@@ -91,13 +95,21 @@ abstract final class SpriteFiles {
   /// (see [ColonelBehavior] and [ArgosBehavior]). A pose past the end of the
   /// art wraps around: without its alert frames ARGOS shows the normal ones,
   /// and the Coronel without his fury frame shows the idle one.
-  static const poseStrips = {Enemies.colonel, Enemies.argos};
+  static const poseStrips = {
+    Enemies.colonel,
+    Enemies.argos,
+    Enemies.highPriest,
+    Enemies.serpent,
+  };
 
   /// Projectiles and effects, 16x16 frames side by side.
   static const shot = 'projeteis/tiro.png';
   static const ball = 'projeteis/bola.png';
   static const pickaxe = 'projeteis/picareta.png';
   static const molotov = 'projeteis/molotov.png';
+
+  /// Sumo-Sacerdote's rune on a panel, 16x16 frames.
+  static const rune = 'projeteis/runa.png';
   static const explosion = 'projeteis/explosao.png';
 
   /// Smoke cloud over a panel, 2 frames of 16x16 looped.
@@ -278,6 +290,7 @@ abstract final class SpriteFiles {
     ball,
     pickaxe,
     molotov,
+    rune,
     explosion,
     slash,
     smoke,
@@ -347,6 +360,9 @@ class GameSprites {
   late final Sprite chipFrameUpgraded = _file(SpriteFiles.chipFrameUpgraded);
   late final Sprite pickaxe = _file(SpriteFiles.pickaxe);
   late final Sprite molotov = _file(SpriteFiles.molotov);
+  late final List<Sprite> rune = [
+    for (var i = 0; i < 2; i++) _frame(SpriteFiles.rune, i, 16),
+  ];
   late final Sprite deckIcon = _file(SpriteFiles.deckIcon);
   late final Sprite pauseIcon = _file(SpriteFiles.pauseIcon);
 
