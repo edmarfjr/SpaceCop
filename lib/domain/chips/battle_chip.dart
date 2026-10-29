@@ -260,24 +260,6 @@ class NoEffect extends ChipEffect {
   const NoEffect();
 }
 
-/// Fusion: Wet on the whole enemy side, then an Elec strike on every enemy
-/// panel (Tempestade).
-class StormEffect extends ChipEffect {
-  const StormEffect();
-}
-
-/// Fusion: a rock rolls down the row, cracking the panels it crosses, and
-/// hits the first target, pushing it 1 cell (Avalanche).
-class AvalancheEffect extends ChipEffect {
-  const AvalancheEffect();
-}
-
-/// Fusion: drags the first enemy of the row to column 3 and blows up on it
-/// (Armadilha Magnética).
-class MagnetTrapEffect extends ChipEffect {
-  const MagnetTrapEffect();
-}
-
 /// Immutable chip design (the "card"). Never mutated during a battle.
 /// How the player is drawn using a chip: firing (attack frame and muzzle
 /// flash), or swinging / tossing (the melee frame).

@@ -21,7 +21,6 @@ void main() {
       expect(Chips.upgradeOf(plus), isNull, reason: 'only one upgrade');
     }
     expect(Chips.upgradeOf(Chips.bug), isNull);
-    expect(Chips.upgradeOf(Chips.storm), isNull);
   });
 
   test('upgrade table', () {
@@ -122,11 +121,6 @@ void main() {
     expect(battle.enemies.single.hp, 90);
     wait(battle, 12 * ticksPerSecond);
     expect(battle.ownerAt(const GridPos(3, 1)), Team.player);
-  });
-
-  test('upgraded cards still fuse like their base', () {
-    expect(Chips.fusionOf(up(Chips.hook), Chips.mine), Chips.magnetTrap);
-    expect(Chips.fusionOf(up(Chips.rock), up(Chips.cracker)), Chips.avalanche);
   });
 
   group('campfire', () {

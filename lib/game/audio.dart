@@ -16,7 +16,6 @@ enum Sfx {
   toss('toss'),
   support('support'),
   heal('heal'),
-  fusion('fusion'),
   chain2('chain2'),
   chain3('chain3'),
   explosion('explosion'),

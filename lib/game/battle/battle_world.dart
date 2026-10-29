@@ -21,7 +21,7 @@ import 'shield_link_layer.dart';
 /// touch into [PlayerInput] and keeps one [FighterComponent] per living
 /// fighter.
 ///
-/// Touch: swipe moves, tapping a chip uses it (held: fusion charge).
+/// Touch: swipe moves, tapping a chip uses it.
 /// Keyboard: arrows/WASD move, X/K use chip, Z/J cycle chip.
 class BattleWorld extends World
     with KeyboardHandler, HasGameReference<StarCopGame> {
@@ -56,7 +56,6 @@ class BattleWorld extends World
   int _keyDx = 0;
   int _keyDy = 0;
   bool _usePressed = false;
-  bool _useHeld = false;
   bool _cyclePressed = false;
 
   /// A touch can land while the player is still in a move or attack
@@ -71,7 +70,6 @@ class BattleWorld extends World
   /// hand.
   ChipCard? _tapped;
   int _tappedTicks = 0;
-  bool _touchHeld = false;
 
   /// One cell in direction ([dx], [dy]).
   void swipe(int dx, int dy) {
@@ -79,15 +77,11 @@ class BattleWorld extends World
     _swipeTicks = _touchBufferTicks;
   }
 
-  /// Uses [card] on the next tick that can; held down it charges a fusion
-  /// until [releaseChip].
+  /// Uses [card] on the next tick that can.
   void pressChip(ChipCard card) {
     _tapped = card;
     _tappedTicks = _touchBufferTicks;
-    _touchHeld = true;
   }
-
-  void releaseChip() => _touchHeld = false;
 
   @override
   Future<void> onLoad() async {
@@ -172,7 +166,6 @@ class BattleWorld extends World
           dx: dx,
           dy: dy,
           useChip: useChip,
-          holdUse: _useHeld || _touchHeld,
           cycleChip: _cyclePressed,
         ),
       );
@@ -181,13 +174,9 @@ class BattleWorld extends World
       }
       _sounds.afterTick(battle);
       _usePressed = _cyclePressed = false;
-      // Consumed once it moved, or once the chip left the hand or began
-      // charging.
+      // Consumed once it moved, or once the chip left the hand.
       _swipeTicks = battle.player.pos != from ? 0 : _swipeTicks - 1;
-      if (tapped != null &&
-          (!battle.hand.contains(tapped) || battle.chargingCard == tapped)) {
-        _tapped = null;
-      }
+      if (tapped != null && !battle.hand.contains(tapped)) _tapped = null;
       _tappedTicks--;
       ticked = true;
     }
@@ -228,7 +217,6 @@ class BattleWorld extends World
             : 0) -
         (held([LogicalKeyboardKey.arrowUp, LogicalKeyboardKey.keyW]) ? 1 : 0);
 
-    _useHeld = held([LogicalKeyboardKey.keyX, LogicalKeyboardKey.keyK]);
     if (event is KeyDownEvent) {
       final key = event.logicalKey;
       if (key == LogicalKeyboardKey.keyX || key == LogicalKeyboardKey.keyK) {

@@ -597,68 +597,8 @@ abstract final class Chips {
     effect: NoEffect(),
   );
 
-  static const storm = ChipDef(
-    id: 'storm',
-    name: 'Tempestade',
-    description: 'Molha o lado inimigo e cai 20 Elétrico em cada painel.',
-    cost: 0,
-    family: ChipFamily.energy,
-    type: ChipType.attack,
-    target: ChipTarget.self,
-    damage: 20,
-    element: Element.elec,
-    effect: StormEffect(),
-  );
-
-  static const avalanche = ChipDef(
-    id: 'avalanche',
-    name: 'Avalanche',
-    description: 'Rocha rola pela linha, racha os painéis e empurra o alvo.',
-    cost: 0,
-    family: ChipFamily.explosive,
-    type: ChipType.attack,
-    target: ChipTarget.row,
-    damage: 40,
-    effect: AvalancheEffect(),
-    pose: ChipPose.toss,
-  );
-
-  static const magnetTrap = ChipDef(
-    id: 'magnet_trap',
-    name: 'Armadilha Magnética',
-    description: 'Puxa o primeiro inimigo da linha e detona.',
-    cost: 0,
-    family: ChipFamily.explosive,
-    type: ChipType.attack,
-    target: ChipTarget.row,
-    damage: 50,
-    effect: MagnetTrapEffect(),
-    pose: ChipPose.melee,
-  );
-
-  /// Chips that fuse when held together, and what they become. Fusions are
-  /// never drawn: they only exist for the moment they are used.
-  static const fusions = [
-    (bubblePush, thunderLance, storm),
-    (cracker, rock, avalanche),
-    (hook, mine, magnetTrap),
-  ];
-
-  static final fusionPairs = [for (final (a, b, _) in fusions) (a, b)];
-
-  /// What [a] and [b] fuse into, in either order. Upgraded cards fuse like
-  /// their base card.
-  static ChipDef? fusionOf(ChipDef a, ChipDef b) {
-    for (final (x, y, result) in fusions) {
-      if ((a.id == x.id && b.id == y.id) || (a.id == y.id && b.id == x.id)) {
-        return result;
-      }
-    }
-    return null;
-  }
-
   /// The "+" version of [def], or null if it can't be upgraded (already
-  /// upgraded, Bug, fusions).
+  /// upgraded, Bug).
   static ChipDef? upgradeOf(ChipDef def) =>
       def.upgraded ? null : _upgrades[def.id];
 
@@ -871,7 +811,7 @@ abstract final class Chips {
     overclock,
   ];
 
-  /// Every card, offered or not (fusions, Bug), by id: what a saved deck
+  /// Every card, offered or not (Bug), by id: what a saved deck
   /// is read back with.
   static final Map<String, ChipDef> _byId = {
     for (final def in const [
@@ -917,9 +857,6 @@ abstract final class Chips {
       teslaCoil,
       overclock,
       bug,
-      storm,
-      avalanche,
-      magnetTrap,
     ])
       def.id: def,
   };

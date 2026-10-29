@@ -25,7 +25,7 @@ void main() {
       ..relics.addAll([Relics.armor, Relics.capacitor]);
     run.deck
       ..add(ChipCard(Chips.bug))
-      ..add(ChipCard(Chips.storm));
+      ..add(ChipCard(Chips.emp));
     run.upgrade(run.deck.first);
     run.enter(run.availableNodes.first);
     run.enter(run.availableNodes.first);

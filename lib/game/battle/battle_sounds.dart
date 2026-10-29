@@ -14,7 +14,6 @@ class BattleSounds {
     for (final event in battle.events) {
       final sfx = switch (event.kind) {
         BattleEventKind.chipUsed => _chip(event.chip!),
-        BattleEventKind.fusion => Sfx.fusion,
         BattleEventKind.chain => event.amount >= 3 ? Sfx.chain3 : Sfx.chain2,
         BattleEventKind.telegraph => Sfx.telegraph,
         BattleEventKind.enemyShot => Sfx.enemyShot,

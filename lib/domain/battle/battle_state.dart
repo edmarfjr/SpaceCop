@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import '../chips/battle_chip.dart';
-import '../chips/chip_library.dart';
 import '../deck/deck.dart';
 import '../element.dart';
 import '../grid.dart';
@@ -81,8 +80,6 @@ const double engineeringKitBonus = 1.5;
 const double chain2Multiplier = 1.25;
 const double chain3Multiplier = 1.5;
 
-/// Holding Use this long with a fusion pair in hand fuses them.
-const int fusionChargeTicks = ticksPerSecond ~/ 2;
 
 /// Pulled while already in the front enemy column.
 const int pullStunTicks = ticksPerSecond;
@@ -171,8 +168,6 @@ enum BattleEventKind {
   /// The player used [BattleEvent.chip] (once per run of its effect).
   chipUsed,
 
-  /// The player fused two cards into [BattleEvent.chip].
-  fusion,
 
   /// A chain reached [BattleEvent.amount] chips (2 or 3).
   chain,
@@ -264,7 +259,6 @@ class PlayerInput {
     this.dx = 0,
     this.dy = 0,
     this.useChip = false,
-    this.holdUse = false,
     this.cycleChip = false,
   });
 
@@ -274,12 +268,10 @@ class PlayerInput {
   final int dy;
   final bool useChip;
 
-  /// Use is still held down (fusion charge).
-  final bool holdUse;
   final bool cycleChip;
 
   /// Any move or card input; ends [BattleState.waitingForPlayer].
-  bool get acts => dx != 0 || dy != 0 || useChip || holdUse || cycleChip;
+  bool get acts => dx != 0 || dy != 0 || useChip || cycleChip;
 }
 
 /// Anything that stands on a panel: the player, enemies and obstacles.
@@ -636,9 +628,6 @@ class BattleState {
   /// Status the chip being used applies (3rd chip of a chain).
   Status? _chainStatus;
 
-  /// Card being charged into a fusion and for how long.
-  ChipCard? chargingCard;
-  int _chargeTicks = 0;
 
   /// The current gauge fills 50% faster (Gatilho de Corrente).
   bool gaugeBoosted = false;
@@ -1057,31 +1046,9 @@ class BattleState {
 
   void _updatePlayer(PlayerInput input) {
     if (player.barrierTicks > 0) player.barrierTicks--;
-    if (player.has(Status.stunned)) {
-      chargingCard = null;
-      return;
-    }
+    if (player.has(Status.stunned)) return;
     if (player.attackCooldown > 0) {
       player.attackCooldown--;
-      return;
-    }
-    // Fusion charge: the player stands still until Use is released or the
-    // charge completes.
-    if (chargingCard case final card?) {
-      final partner = fusionPartner(card);
-      if (!hand.contains(card) || partner == null) {
-        chargingCard = null;
-      } else if (!input.holdUse) {
-        chargingCard = null;
-        if (canAfford(card)) _useChip(card);
-      } else if (++_chargeTicks >= fusionChargeTicks) {
-        chargingCard = null;
-        if (card.def.cost + partner.def.cost <= energy) {
-          _fuse(card, partner);
-        } else if (canAfford(card)) {
-          _useChip(card);
-        }
-      }
       return;
     }
     if (player.moveCooldown > 0) {
@@ -1094,38 +1061,7 @@ class BattleState {
     }
     final chip = selectedChip;
     if (!input.useChip || chip == null || inSmoke(player)) return;
-    if (fusionPartner(chip) != null) {
-      chargingCard = chip;
-      _chargeTicks = 1; // The press itself is the first held tick.
-    } else if (canAfford(chip)) {
-      _useChip(chip);
-    }
-  }
-
-  /// Another card in hand that fuses with [card], if any.
-  ChipCard? fusionPartner(ChipCard card) {
-    for (final other in hand) {
-      if (other != card && Chips.fusionOf(card.def, other.def) != null) {
-        return other;
-      }
-    }
-    return null;
-  }
-
-  /// Uses both cards as their fusion, paying the energy of both.
-  void _fuse(ChipCard card, ChipCard partner) {
-    final fusion = Chips.fusionOf(card.def, partner.def)!;
-    events.add(BattleEvent(BattleEventKind.fusion, chip: fusion));
-    final twice = overclocked;
-    overclocked = false;
-    _activate(fusion);
-    if (twice) _activate(fusion);
-    energy -= card.def.cost + partner.def.cost;
-    deck
-      ..discard(card)
-      ..discard(partner);
-    selectedIndex = hand.isEmpty ? 0 : selectedIndex % hand.length;
-    player.attackCooldown = playerAttackCooldown;
+    if (canAfford(chip)) _useChip(chip);
   }
 
   /// Restores [amount] of the player's HP, up to the max.
@@ -1392,48 +1328,6 @@ class BattleState {
       // An empty case would fall through to the next one.
       case NoEffect():
         break;
-      case StormEffect():
-        for (final enemy in enemies) {
-          if (!enemy.hidden && ownerAt(enemy.pos) == Team.enemy) {
-            enemy.applyStatus(Status.wet, wetTicks);
-          }
-        }
-        final struck = <Fighter>{};
-        for (var x = 0; x < gridColumns; x++) {
-          for (var y = 0; y < gridRows; y++) {
-            final cell = GridPos(x, y);
-            if (ownerAt(cell) == Team.enemy) {
-              strike(
-                cell,
-                damage,
-                Team.enemy,
-                def.element,
-                family: def.family,
-                status: status,
-                struck: struck,
-              );
-            }
-          }
-        }
-        damageBonus = 0;
-      case AvalancheEffect():
-        for (var x = player.pos.x + 1; x < gridColumns; x++) {
-          final cell = GridPos(x, player.pos.y);
-          if (_targetAt(cell, Team.enemy) case final target?) {
-            strike(
-              cell,
-              damage,
-              Team.enemy,
-              def.element,
-              status: status,
-              family: def.family,
-            );
-            displace(target, 1, 0, 1, byPlayer: true);
-            break;
-          }
-          if (panelAt(cell).walkable) setPanel(cell, PanelState.cracked);
-        }
-        damageBonus = 0;
       case TractorEffect(:final steps):
         final row = player.pos.y;
         final pulled = [
@@ -1450,22 +1344,6 @@ class BattleState {
         chainSurge = true;
       case RepeatNextEffect():
         overclocked = true;
-      case MagnetTrapEffect():
-        for (var x = player.pos.x + 1; x < gridColumns; x++) {
-          final unit = unitAt(GridPos(x, player.pos.y));
-          if (unit is! EnemyFighter) continue;
-          _pull(unit);
-          strike(
-            unit.pos,
-            damage,
-            Team.enemy,
-            def.element,
-            status: status,
-            family: def.family,
-          );
-          break;
-        }
-        damageBonus = 0;
     }
   }
 

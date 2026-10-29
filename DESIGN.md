@@ -47,7 +47,7 @@ ou tamanhos direto nos widgets: crie um token.
   (`TextScaler.noScaling`), para o layout não quebrar.
 - A grade da batalha fica em (72, 40), centralizada, com 240×96 px.
 - O status da jogadora fica no canto superior esquerdo (x 2–66): HP e
-  Energia numa linha, o gauge embaixo. Corrente e fusão ficam sobre a grade.
+  Energia numa linha, o gauge embaixo. A corrente fica sobre a grade.
 - À direita da grade, abaixo dos ícones, cada inimigo tem nome, tipo
   (Máquina, Orgânico, Etéreo, em `Pico.lightGray`) e barra de vida
   (vermelha, borda branca); nomes repetidos são numerados ("Prisma 2").
@@ -139,8 +139,7 @@ Tamanhos em px virtuais, dentro da tela:
   - Deslizar o dedo em qualquer lugar fora da mão e dos ícones move uma casa na direção dominante.
     Continuar arrastando sem soltar move mais uma casa a cada ~18 px
     virtuais, com no mínimo 0,3 s entre um passo e o próximo.
-  - Tocar numa carta a usa. Segurar por 0,5 s uma carta que tem par de
-    fusão na mão faz a fusão; soltar antes usa só ela.
+  - Tocar numa carta a usa.
   - Swipe e toque que caem durante um cooldown ficam guardados por alguns
     ticks, em vez de se perderem.
   - Os ícones no topo pausam ou mostram o deck. No mapa, o botão "Deck"

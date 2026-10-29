@@ -177,10 +177,6 @@ abstract final class SpriteFiles {
     Chips.turret.id: 'chips/droneItn.png',
     Chips.hook.id: 'chips/hook.png',
     Chips.bug.id: 'chips/bug.png',
-    Chips.magnetTrap.id: 'chips/explosao.png',
-    // TODO(art): Tempestade and Avalanche borrow one of their parts.
-    Chips.storm.id: 'chips/raio.png',
-    Chips.avalanche.id: 'chips/pedra.png',
     Chips.cryoGrenade.id: 'chips/granadaCrio.png',
     Chips.emp.id: 'chips/emp.png',
     Chips.neuralVine.id: 'chips/cabos.png',

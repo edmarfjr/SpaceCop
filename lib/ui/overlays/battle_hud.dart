@@ -105,8 +105,8 @@ class BattleHud extends StatelessWidget {
 /// direction moves one cell, so a long drag keeps walking, at most one cell
 /// per [_repeatDelay].
 ///
-/// A raw [Listener] (no gesture arena), so holding a chip for a fusion with
-/// one finger doesn't cancel a swipe with the other.
+/// A raw [Listener] (no gesture arena), so touching a chip with one finger
+/// doesn't cancel a swipe with the other.
 class _SwipeArea extends StatefulWidget {
   const _SwipeArea({required this.world});
 
@@ -280,7 +280,7 @@ class _EnemyBars extends StatelessWidget {
   }
 }
 
-/// Selected chip's text, then piles, bonus, chain and fusion charge.
+/// Selected chip's text, then piles, bonus and chain.
 class _Info extends StatelessWidget {
   const _Info({required this.battle});
 
@@ -302,7 +302,6 @@ class _Info extends StatelessWidget {
           //'Compra ${battle.deck.drawPile.length} · Descarte ${battle.deck.discardPile.length}'
           '${battle.damageBonus > 0 ? ' · +${battle.damageBonus}' : ''}'
           '${battle.chainCount > 0 ? ' · Corrente ${battle.chainFamily!.label} x${battle.chainCount}' : ''}'
-          '${battle.chargingCard != null ? ' · Fundindo...' : ''}'
           '${battle.chainSurge ? ' · Sobrecarga' : ''}'
           '${battle.overclocked ? ' · Overclock' : ''}',
           style: GbText.small.copyWith(color: Pico.lightGray),
@@ -314,8 +313,8 @@ class _Info extends StatelessWidget {
   }
 }
 
-/// The hand, in a row. Touching a chip uses it; holding one that
-/// has a fusion partner charges the fusion. Raw [Listener]s, like the swipe.
+/// The hand, in a row. Touching a chip uses it. Raw [Listener]s, like the
+/// swipe.
 class _Hand extends StatelessWidget {
   const _Hand({required this.world, required this.sprites});
 
@@ -336,8 +335,6 @@ class _Hand extends StatelessWidget {
                 tapFeedback();
                 world.pressChip(card);
               },
-              onPointerUp: (_) => world.releaseChip(),
-              onPointerCancel: (_) => world.releaseChip(),
               child: ChipCardView(
                 def: card.def,
                 sprites: sprites,
