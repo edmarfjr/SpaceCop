@@ -63,7 +63,10 @@ void main() {
       Enemies.predator,
       Enemies.stalker,
     });
-    expect(Encounters.boss(Random(), act: 1).spawns.single.def, Enemies.tank);
+    expect(
+      Encounters.boss(Random(), act: 1).spawns.first.def,
+      isIn([Enemies.tank, Enemies.colonel, Enemies.argos]),
+    );
     expect(
       Encounters.boss(Random(), act: 2).spawns.single.def,
       Enemies.tribeKing,

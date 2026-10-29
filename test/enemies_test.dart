@@ -460,7 +460,10 @@ void main() {
       expect(normal.length, inInclusiveRange(1, 2));
       expect(normal.map((s) => s.def), everyElement(isIn(Enemies.basics)));
       expect(Encounters.elite(random).spawns, isNotEmpty);
-      expect(Encounters.boss(random).spawns.single.def, Enemies.tank);
+      expect(
+        Encounters.boss(random).spawns.first.def,
+        isIn([Enemies.tank, Enemies.colonel, Enemies.argos]),
+      );
     }
   });
 }

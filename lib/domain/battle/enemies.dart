@@ -365,6 +365,49 @@ abstract final class Enemies {
     behavior: PortalBehavior(),
   );
 
+  /// Another boss of the first mission.
+  static const colonel = EnemyDef(
+    name: 'Coronel Inimigo',
+    hp: 380,
+    pushable: false,
+    behavior: ColonelBehavior(),
+  );
+
+  /// The Coronel's bodyguards: they stand in front of him. They don't
+  /// count toward winning.
+  static const colonelGuard = EnemyDef(
+    name: 'Guarda-costas',
+    hp: 60,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    frontShield: true,
+    summon: true,
+    behavior: ShieldBearerBehavior(),
+  );
+
+  /// Another boss of the first mission: the base's security AI. Two panels
+  /// by two: [pos] is the top front one.
+  static const argos = EnemyDef(
+    name: 'ARGOS',
+    kind: EnemyKind.machine,
+    hp: 350,
+    pushable: false,
+    footprint: [GridPos(0, 0), GridPos(1, 0), GridPos(0, 1), GridPos(1, 1)],
+    behavior: ArgosBehavior(),
+  );
+
+  /// Put up by ARGOS; doesn't count toward winning.
+  static const argosTurret = EnemyDef(
+    name: 'Torre de Defesa',
+    kind: EnemyKind.machine,
+    hp: 40,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    pushable: false,
+    summon: true,
+    behavior: SentryBehavior(),
+  );
+
   /// The second mission's boss. Two panels wide: [pos] is the front one.
   static const tribeKing = EnemyDef(
     name: 'Rei da Tribo',
@@ -593,6 +636,14 @@ abstract final class Encounters {
   static Encounter boss(Random random, {int act = 1}) => switch (act) {
     2 => const Encounter([EnemySpawn(Enemies.tribeKing, GridPos(4, 1))]),
     3 => const Encounter([EnemySpawn(Enemies.voidEye, GridPos(4, 0))]),
-    _ => const Encounter([EnemySpawn(Enemies.tank, GridPos(4, 1))]),
+    _ => switch (random.nextInt(3)) {
+      0 => const Encounter([EnemySpawn(Enemies.tank, GridPos(4, 1))]),
+      1 => const Encounter([
+        EnemySpawn(Enemies.colonel, GridPos(5, 1)),
+        EnemySpawn(Enemies.colonelGuard, GridPos(4, 0)),
+        EnemySpawn(Enemies.colonelGuard, GridPos(4, 2)),
+      ]),
+      _ => const Encounter([EnemySpawn(Enemies.argos, GridPos(4, 0))]),
+    },
   };
 }

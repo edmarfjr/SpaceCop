@@ -45,6 +45,10 @@ const double machineProjectileMultiplier = 0.5;
 const double machineEnergyMultiplier = 2;
 const double organicExplosiveMultiplier = 1.5;
 
+/// Energia on ARGOS while its core is open, instead of
+/// [machineEnergyMultiplier].
+const double argosOpenEnergyMultiplier = 3;
+
 /// An Etéreo hit by an Explosivo stays solid this long.
 const int materializeTicks = 2 * ticksPerSecond;
 
@@ -210,7 +214,7 @@ class Collision {
 
 /// What an enemy throws at the targeted panels of a scheduled attack.
 /// Purely visual: it lands on the tick the attack resolves.
-enum Lob { none, ball, pickaxe }
+enum Lob { none, ball, pickaxe, molotov }
 
 /// An enemy attack waiting for its telegraph to run out.
 class _Scheduled {
@@ -374,6 +378,14 @@ class EnemyFighter extends Fighter {
 
   /// Ticks left taking double damage (Rei da Tribo's overheated staff).
   int exposedTicks = 0;
+
+  /// Frame of an enemy drawn by pose (see `SpriteFiles.poseStrips`), set by
+  /// its behavior.
+  int pose = 0;
+
+  /// Ticks until the next summon, 0 while none is due (the Coronel's
+  /// Guarda-costas).
+  int summonTimer = 0;
 
   /// Etéreo out of phase: Projétil and Corpo-a-corpo pass through. It is
   /// solid while it attacks and for [materialTicks].
@@ -1893,6 +1905,10 @@ class BattleState {
     family,
   )) {
     (EnemyKind.machine, ChipFamily.projectile) => machineProjectileMultiplier,
+    // ARGOS with its core open ([EnemyFighter.shieldDown]).
+    (EnemyKind.machine, ChipFamily.energy)
+        when target.def == Enemies.argos && target.shieldDown > 0 =>
+      argosOpenEnergyMultiplier,
     (EnemyKind.machine, ChipFamily.energy) => machineEnergyMultiplier,
     (EnemyKind.organic, ChipFamily.explosive) => organicExplosiveMultiplier,
     (EnemyKind.ethereal, ChipFamily.projectile || ChipFamily.melee)

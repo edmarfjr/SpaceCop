@@ -63,6 +63,10 @@ abstract final class SpriteFiles {
     Enemies.priestess: 'actors/inimigos2_etShaman.png',
     Enemies.illusion: 'actors/inimigos2_etShaman.png',
     Enemies.portal: 'chips/stasisGen.png',
+    Enemies.colonel: 'actors/coronel.png',
+    Enemies.colonelGuard: 'actors/inimigos_gruntBrute.png',
+    Enemies.argos: 'actors/bossArgos.png',
+    Enemies.argosTurret: 'actors/inimigos_turret.png',
     Enemies.tribeKing: 'actors/etRei.png',
     Enemies.totem: 'actors/inimigos2_totem.png',
     Enemies.ragingTotem: 'actors/inimigos2_totem.png',
@@ -83,10 +87,16 @@ abstract final class SpriteFiles {
   /// attack (Olho do Abismo: eye, Cisão, Despertar).
   static const stageStrips = {Enemies.voidEye};
 
+  /// Strips with one frame per [EnemyFighter.pose], set by the behavior
+  /// (see [ColonelBehavior] and [ArgosBehavior]). A pose the art doesn't
+  /// have shows frame 0.
+  static const poseStrips = {Enemies.colonel, Enemies.argos};
+
   /// Projectiles and effects, 16x16 frames side by side.
   static const shot = 'projeteis/tiro.png';
   static const ball = 'projeteis/bola.png';
   static const pickaxe = 'projeteis/picareta.png';
+  static const molotov = 'projeteis/molotov.png';
   static const explosion = 'projeteis/explosao.png';
 
   /// Smoke cloud over a panel, 2 frames of 16x16 looped.
@@ -266,6 +276,7 @@ abstract final class SpriteFiles {
     shot,
     ball,
     pickaxe,
+    molotov,
     explosion,
     slash,
     smoke,
@@ -334,6 +345,7 @@ class GameSprites {
   late final Sprite chipFrame = _file(SpriteFiles.chipFrame);
   late final Sprite chipFrameUpgraded = _file(SpriteFiles.chipFrameUpgraded);
   late final Sprite pickaxe = _file(SpriteFiles.pickaxe);
+  late final Sprite molotov = _file(SpriteFiles.molotov);
   late final Sprite deckIcon = _file(SpriteFiles.deckIcon);
   late final Sprite pauseIcon = _file(SpriteFiles.pauseIcon);
 
@@ -373,11 +385,19 @@ class GameSprites {
 
   /// [def]'s idle frame, or its attack frame when [attacking]; for
   /// [SpriteFiles.stageStrips], the frame of [stage].
-  Sprite enemy(EnemyDef def, {bool attacking = false, int stage = 0}) {
+  Sprite enemy(
+    EnemyDef def, {
+    bool attacking = false,
+    int stage = 0,
+    int pose = 0,
+  }) {
     final path = SpriteFiles.enemies[def] ?? SpriteFiles._fallback;
     final image = _images[path]!;
     final frame = image.height.toDouble();
     final frames = image.width ~/ image.height;
+    if (SpriteFiles.poseStrips.contains(def)) {
+      return _frame(path, pose < frames ? pose : 0, frame);
+    }
     if (SpriteFiles.stageStrips.contains(def)) {
       return _frame(path, stage.clamp(0, frames - 1), frame);
     }

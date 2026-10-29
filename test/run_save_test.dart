@@ -44,10 +44,10 @@ void main() {
       run.deck.map((c) => (c.def.id, c.def.upgraded)),
     );
     expect(loaded.deck.first.def.name, run.deck.first.def.name);
-    expect((loaded.current!.floor, loaded.current!.x), (
-      run.current!.floor,
-      run.current!.x,
-    ));
+    expect(
+      (loaded.current!.floor, loaded.current!.x),
+      (run.current!.floor, run.current!.x),
+    );
     expect(
       loaded.availableNodes.map((n) => (n.floor, n.x)),
       run.availableNodes.map((n) => (n.floor, n.x)),

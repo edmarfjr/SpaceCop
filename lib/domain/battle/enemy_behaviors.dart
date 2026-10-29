@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../element.dart';
 import '../grid.dart';
 import 'battle_state.dart';
@@ -2023,5 +2025,320 @@ class HemisphereBehavior extends EnemyBehavior {
       basicWarnTicks,
       () => battle.enemyShot(enemy),
     );
+  }
+}
+
+/// Coronel Inimigo: another boss of the first mission. Drifts toward the
+/// player's row behind his Guarda-costas (a new one comes [guardReturn]
+/// after one falls) and cycles three attacks every [attackEvery]:
+/// - Rajada: sweeps the player's side column by column, front to back,
+///   sparing one row per column; then he reloads, taking double damage
+///   for [reloadTicks];
+/// - Contrato: a sniper hits the player's panel after [contractWarn];
+/// - Coquetel Molotov: a cross of lava around the player.
+/// Below half HP he puts up 2 barricades in front of him, attacks faster
+/// and the Contrato marks a second panel.
+class ColonelBehavior extends EnemyBehavior {
+  const ColonelBehavior();
+
+  static const moveTicks = 50;
+  static const attackEvery = 3 * ticksPerSecond;
+  static const guards = 2;
+  static const guardReturn = 12 * ticksPerSecond;
+  static const sweepWarn = ticksPerSecond;
+  static const sweepStagger = 8;
+  static const sweepDamage = 15;
+  static const reloadTicks = 45;
+  static const contractWarn = 45;
+  static const contractDamage = 25;
+  static const molotovWarn = ticksPerSecond;
+  static const molotovDamage = 15;
+  static const barricades = 2;
+  static const barricadeHp = 40;
+
+  // Frames of his strip, kept in [EnemyFighter.pose].
+  static const idlePose = 0;
+  static const shootPose = 1;
+  static const reloadPose = 2;
+  static const radioPose = 3;
+  static const throwPose = 4;
+  static const furyPose = 5;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.stage == 0 && enemy.hp < enemy.maxHp / 2) _fury(enemy, battle);
+    _callGuards(enemy, battle);
+    if (enemy.exposedTicks > 0) {
+      enemy.pose = reloadPose;
+      return;
+    }
+    if (!enemy.attacking) {
+      enemy.pose = enemy.stage == 1 ? furyPose : idlePose;
+      if (enemy.moveTimer-- <= 0) {
+        enemy.moveTimer = moveTicks;
+        final dy = (battle.player.pos.y - enemy.pos.y).sign;
+        if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
+      }
+    }
+    if (enemy.attacking || enemy.timer-- > 0) return;
+    enemy.timer = enemy.stage == 1 ? attackEvery * 7 ~/ 10 : attackEvery;
+    switch (enemy.attackTimer++ % 3) {
+      case 0:
+        _sweep(enemy, battle);
+      case 1:
+        _contract(enemy, battle);
+      case _:
+        _molotov(enemy, battle);
+    }
+  }
+
+  /// A new Guarda-costas [guardReturn] after one falls.
+  void _callGuards(EnemyFighter enemy, BattleState battle) {
+    final standing = battle.enemies
+        .where((e) => e.def == Enemies.colonelGuard && !e.isDead)
+        .length;
+    if (standing >= guards) {
+      enemy.summonTimer = 0;
+      return;
+    }
+    if (enemy.summonTimer == 0) {
+      enemy.summonTimer = guardReturn;
+      return;
+    }
+    if (--enemy.summonTimer > 0) return;
+    final front = enemy.pos + const GridPos(-1, 0);
+    final free = _freeEnemyPanels(battle);
+    if (free.isEmpty) return;
+    battle.summon(
+      Enemies.colonelGuard,
+      free.contains(front) ? front : free[battle.random.nextInt(free.length)],
+    );
+  }
+
+  /// Fury: barricades on free panels of the column in front of him.
+  void _fury(EnemyFighter enemy, BattleState battle) {
+    enemy.stage = 1;
+    final spots = [
+      for (final cell in _column(enemy.pos.x - 1))
+        if (battle.ownerAt(cell) == Team.enemy &&
+            battle.panelAt(cell).walkable &&
+            battle.unitAt(cell) == null)
+          cell,
+    ]..shuffle(battle.random);
+    for (final spot in spots.take(barricades)) {
+      battle.obstacles.add(
+        Obstacle(ObstacleKind.rock, pos: spot, hp: barricadeHp),
+      );
+    }
+  }
+
+  /// Rajada: column by column from the front, one row spared in each.
+  void _sweep(EnemyFighter enemy, BattleState battle) {
+    enemy.pose = shootPose;
+    final columns = {for (final c in _side(battle, Team.player)) c.x}.toList()
+      ..sort((a, b) => b.compareTo(a));
+    for (final (i, x) in columns.indexed) {
+      final spared = battle.random.nextInt(gridRows);
+      final cells = [
+        for (final cell in _column(x))
+          if (cell.y != spared && battle.ownerAt(cell) == Team.player) cell,
+      ];
+      final last = i == columns.length - 1;
+      battle.schedule(enemy, cells, sweepWarn + i * sweepStagger, () {
+        for (final cell in cells) {
+          battle.strike(cell, sweepDamage, Team.player, enemy.element);
+        }
+        if (last) enemy.exposedTicks = reloadTicks;
+      });
+    }
+  }
+
+  /// Contrato: the player's panel, and another one in Fury.
+  void _contract(EnemyFighter enemy, BattleState battle) {
+    enemy.pose = radioPose;
+    final cells = [battle.player.pos];
+    if (enemy.stage == 1) {
+      final others = _side(battle, Team.player)
+        ..remove(battle.player.pos)
+        ..shuffle(battle.random);
+      cells.addAll(others.take(1));
+    }
+    battle.schedule(enemy, cells, contractWarn, () {
+      for (final cell in cells) {
+        battle.strike(cell, contractDamage, Team.player, enemy.element);
+      }
+    });
+  }
+
+  /// Coquetel Molotov: a cross around the player turns to lava.
+  void _molotov(EnemyFighter enemy, BattleState battle) {
+    enemy.pose = throwPose;
+    final center = battle.player.pos;
+    final cross = [
+      for (final offset in const [
+        GridPos(0, 0),
+        GridPos(1, 0),
+        GridPos(-1, 0),
+        GridPos(0, 1),
+        GridPos(0, -1),
+      ])
+        if (center + offset case final cell
+            when cell.inBounds && battle.ownerAt(cell) == Team.player)
+          cell,
+    ];
+    battle.warn(cross, molotovWarn, TelegraphKind.damage, enemy);
+    battle.schedule(
+      enemy,
+      [center],
+      molotovWarn,
+      () {
+        for (final cell in cross) {
+          battle.strike(cell, molotovDamage, Team.player, Element.fire);
+          if (battle.panelAt(cell).walkable) {
+            battle.setPanel(cell, PanelState.lava);
+          }
+        }
+      },
+      lob: Lob.molotov,
+      telegraph: false,
+    );
+  }
+}
+
+/// ARGOS: the base's security AI, two panels by two; it never moves. Every
+/// [attackEvery] it runs the next step of a 4-step cycle:
+/// - Grade Laser: a pattern of the player's side (2 of the 3 rows, 2 of
+///   the columns or a checkerboard), always leaving panels free;
+/// - Bloqueio: takes the player's front column for [lockTicks], pushing
+///   the player back;
+/// - Torres: [turrets] Torres de Defesa on free panels of its side, at most
+///   [maxTurrets] standing;
+/// - its core opens for [openTicks] ([EnemyFighter.shieldDown]): Energia
+///   hurts it [argosOpenEnergyMultiplier]x.
+/// Below [alertAt] of its HP (Protocolo de Contenção) a second grid follows
+/// the first and the lock takes two columns.
+class ArgosBehavior extends EnemyBehavior {
+  const ArgosBehavior();
+
+  static const attackEvery = 3 * ticksPerSecond;
+  static const laserWarn = ticksPerSecond;
+  static const laserDamage = 20;
+
+  /// Ticks between the end of the first grid and the second one's warning.
+  static const laserGap = 10;
+  static const lockWarn = ticksPerSecond;
+  static const lockTicks = 6 * ticksPerSecond;
+  static const turrets = 2;
+  static const maxTurrets = 4;
+  static const openTicks = 2 * ticksPerSecond;
+  static const alertAt = 0.4;
+
+  // Frames of its strip, kept in [EnemyFighter.pose]; the alert ones (Protocolo
+  // de Contenção) follow at +[_alert].
+  static const closedPose = 0;
+  static const chargingPose = 1;
+  static const openPose = 2;
+  static const _alert = 3;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (enemy.stage == 0 && enemy.hp < enemy.maxHp * alertAt) enemy.stage = 1;
+    final alert = enemy.stage == 1 ? _alert : 0;
+    enemy.pose =
+        (enemy.shieldDown > 0
+            ? openPose
+            : enemy.attacking
+            ? chargingPose
+            : closedPose) +
+        alert;
+    if (enemy.shieldDown > 0 || enemy.attacking || enemy.timer-- > 0) return;
+    enemy.timer = attackEvery;
+    switch (enemy.attackTimer++ % 4) {
+      case 0:
+        _laser(enemy, battle, again: enemy.stage == 1);
+      case 1:
+        _lock(enemy, battle);
+      case 2:
+        _turrets(enemy, battle);
+      case _:
+        enemy
+          ..shieldDown = openTicks
+          ..pose = openPose + alert;
+    }
+  }
+
+  /// One random pattern of the player's side; [again] chains a second one.
+  void _laser(EnemyFighter enemy, BattleState battle, {required bool again}) {
+    final side = _side(battle, Team.player);
+    final columns = {for (final c in side) c.x}.toList()
+      ..shuffle(battle.random);
+    final spared = battle.random.nextInt(gridRows);
+    final parity = battle.random.nextInt(2);
+    final cells = switch (battle.random.nextInt(3)) {
+      0 => [
+        for (final c in side)
+          if (c.y != spared) c,
+      ],
+      1 => [
+        for (final c in side)
+          if (c.x != columns.first) c,
+      ],
+      _ => [
+        for (final c in side)
+          if ((c.x + c.y) % 2 == parity) c,
+      ],
+    };
+    battle.schedule(enemy, cells, laserWarn, () {
+      for (final cell in cells) {
+        battle.strike(cell, laserDamage, Team.player, Element.elec);
+      }
+      if (again) {
+        battle.schedule(
+          enemy,
+          const [],
+          laserGap,
+          () => _laser(enemy, battle, again: false),
+          telegraph: false,
+        );
+      }
+    });
+  }
+
+  /// Bloqueio: the front column of the player's side (two in alert, always
+  /// leaving one); whoever stands there is pushed back.
+  void _lock(EnemyFighter enemy, BattleState battle) {
+    final columns = {for (final c in _side(battle, Team.player)) c.x}.toList()
+      ..sort((a, b) => b.compareTo(a));
+    if (columns.length < 2) return;
+    final taken = columns.take(enemy.stage == 1 ? 2 : 1).toList();
+    final cells = [for (final x in taken) ..._column(x)];
+    battle.schedule(enemy, cells, lockWarn, kind: TelegraphKind.terrain, () {
+      // Pushed back across panels still theirs, then the columns go.
+      final back = taken.last - 1;
+      for (final unit in List.of(battle.units)) {
+        if (unit.team != Team.player || unit.pos.x <= back) continue;
+        battle.displace(unit, -1, 0, unit.pos.x - back, force: true);
+      }
+      for (final x in taken) {
+        battle.setColumnOwner(x, Team.enemy, lockTicks);
+      }
+    });
+  }
+
+  void _turrets(EnemyFighter enemy, BattleState battle) {
+    final standing = battle.enemies
+        .where((e) => e.def == Enemies.argosTurret && !e.isDead)
+        .length;
+    final free = _freeEnemyPanels(battle)..shuffle(battle.random);
+    for (final spot in free.take(min(turrets, maxTurrets - standing))) {
+      battle.summon(Enemies.argosTurret, spot);
+    }
+    enemy.attackPose = attackPoseTicks;
   }
 }

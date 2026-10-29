@@ -20,7 +20,9 @@ import 'grid_component.dart';
 /// standing on a lower one. The [ground] layer, under every fighter, draws
 /// the warnings on the panels.
 class ProjectileLayer extends Component with ParentIsA<GridComponent> {
-  ProjectileLayer.ground(this.battle, this.sprites) : row = null, super(priority: 0);
+  ProjectileLayer.ground(this.battle, this.sprites)
+    : row = null,
+      super(priority: 0);
 
   ProjectileLayer.row(this.battle, this.sprites, int this.row)
     : super(priority: priorityOf(row) + 1);
@@ -80,12 +82,12 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
       canvas
         ..save()
         ..translate(at.x, at.y);
-      if (lob.lob == Lob.pickaxe) canvas.rotate(-t * 2 * pi);
-      (lob.lob == Lob.pickaxe ? sprites.pickaxe : sprites.ball).render(
-        canvas,
-        size: _size,
-        anchor: Anchor.center,
-      );
+      if (lob.lob case Lob.pickaxe || Lob.molotov) canvas.rotate(-t * 2 * pi);
+      (switch (lob.lob) {
+        Lob.pickaxe => sprites.pickaxe,
+        Lob.molotov => sprites.molotov,
+        _ => sprites.ball,
+      }).render(canvas, size: _size, anchor: Anchor.center);
       canvas.restore();
     }
     // Smoke clouds, over whoever stands in them.

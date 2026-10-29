@@ -243,10 +243,9 @@ void main() {
       return (battle, tank);
     }
 
-    test('is the only boss of the first mission, on the back 2 columns', () {
-      final spawn = Encounters.boss(battleWith([]).random).spawns.single;
-      expect(spawn.def, Enemies.tank);
-      expect(spawn.pos.x, gridColumns - 2);
+    test('stands on the back 2 columns', () {
+      final (_, tank) = tankAbout(0);
+      expect(tank.pos.x, gridColumns - 2);
     });
 
     test('takes 2 panels and can be hit on either', () {
