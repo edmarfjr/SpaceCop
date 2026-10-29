@@ -1189,6 +1189,9 @@ class ShieldBearerBehavior extends EnemyBehavior {
   static const moveTicks = 40;
   static const cycleTicks = 4 * ticksPerSecond;
 
+  /// The shield stays down this long after the shot leaves.
+  static const openTicks = ticksPerSecond;
+
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
@@ -1196,7 +1199,10 @@ class ShieldBearerBehavior extends EnemyBehavior {
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer > 0) enemy.timer--;
     if (enemy.timer <= 0 && enemy.pos.y == battle.player.pos.y) {
-      enemy.timer = cycleTicks;
+      // The shield drops to fire, and stays down a moment after.
+      enemy
+        ..timer = cycleTicks
+        ..shieldDown = basicWarnTicks + openTicks;
       battle.schedule(
         enemy,
         _rowAhead(enemy),

@@ -98,6 +98,10 @@ abstract final class SpriteFiles {
   /// Energy shield, square frames looped (player's barrier, Brute).
   static const energyShield = 'projeteis/eShld.png';
 
+  /// Front shield (Brutamontes, ET Escudeiro), 8x24 frames: stops only
+  /// straight shots from the front.
+  static const frontShield = 'projeteis/escudoFrontal.png';
+
   /// Warning sign over an enemy about to attack, 2 frames blinking.
   static const attackSign = 'actors/sign.png';
 
@@ -266,6 +270,7 @@ abstract final class SpriteFiles {
     slash,
     smoke,
     energyShield,
+    frontShield,
     attackSign,
     deckIcon,
     pauseIcon,
@@ -346,6 +351,15 @@ class GameSprites {
         _frame(SpriteFiles.energyShield, i, size),
     ];
   }();
+
+  late final List<Sprite> frontShield = [
+    for (var i = 0; i < 4; i++)
+      Sprite(
+        _images[SpriteFiles.frontShield]!,
+        srcPosition: Vector2(i * 8, 0),
+        srcSize: Vector2(8, 24),
+      ),
+  ];
 
   late final Sprite slash = _file(SpriteFiles.slash);
 

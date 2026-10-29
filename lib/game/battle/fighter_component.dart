@@ -154,15 +154,28 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
           : null,
     );
     canvas.restore();
-    // Energy shield: the player's barrier, or an enemy's while it blocks.
+    // Energy shield: the player's barrier, or an enemy nothing can hurt.
     final shielded = switch (fighter) {
       PlayerFighter(:final barrierTicks) => barrierTicks > 0,
       final EnemyFighter enemy =>
-        enemy.invulnerable ||
-            parent.battle.prismGuarded(enemy) ||
-            (enemy.def.frontShield && enemy.shieldDown == 0),
+        enemy.invulnerable || parent.battle.prismGuarded(enemy),
       _ => false,
     };
+    // Front shield: only straight shots from the front stop on it.
+    final f = fighter;
+    if (!shielded &&
+        f is EnemyFighter &&
+        f.def.frontShield &&
+        f.shieldDown == 0) {
+      final frames = sprites.frontShield;
+      final frame = frames[(_clock / _shieldFrameTime).floor() % frames.length];
+      frame.render(
+        canvas,
+        position: Vector2(0, size.y / 2),
+        size: frame.srcSize * _scale,
+        anchor: Anchor.centerLeft,
+      );
+    }
     if (shielded) {
       final frames = sprites.energyShield;
       final frame = frames[(_clock / _shieldFrameTime).floor() % frames.length];

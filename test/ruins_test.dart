@@ -37,6 +37,20 @@ void main() {
       expect(bearer.hp, Enemies.etShieldBearer.hp);
     });
 
+    test('ET Escudeiro drops the shield to fire, and a moment after', () {
+      final battle = battleWith(
+        [shot],
+        spawns: [const EnemySpawn(Enemies.etShieldBearer, GridPos(3, 1))],
+      );
+      final bearer = battle.enemies.single..pos = const GridPos(3, 1);
+      battle.player.pos = const GridPos(1, 1);
+      until(battle, () => battle.ticksToAttack(bearer) != null);
+      expect(bearer.shieldDown, greaterThan(ShieldBearerBehavior.openTicks));
+      bearer.applyStatus(Status.stunned, 100000);
+      use(battle, shot);
+      expect(bearer.hp, lessThan(Enemies.etShieldBearer.hp));
+    });
+
     test('ET Escudeiro moves in front of an ally', () {
       final battle = battleWith(
         [],
