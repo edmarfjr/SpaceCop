@@ -15,6 +15,12 @@ const int ticksPerSecond = 30;
 /// Ticks to fill the gauge (cart: `turn_tmr` up to 300).
 const int gaugeTicks = 300;
 const int playerMoveCooldown = 5;
+
+/// [playerMoveCooldown] with the Exoesqueleto Pesado: 50% slower.
+const int heavyMoveCooldown = 8;
+
+/// Percent the Implante Neural slows the gauge down.
+const int neuralGaugeSlow = 25;
 const int playerAttackCooldown = 10;
 
 /// Cards drawn from the top of the deck on each refill.
@@ -640,7 +646,8 @@ class BattleState {
   /// The Armadura already stopped this battle's first hit.
   bool armorUsed = false;
 
-  /// Hundredths of a gauge tick carried over from the speed bonuses.
+  /// Hundredths of a gauge tick not filled yet: each tick adds 100 plus
+  /// the speed bonuses.
   int _gaugeProgress = 0;
 
   /// Pasta Ordenada: the HUD offers to send one of [peekCards] to the
@@ -737,13 +744,14 @@ class BattleState {
     );
   }
 
-  /// Every full gauge: discard the whole hand, draw [handSize] chips from the
-  /// top of the deck and restore energy.
+  /// Every full gauge: discard the whole hand, draw [handSize] chips (one
+  /// more with the Implante Neural) from the top of the deck and restore
+  /// energy.
   void _refillHand() {
     if (!gaugeFull) return;
     deck
       ..discardHand()
-      ..draw(handSize);
+      ..draw(hasRelic(Relics.neuralImplant) ? handSize + 1 : handSize);
     final carried = hasRelic(Relics.capacitor)
         ? min(energy, capacitorCarry)
         : 0;
@@ -773,8 +781,11 @@ class BattleState {
     }
 
     ticks++;
-    if (!gaugeFull) gauge++;
-    _gaugeProgress += gaugeSpeedBonus + (gaugeBoosted ? 50 : 0);
+    _gaugeProgress +=
+        100 +
+        gaugeSpeedBonus +
+        (gaugeBoosted ? 50 : 0) -
+        (hasRelic(Relics.neuralImplant) ? neuralGaugeSlow : 0);
     for (; _gaugeProgress >= 100; _gaugeProgress -= 100) {
       if (!gaugeFull) gauge++;
     }
@@ -1110,7 +1121,11 @@ class BattleState {
   void _tryMovePlayer(int dx, int dy) {
     // One axis per step, horizontal first, like holding a d-pad.
     final step = dx != 0 ? GridPos(dx.sign, 0) : GridPos(0, dy.sign);
-    if (tryMove(player, step)) player.moveCooldown = playerMoveCooldown;
+    if (tryMove(player, step)) {
+      player.moveCooldown = hasRelic(Relics.heavyExoskeleton)
+          ? heavyMoveCooldown
+          : playerMoveCooldown;
+    }
   }
 
   /// Voluntary one-cell move. Fails when rooted, mid-attack or the cell

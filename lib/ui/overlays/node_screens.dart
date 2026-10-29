@@ -276,8 +276,10 @@ class _RestOverlayState extends State<RestOverlay> {
         const SizedBox(height: 6),
         FilledButton(
           autofocus: true,
-          onPressed: withTap(game.restHere),
-          child: const Text('Descansar (+30%)'),
+          onPressed: withTap(game.run.canRest ? game.restHere : null),
+          child: Text(
+            game.run.canRest ? 'Descansar (+30%)' : 'Descansar (Reator)',
+          ),
         ),
         const SizedBox(height: 4),
         FilledButton(
@@ -288,6 +290,15 @@ class _RestOverlayState extends State<RestOverlay> {
           ),
           child: const Text('Melhorar uma carta'),
         ),
+        // Nothing to do here: let the player move on.
+        if (!game.run.canRest && upgradeable.isEmpty) ...[
+          const SizedBox(height: 4),
+          TextButton(
+            autofocus: true,
+            onPressed: withTap(game.finishNode),
+            child: const Text('Seguir'),
+          ),
+        ],
       ],
     );
   }

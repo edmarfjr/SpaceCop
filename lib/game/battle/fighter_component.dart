@@ -6,6 +6,7 @@ import 'package:flame/text.dart';
 
 import '../../domain/battle/battle_state.dart';
 import '../../domain/chips/battle_chip.dart';
+import '../../domain/run/relics.dart';
 import '../../ui/theme.dart';
 import '../sprites.dart';
 import 'grid_component.dart';
@@ -75,6 +76,11 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   static const _turretFlashTicks = 4;
   static final _lifeBack = Paint()..color = Pico.darkBlue;
   static final _lifeFill = Paint()..color = Pico.blue;
+
+  /// Visor de Combate: the bar beside an enemy filling up to its next
+  /// attack, red once it is close.
+  static final _readyFill = Paint()..color = Pico.orange;
+  static final _readyNear = Paint()..color = Pico.red;
 
   static final _hpText = TextPaint(
     style: const TextStyle(
@@ -245,6 +251,27 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
           size: frame.srcSize * _scale,
           anchor: Anchor.bottomCenter,
         );
+      }
+    }
+    // Visor de Combate: how close the next attack is, as a vertical bar
+    // on the enemy's left (its right edge may sit under the HUD), filling
+    // from the bottom.
+    if (fighter case final EnemyFighter enemy
+        when !enemy.def.part && parent.battle.hasRelic(Relics.combatVisor)) {
+      final ready = enemy.def.behavior.readiness(enemy);
+      if (ready != null) {
+        final bar = Rect.fromLTWH(-3, 2, 2, size.y - 4);
+        canvas
+          ..drawRect(bar, _lifeBack)
+          ..drawRect(
+            Rect.fromLTRB(
+              bar.left,
+              bar.bottom - bar.height * ready,
+              bar.right,
+              bar.bottom,
+            ),
+            ready >= 0.8 ? _readyNear : _readyFill,
+          );
       }
     }
     // Active statuses, in a row above the head.

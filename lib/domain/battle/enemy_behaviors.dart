@@ -26,6 +26,19 @@ abstract class EnemyBehavior {
   /// whose timers count up from 0 need nothing.
   void onBattleStart(EnemyFighter enemy) {}
 
+  /// Ticks [EnemyFighter.timer] counts down from before the next attack;
+  /// null when the behavior doesn't run on such a cycle.
+  int? attackCycle(EnemyFighter enemy) => null;
+
+  /// How close the next attack is, 0 (just attacked) to 1 (attacking);
+  /// null when it can't tell. Drawn as a bar by the Visor de Combate.
+  double? readiness(EnemyFighter enemy) {
+    final total = attackCycle(enemy);
+    if (total == null) return null;
+    if (enemy.attacking) return 1;
+    return (1 - enemy.timer / total).clamp(0, 1).toDouble();
+  }
+
   /// Called after the player takes column [x] with Roubo de Área.
   void onAreaStolen(EnemyFighter enemy, BattleState battle, int x) {}
 
@@ -88,6 +101,11 @@ class MobileCannonBehavior extends EnemyBehavior {
       enemy.moveTimer = enemy.def.moveTicks;
 
   @override
+  double? readiness(EnemyFighter enemy) => enemy.attacking
+      ? 1
+      : (1 - enemy.moveTimer / enemy.def.moveTicks).clamp(0, 1).toDouble();
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     final def = enemy.def;
     final player = battle.player;
@@ -132,6 +150,9 @@ class RootBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer-- > 0) return;
     enemy.timer = cycleTicks;
@@ -155,6 +176,9 @@ class BubblerBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -191,6 +215,9 @@ class CannonBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cooldownTicks;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cooldownTicks;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -230,6 +257,10 @@ class BruteBehavior extends EnemyBehavior {
   static const chargeEvery = 4 * ticksPerSecond;
   static const warnTicks = 45;
   static const damage = 25;
+
+  @override
+  double? readiness(EnemyFighter enemy) =>
+      enemy.attacking ? 1 : (enemy.timer / chargeEvery).clamp(0, 1).toDouble();
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -359,6 +390,9 @@ class PrismBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     final twin = enemy.partner;
     final alone = twin == null || twin.isDead;
@@ -404,6 +438,9 @@ class LavaGuardBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy
     ..timer = lavaEvery
     ..moveTimer = flameEvery;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => lavaEvery;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -455,6 +492,13 @@ class ColossusBehavior extends EnemyBehavior {
   static const damage = 20;
   static const ragingHoleTicks = 20 * ticksPerSecond;
   static const stealStunTicks = ticksPerSecond;
+
+  @override
+  double? readiness(EnemyFighter enemy) => enemy.attacking
+      ? 1
+      : (enemy.timer / (enemy.stage == 1 ? hammerEvery * 3 ~/ 4 : hammerEvery))
+            .clamp(0, 1)
+            .toDouble();
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -528,6 +572,11 @@ class MaestroBehavior extends EnemyBehavior {
     Element.aqua => PanelState.ice,
     Element.elec || Element.neutral => PanelState.normal,
   };
+
+  @override
+  double? readiness(EnemyFighter enemy) => enemy.attacking
+      ? 1
+      : (enemy.moveTimer / attackEvery).clamp(0, 1).toDouble();
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -702,6 +751,9 @@ class GruntGunBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer > 0) {
       enemy.timer--;
@@ -729,6 +781,9 @@ class GruntDuckBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -783,6 +838,9 @@ class GruntMeleeBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -891,6 +949,9 @@ class GruntGrenadeBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     _wander(enemy, battle, moveTicks);
     if (enemy.timer-- > 0) return;
@@ -914,6 +975,9 @@ class GruntArtilleryBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -1045,6 +1109,9 @@ class TankBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => attackEvery;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -1201,6 +1268,9 @@ class ShieldBearerBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer > 0) enemy.timer--;
     if (enemy.timer <= 0 && enemy.pos.y == battle.player.pos.y) {
@@ -1257,6 +1327,9 @@ class HealerBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer-- > 0) {
       _wander(enemy, battle, moveTicks);
@@ -1288,6 +1361,9 @@ class SentinelBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -1322,6 +1398,9 @@ class PriestessBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = ticksPerSecond;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -1367,6 +1446,9 @@ class PortalBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = spawnEvery;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => spawnEvery;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -1420,6 +1502,10 @@ class TribeKingBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) =>
+      enemy.stage == 1 ? attackEvery * 3 ~/ 4 : attackEvery;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -1538,6 +1624,9 @@ class ShadowFlyBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer-- > 0) return;
     enemy.timer = cycleTicks;
@@ -1578,6 +1667,9 @@ class NestBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -1716,6 +1808,10 @@ class StalkerBehavior extends EnemyBehavior {
   static const damage = 30;
 
   @override
+  double? readiness(EnemyFighter enemy) =>
+      enemy.attacking ? 1 : (enemy.timer / chargeEvery).clamp(0, 1).toDouble();
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.attacking) return;
     if (++enemy.timer >= chargeEvery) {
@@ -1834,6 +1930,9 @@ class ShamanBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer-- > 0) {
       _wander(enemy, battle, moveTicks);
@@ -1913,6 +2012,10 @@ class VoidEyeBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) =>
+      enemy.stage == _awake ? attackEvery * 7 ~/ 10 : attackEvery;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -2016,6 +2119,9 @@ class HemisphereBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer-- > 0) return;
     enemy.timer = cycleTicks;
@@ -2066,6 +2172,10 @@ class ColonelBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) =>
+      enemy.stage == 1 ? attackEvery * 7 ~/ 10 : attackEvery;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -2247,6 +2357,9 @@ class ArgosBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
 
   @override
+  int? attackCycle(EnemyFighter enemy) => attackEvery;
+
+  @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.stage == 0 && enemy.hp < enemy.maxHp * alertAt) enemy.stage = 1;
     final alert = enemy.stage == 1 ? _alert : 0;
@@ -2385,6 +2498,9 @@ class HighPriestBehavior extends EnemyBehavior {
   void onBattleStart(EnemyFighter enemy) => enemy
     ..timer = attackEvery
     ..moveTimer = blinkTicks - _blinkShow;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => attackEvery;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
@@ -2555,6 +2671,9 @@ class SerpentBehavior extends EnemyBehavior {
 
   @override
   void onBattleStart(EnemyFighter enemy) => enemy.timer = attackEvery;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => attackEvery;
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {

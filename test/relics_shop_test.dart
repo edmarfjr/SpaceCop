@@ -299,7 +299,7 @@ void main() {
       ]);
       final relics = (boss.last as BossRelicSpoil).relics;
       expect(relics, hasLength(3));
-      expect(relics.every((r) => r.rarity == Rarity.rare), isTrue);
+      expect(relics.every(Relics.boss.contains), isTrue);
       expect(relics, isNot(contains(run.relics.first)));
     });
 

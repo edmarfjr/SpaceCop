@@ -145,6 +145,21 @@ class RunState {
   /// Campfire: heal 30% of max HP.
   void rest() => hp = min(maxHp, hp + (maxHp * 0.3).round());
 
+  /// Reator Instável forbids resting.
+  bool get canRest => !hasRelic(Relics.unstableReactor);
+
+  /// Every Créditos gain goes through here: none with Cofre Blindado.
+  void gainCredits(int amount) {
+    if (!hasRelic(Relics.armoredVault)) credits += amount;
+  }
+
+  /// Takes [relic], with its max HP change.
+  void addRelic(RelicDef relic) {
+    relics.add(relic);
+    maxHp = max(1, maxHp + relic.maxHp);
+    hp = min(hp, maxHp);
+  }
+
   /// Deck cards a campfire can upgrade.
   List<ChipCard> get upgradeable => [
     for (final card in deck)
@@ -169,9 +184,16 @@ class RunState {
     final relic = elite && !boss ? randomRelic() : null;
     final bossRelics = boss ? rollBossRelics() : const <RelicDef>[];
     return [
-      CreditsSpoil(elite || boss ? eliteCredits : battleCredits),
+      if (!hasRelic(Relics.armoredVault))
+        CreditsSpoil(elite || boss ? eliteCredits : battleCredits),
       if (relic != null) RelicSpoil(relic),
-      CardSpoil(rollRewards(3, elite: elite || boss, boss: boss)),
+      CardSpoil(
+        rollRewards(
+          hasRelic(Relics.etCrown) ? 2 : 3,
+          elite: elite || boss,
+          boss: boss,
+        ),
+      ),
       if (bossRelics.isNotEmpty) BossRelicSpoil(bossRelics),
     ];
   }
@@ -181,25 +203,21 @@ class RunState {
   void claim(Spoil spoil, {ChipDef? card, RelicDef? relic}) {
     switch (spoil) {
       case CreditsSpoil(:final amount):
-        credits += amount;
+        gainCredits(amount);
       case RelicSpoil(:final relic):
-        relics.add(relic);
+        addRelic(relic);
       case CardSpoil():
         deck.add(ChipCard(card!));
       case BossRelicSpoil():
-        relics.add(relic!);
+        addRelic(relic!);
     }
   }
 
-  /// Up to 3 relics the run doesn't own yet for the boss reward: rare ones
-  /// first, then uncommon and common ones if there aren't enough.
-  List<RelicDef> rollBossRelics() => [
-    for (final rarity in Rarity.values.reversed)
-      ...([
-        for (final r in Relics.all)
-          if (r.rarity == rarity && !relics.contains(r)) r,
-      ]..shuffle(random)),
-  ].take(3).toList();
+  /// Up to 3 boss relics the run doesn't own yet.
+  List<RelicDef> rollBossRelics() => ([
+    for (final r in Relics.boss)
+      if (!relics.contains(r)) r,
+  ]..shuffle(random)).take(3).toList();
 
   /// A relic the run doesn't own yet, optionally of one [kind], rarer ones
   /// less often.

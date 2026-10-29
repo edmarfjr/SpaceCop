@@ -28,6 +28,7 @@ class RelicDef {
     this.modifyHit,
     this.onHit,
     this.onChipUsed,
+    this.maxHp = 0,
   });
 
   final String id;
@@ -37,6 +38,9 @@ class RelicDef {
 
   /// How often it is offered and its shop price.
   final Rarity rarity;
+
+  /// Max HP gained (or lost) when the relic is taken.
+  final int maxHp;
 
   final void Function(BattleState battle)? onBattleStart;
 
@@ -352,8 +356,78 @@ abstract final class Relics {
     rarity: Rarity.rare,
   );
 
+  // Boss relics: offered only by a boss's spoils, a strong bonus with a
+  // drawback.
+
+  /// Read by the campfire.
+  static const unstableReactor = RelicDef(
+    id: 'unstable_reactor',
+    name: 'Reator Instável',
+    description: '+1 de Energia base. Não pode descansar na fogueira.',
+    kind: RelicKind.global,
+    onBattleStart: _extraEnergy,
+  );
+
+  /// Read by the run when it rolls a battle's spoils.
+  static const etCrown = RelicDef(
+    id: 'et_crown',
+    name: 'Coroa do Rei ET',
+    description:
+        '+1 de Energia base. Recompensas de batalha oferecem 2 cartas em vez '
+        'de 3.',
+    kind: RelicKind.global,
+    onBattleStart: _extraEnergy,
+  );
+
+  /// Read by the battle when the player moves.
+  static const heavyExoskeleton = RelicDef(
+    id: 'heavy_exoskeleton',
+    name: 'Exoesqueleto Pesado',
+    description: '+1 de Energia base. Você se move 50% mais devagar.',
+    kind: RelicKind.combat,
+    onBattleStart: _extraEnergy,
+  );
+
+  /// Read by the battle when it draws a hand and fills the gauge.
+  static const neuralImplant = RelicDef(
+    id: 'neural_implant',
+    name: 'Implante Neural',
+    description: 'Mão de 6 cartas. O medidor enche 25% mais devagar.',
+    kind: RelicKind.combat,
+  );
+
+  /// Read by the run when it gains Créditos.
+  static const armoredVault = RelicDef(
+    id: 'armored_vault',
+    name: 'Cofre Blindado',
+    description: '+1 de Energia base. Você não ganha mais Créditos.',
+    kind: RelicKind.global,
+    onBattleStart: _extraEnergy,
+  );
+
+  /// Read by the battle screen, which draws the bars.
+  static const combatVisor = RelicDef(
+    id: 'combat_visor',
+    name: 'Visor de Combate',
+    description:
+        'Mostra ao lado dos inimigos quanto falta para o próximo ataque. '
+        '−15 de HP máximo.',
+    kind: RelicKind.combat,
+    maxHp: -15,
+  );
+
+  static const boss = [
+    unstableReactor,
+    etCrown,
+    heavyExoskeleton,
+    neuralImplant,
+    armoredVault,
+    combatVisor,
+  ];
+
   /// The relic saved as [id]; null if it no longer exists.
-  static RelicDef? byId(String id) => all.where((r) => r.id == id).firstOrNull;
+  static RelicDef? byId(String id) =>
+      [...all, ...boss].where((r) => r.id == id).firstOrNull;
 
   static const all = [
     extraBattery,

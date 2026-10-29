@@ -188,7 +188,7 @@ EventFollowUp? _loot(RunState run, ChipCard? _) {
 
 EventFollowUp? _dismantle(RunState run, ChipCard? picked) {
   run.deck.remove(picked);
-  run.credits += 40;
+  run.gainCredits(40);
   return null;
 }
 
@@ -206,7 +206,7 @@ EventFollowUp? _upgradePicked(RunState run, ChipCard? picked) {
 
 EventFollowUp? _hack(RunState run, ChipCard? _) {
   if (run.random.nextBool()) return const StartFight(elite: true);
-  run.credits += 75;
+  run.gainCredits(75);
   return _notice('Acesso liberado: +75 Créditos');
 }
 
@@ -222,7 +222,7 @@ EventFollowUp? _copyFiles(RunState run, ChipCard? _) {
 
 EventFollowUp? _forceVault(RunState run, ChipCard? _) {
   _payHp(run, 15);
-  run.credits += 100;
+  run.gainCredits(100);
   return null;
 }
 
@@ -231,7 +231,7 @@ bool _explosive(ChipDef def) =>
 
 EventFollowUp? _blowVault(RunState run, ChipCard? picked) {
   run.deck.remove(picked);
-  run.credits += 150;
+  run.gainCredits(150);
   return null;
 }
 
@@ -367,7 +367,7 @@ EventFollowUp? _ambush(RunState run, ChipCard? _) =>
 
 /// Refeitório's ambush was won: 50 Créditos and 1 of 2 relics.
 OfferChoice? ambushWon(RunState run) {
-  run.credits += 50;
+  run.gainCredits(50);
   return relicChoice(run);
 }
 
@@ -386,7 +386,7 @@ const int _symbolsCredits = 60;
 
 EventFollowUp? _copySymbols(RunState run, ChipCard? _) {
   if (run.hasRelic(Relics.decoder)) {
-    run.credits += _symbolsCredits;
+    run.gainCredits(_symbolsCredits);
     return _notice('Você já entende os símbolos: +$_symbolsCredits Créditos');
   }
   run.relics.add(Relics.decoder);
@@ -459,14 +459,14 @@ EventFollowUp? _disarmNest(RunState run, ChipCard? _) =>
 
 /// Ninho do Escaravelho's swarm was beaten: [_nestCredits] Créditos.
 OfferChoice? nestWon(RunState run) {
-  run.credits += _nestCredits;
+  run.gainCredits(_nestCredits);
   return _notice('Peças valiosas no ninho: +$_nestCredits Créditos');
 }
 
 EventFollowUp? _grabPart(RunState run, ChipCard? _) {
   _payHp(run, _grabPartHp);
   if (run.hasRelic(Relics.superconductor)) {
-    run.credits += _symbolsCredits;
+    run.gainCredits(_symbolsCredits);
     return _notice('Uma bobina repetida: +$_symbolsCredits Créditos');
   }
   run.relics.add(Relics.superconductor);
@@ -484,7 +484,7 @@ EventFollowUp? _freePrisoner(RunState run, ChipCard? _) {
 }
 
 EventFollowUp? _tradeIntel(RunState run, ChipCard? _) {
-  run.credits += _intelCredits;
+  run.gainCredits(_intelCredits);
   return null;
 }
 
@@ -518,7 +518,7 @@ const int _feastCredits = 40;
 const int danceEnergy = 1;
 
 EventFollowUp? _lootFeast(RunState run, ChipCard? _) {
-  run.credits += _feastCredits;
+  run.gainCredits(_feastCredits);
   final pool = Chips.all.where((c) => c.rarity == Rarity.common).toList()
     ..shuffle(run.random);
   return CardChoice('Escolha uma carta', pool.take(3).toList());
@@ -606,7 +606,7 @@ EventFollowUp? _jump(RunState run, ChipCard? _) {
     _payHp(run, _fallHp);
     return _notice('Você escorrega e cai: −$_fallHp HP');
   }
-  run.credits += _jumpCredits;
+  run.gainCredits(_jumpCredits);
   final def = _addRandom(run, 1 + run.random.nextInt(2));
   return _notice('Do outro lado: +$_jumpCredits Créditos e ${def.name}');
 }
