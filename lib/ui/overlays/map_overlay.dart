@@ -281,16 +281,19 @@ class _NodeButtonState extends State<_NodeButton>
     with SingleTickerProviderStateMixin {
   bool _focused = false;
 
-  /// Nodes the player can pick blink, so the next step stands out.
-  late final AnimationController _blink = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 500),
-    lowerBound: 0.3,
-  );
+  /// Nodes the player can pick blink, so the next step stands out. Built
+  /// in [initState], not lazily: a lazy one first touched by [dispose]
+  /// would look up the deactivated tree for its ticker.
+  late final AnimationController _blink;
 
   @override
   void initState() {
     super.initState();
+    _blink = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+      lowerBound: 0.3,
+    );
     if (widget.onTap != null) _blink.repeat(reverse: true);
   }
 
