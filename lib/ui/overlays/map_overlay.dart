@@ -277,8 +277,28 @@ class _NodeButton extends StatefulWidget {
   State<_NodeButton> createState() => _NodeButtonState();
 }
 
-class _NodeButtonState extends State<_NodeButton> {
+class _NodeButtonState extends State<_NodeButton>
+    with SingleTickerProviderStateMixin {
   bool _focused = false;
+
+  /// Nodes the player can pick blink, so the next step stands out.
+  late final AnimationController _blink = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 500),
+    lowerBound: 0.3,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.onTap != null) _blink.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _blink.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -325,7 +345,7 @@ class _NodeButtonState extends State<_NodeButton> {
           },
         ),
       },
-      child: button,
+      child: FadeTransition(opacity: _blink, child: button),
     );
   }
 }
