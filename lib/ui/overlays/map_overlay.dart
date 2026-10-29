@@ -76,7 +76,7 @@ class _MapOverlayState extends State<MapOverlay> {
     final available = _available;
 
     return ColoredBox(
-      color: Pico.darkBlue,
+      color: Pico.black,
       child: Stack(
         children: [
           _body(run, available),
@@ -116,7 +116,13 @@ class _MapOverlayState extends State<MapOverlay> {
             Flexible(
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: Row(
+                child: 
+                Container(
+                  decoration: BoxDecoration(
+                    color: Pico.white,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child:Row(
                   children: [
                     for (final relic in run.relics)
                       GestureDetector(
@@ -141,6 +147,8 @@ class _MapOverlayState extends State<MapOverlay> {
                       ),
                   ],
                 ),
+                )
+                
               ),
             ),
           ],
@@ -313,11 +321,9 @@ class _NodeButtonState extends State<_NodeButton>
         width: MapOverlay._nodeSize,
         height: MapOverlay._nodeSize,
         decoration: BoxDecoration(
-          color: _focused
-              ? Pico.darkPurple
-              : widget.node.visited
-              ? Pico.lightGray
-              : Pico.darkGray,
+          //color: widget.node.visited
+          //    ? Pico.lightGray
+          //    : Pico.darkGray,
           borderRadius: BorderRadius.circular(2),
           border: Border.all(
             color: active
@@ -325,7 +331,7 @@ class _NodeButtonState extends State<_NodeButton>
                 : widget.isCurrent
                 ? Pico.white
                 : Colors.transparent,
-            width: _focused ? focusBorder : 0.75,
+            width: 1,//_focused ? focusBorder : 0.75,
           ),
         ),
         alignment: Alignment.center,
@@ -363,7 +369,7 @@ class _EdgePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = Pico.lavender
-      ..strokeWidth = 0.75;
+      ..strokeWidth = 1;
     for (final node in map.usedNodes) {
       for (final next in map.nextOf(node)) {
         canvas.drawLine(center(node), center(next), paint);
