@@ -83,7 +83,7 @@ void main() {
         [],
         spawns: [const EnemySpawn(Enemies.sentinel, GridPos(5, 1))],
       );
-      wait(battle, SentinelBehavior.cycleTicks + 1);
+      wait(battle, SentinelBehavior.cycleTicks ~/ 2 + 1);
       expect(warned(battle), {
         const GridPos(0, 0),
         const GridPos(1, 0),
@@ -135,7 +135,7 @@ void main() {
       );
       final portal = battle.enemies.single;
       expect(portal.shieldDown, 0);
-      wait(battle, PortalBehavior.spawnEvery + 1);
+      wait(battle, PortalBehavior.spawnEvery ~/ 2 + 1);
       expect(battle.enemies, hasLength(2));
       expect(portal.shieldDown, greaterThan(0));
     });
@@ -181,7 +181,7 @@ void main() {
 
     test('Onda Crescente spares one row of the player side', () {
       final battle = kingFight();
-      wait(battle, TribeKingBehavior.attackEvery + 1);
+      wait(battle, TribeKingBehavior.attackEvery ~/ 2 + 1);
       final cells = warned(battle);
       expect(cells, hasLength(6));
       final rows = {for (final c in cells) c.y};
@@ -194,7 +194,7 @@ void main() {
       for (final totem in totems(battle)) {
         totem.hp = 0;
       }
-      wait(battle, TribeKingBehavior.attackEvery + 1);
+      wait(battle, TribeKingBehavior.attackEvery ~/ 2 + 1);
       final bolts = warned(battle);
       expect(bolts, hasLength(TribeKingBehavior.lightningBolts));
       wait(battle, TribeKingBehavior.lightningWarn);

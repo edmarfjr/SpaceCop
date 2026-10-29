@@ -110,7 +110,7 @@ void main() {
       spawns: [const EnemySpawn(Enemies.mobileCannon, GridPos(3, 1))],
     );
     expect(warned(battle), isEmpty, reason: 'waits its move cooldown first');
-    wait(battle, Enemies.mobileCannon.moveTicks);
+    wait(battle, Enemies.mobileCannon.moveTicks ~/ 2);
     expect(warned(battle), containsAll(const [GridPos(1, 1), GridPos(0, 1)]));
     expect(battle.telegraphs.first.ticksLeft, basicWarnTicks - 1);
     expect(battle.projectiles, isEmpty);
@@ -157,8 +157,8 @@ void main() {
       [],
       spawns: [const EnemySpawn(Enemies.root, GridPos(4, 1))],
     );
-    expect(warned(battle), isEmpty, reason: 'starts with a full cooldown');
-    wait(battle, RootBehavior.cycleTicks);
+    expect(warned(battle), isEmpty, reason: 'starts with a half cooldown');
+    wait(battle, RootBehavior.cycleTicks ~/ 2);
     expect(warned(battle), {for (var y = 0; y < 3; y++) GridPos(1, y)});
     wait(battle, basicWarnTicks);
     expect(battle.player.hp, 100 - RootBehavior.damage);
@@ -229,7 +229,7 @@ void main() {
       [],
       spawns: [const EnemySpawn(Enemies.brute, GridPos(4, 1))],
     );
-    wait(battle, BruteBehavior.chargeEvery - 1);
+    wait(battle, BruteBehavior.chargeEvery ~/ 2 - 1);
     expect(warned(battle), contains(const GridPos(1, 1)));
     expect(battle.player.hp, 100);
     wait(battle, BruteBehavior.warnTicks);
@@ -244,7 +244,7 @@ void main() {
     final brute = battle.enemies.single;
     use(battle, Chips.shot);
     expect(brute.hp, 80);
-    wait(battle, BruteBehavior.chargeEvery + BruteBehavior.warnTicks);
+    wait(battle, BruteBehavior.chargeEvery ~/ 2 + BruteBehavior.warnTicks);
     expect(brute.shieldDown, greaterThan(0));
     use(battle, Chips.shot);
     expect(brute.hp, 80 - Chips.shot.damage);
@@ -368,7 +368,7 @@ void main() {
     );
     final colossus = battle.enemies.single;
     expect(battle.unitAt(const GridPos(4, 1)), colossus);
-    wait(battle, ColossusBehavior.hammerEvery + ticksPerSecond - 1);
+    wait(battle, ColossusBehavior.hammerEvery ~/ 2 + ticksPerSecond - 1);
     expect(battle.player.hp, 100 - ColossusBehavior.damage);
     expect(battle.panelAt(const GridPos(1, 0)).state, PanelState.cracked);
     expect(battle.panelAt(const GridPos(1, 1)).state, PanelState.cracked);

@@ -31,7 +31,7 @@ void main() {
 
     test('Sombra Alada blinks and lobs a ball at the player', () {
       final battle = facing(Enemies.shadowFly, const GridPos(4, 1));
-      wait(battle, ShadowFlyBehavior.cycleTicks + 1);
+      wait(battle, ShadowFlyBehavior.cycleTicks ~/ 2 + 1);
       expect(warned(battle), {battle.player.pos});
       expect(battle.enemies.single.phased, isFalse);
       wait(battle, basicWarnTicks);
@@ -52,7 +52,7 @@ void main() {
     test('Ninho hatches Carrapatos in front of it, at most 3', () {
       final battle = facing(Enemies.shadowNest, const GridPos(5, 1));
       final nest = battle.enemies.single;
-      wait(battle, NestBehavior.cycleTicks + 1);
+      wait(battle, NestBehavior.cycleTicks ~/ 2 + 1);
       expect(battle.enemies.map((e) => e.def), [
         Enemies.shadowNest,
         Enemies.shadowTick,
@@ -111,7 +111,7 @@ void main() {
 
     test('Espreitador charges down the row and cracks it', () {
       final battle = facing(Enemies.stalker, const GridPos(4, 1));
-      wait(battle, StalkerBehavior.chargeEvery);
+      wait(battle, StalkerBehavior.chargeEvery ~/ 2);
       expect(warned(battle), contains(battle.player.pos));
       expect(battle.enemies.single.phased, isFalse);
       wait(battle, StalkerBehavior.warnTicks);
@@ -159,7 +159,7 @@ void main() {
       final battle = eyeFight();
       final eye = battle.enemies.single;
       expect(eye.phased, isTrue);
-      wait(battle, VoidEyeBehavior.attackEvery + 1);
+      wait(battle, VoidEyeBehavior.attackEvery ~/ 2 + 1);
       expect(eye.phased, isFalse, reason: 'solid while it attacks');
       expect(warned(battle), {
         const GridPos(0, 1),

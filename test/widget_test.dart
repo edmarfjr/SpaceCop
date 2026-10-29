@@ -259,8 +259,8 @@ void main() {
       }
       expect(enemy.pos, const GridPos(5, 0));
       expect(enemy.state, EnemyState.idle);
-      // Its starting move cooldown only runs down once the stun is over.
-      for (var i = 0; i < enemy.def.moveTicks; i++) {
+      // Its starting (half) move cooldown only runs down once the stun is over.
+      for (var i = 0; i < enemy.def.moveTicks ~/ 2; i++) {
         battle.tick();
       }
       expect(enemy.pos, const GridPos(5, 0));

@@ -78,7 +78,7 @@ void main() {
           )
           ..setPanel(const GridPos(3, 1), PanelState.lava)
           ..setPanel(const GridPos(0, 0), PanelState.lava);
-    wait(battle, fireEnemy.moveTicks + 89);
+    wait(battle, fireEnemy.moveTicks ~/ 2 + 89);
     final enemy = battle.enemies.single;
     expect(enemy.hp, 100);
     expect(battle.player.hp, 100 - 13);
