@@ -10,6 +10,12 @@ import 'relics.dart';
 const int battleCredits = 20;
 const int eliteCredits = 40;
 
+/// Créditos the Chip de Recompensa adds to each won battle.
+const int rewardChipCredits = 10;
+
+/// HP the Kit Médico heals after a won battle.
+const int medKitHeal = 6;
+
 /// Créditos a new run starts with.
 const int startCredits = 99;
 
@@ -145,6 +151,16 @@ class RunState {
   /// Campfire: heal 30% of max HP.
   void rest() => hp = min(maxHp, hp + (maxHp * 0.3).round());
 
+  /// A battle ended with the player at [hp]: the Kit Médico heals after a
+  /// win, and a Núcleo Fênix that was [phoenixUsed] goes out.
+  void endBattle(int hp, {required bool won, bool phoenixUsed = false}) {
+    this.hp = hp;
+    if (won && hasRelic(Relics.medKit)) {
+      this.hp = min(maxHp, this.hp + medKitHeal);
+    }
+    if (phoenixUsed) relics.remove(Relics.phoenixCore);
+  }
+
   /// Reator Instável forbids resting.
   bool get canRest => !hasRelic(Relics.unstableReactor);
 
@@ -185,7 +201,10 @@ class RunState {
     final bossRelics = boss ? rollBossRelics() : const <RelicDef>[];
     return [
       if (!hasRelic(Relics.armoredVault))
-        CreditsSpoil(elite || boss ? eliteCredits : battleCredits),
+        CreditsSpoil(
+          (elite || boss ? eliteCredits : battleCredits) +
+              (hasRelic(Relics.rewardChip) ? rewardChipCredits : 0),
+        ),
       if (relic != null) RelicSpoil(relic),
       CardSpoil(
         rollRewards(

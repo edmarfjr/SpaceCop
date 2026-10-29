@@ -169,7 +169,10 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
         shop = Shop(run);
         _goTo(GamePhase.shop);
       case NodeType.event:
-        switch (rollUnknownRoom(run.random)) {
+        switch (rollUnknownRoom(
+          run.random,
+          noFights: run.hasRelic(Relics.routeRadar),
+        )) {
           case UnknownRoom.event:
             // TODO: events shouldn't repeat in a run; they still do while
             // there are only a few.
@@ -213,7 +216,11 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   }
 
   void _onBattleFinished(BattleState battle) {
-    run.hp = battle.player.hp;
+    run.endBattle(
+      battle.player.hp,
+      won: battle.phase == BattlePhase.won,
+      phoenixUsed: battle.phoenixUsed,
+    );
     final eliteFight = _eliteFight;
     final fightReward = _fightReward;
     _eliteFight = false;

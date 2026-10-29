@@ -150,6 +150,12 @@ double _phaseTuner(
 void _armorPlate(BattleState battle) =>
     battle.spawnObstacle(ObstacleKind.rock, null);
 
+void _humidifier(BattleState battle) {
+  for (final enemy in battle.enemies) {
+    enemy.applyStatus(Status.wet, wetTicks);
+  }
+}
+
 abstract final class Relics {
   static const extraBattery = RelicDef(
     id: 'extra_battery',
@@ -425,6 +431,138 @@ abstract final class Relics {
     combatVisor,
   ];
 
+  // Comum.
+
+  /// Read by the run when a battle is won.
+  static const medKit = RelicDef(
+    id: 'med_kit',
+    name: 'Kit Médico',
+    description: 'Cura 6 HP ao fim de cada luta vencida.',
+    kind: RelicKind.global,
+  );
+
+  /// Read by the battle when the player is hit.
+  static const helmet = RelicDef(
+    id: 'helmet',
+    name: 'Capacete Tático',
+    description: 'Reduz em 1 todo dano que você sofre.',
+    kind: RelicKind.combat,
+  );
+
+  /// Read by the battle when it prices a card.
+  static const quickHolster = RelicDef(
+    id: 'quick_holster',
+    name: 'Coldre Rápido',
+    description: 'A 1ª carta de cada luta custa 0.',
+    kind: RelicKind.combat,
+  );
+
+  // Incomum.
+
+  static const humidifier = RelicDef(
+    id: 'humidifier',
+    name: 'Umidificador',
+    description: 'Os inimigos começam cada luta Molhados.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+    onBattleStart: _humidifier,
+  );
+
+  /// Read by the battle when it sets up the enemies.
+  static const extraFuel = RelicDef(
+    id: 'extra_fuel',
+    name: 'Combustível Extra',
+    description: 'Queimando dura o dobro nos inimigos.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+  );
+
+  /// Read by the battle when the player is hit.
+  static const reactiveSpikes = RelicDef(
+    id: 'reactive_spikes',
+    name: 'Espinhos Reativos',
+    description: 'Quando você sofre dano, inimigos colados em você levam 5.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+  );
+
+  /// Read by the map when a "?" node is entered.
+  static const routeRadar = RelicDef(
+    id: 'route_radar',
+    name: 'Radar de Rota',
+    description: 'Nós "?" nunca escondem combates.',
+    kind: RelicKind.global,
+    rarity: Rarity.uncommon,
+  );
+
+  /// Read by the run when it rolls a battle's spoils.
+  static const rewardChip = RelicDef(
+    id: 'reward_chip',
+    name: 'Chip de Recompensa',
+    description: '+10 Créditos por batalha vencida.',
+    kind: RelicKind.global,
+    rarity: Rarity.uncommon,
+  );
+
+  // Raro.
+
+  /// Read by the battle when the player falls; spent once used.
+  static const phoenixCore = RelicDef(
+    id: 'phoenix_core',
+    name: 'Núcleo Fênix',
+    description:
+        'Uma vez por run, ao morrer, revive com 30% do HP. Depois se apaga.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+  );
+
+  /// Read by the battle every tick.
+  static const escortDrone = RelicDef(
+    id: 'escort_drone',
+    name: 'Drone de Escolta',
+    description: 'A cada 5 s, dispara 5 de dano no primeiro inimigo da linha.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+  );
+
+  /// Read by the battle when a card is used.
+  static const doubleTrigger = RelicDef(
+    id: 'double_trigger',
+    name: 'Gatilho Duplo',
+    description: 'A cada 8 cartas usadas, a próxima roda duas vezes.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+  );
+
+  /// Read by the battle when it sets up the enemies.
+  static const elementalAmp = RelicDef(
+    id: 'elemental_amp',
+    name: 'Amplificador Elemental',
+    description:
+        'Status nos inimigos (Queimando, Molhado, Atordoado, Enraizado) '
+        'duram o dobro.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+  );
+
+  /// Read by the battle when the player is hit.
+  static const absorbPlate = RelicDef(
+    id: 'absorb_plate',
+    name: 'Placa de Absorção',
+    description: 'Ao sofrer dano, ganha 1 de Energia (uma vez por mão).',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+  );
+
+  /// Read by the battle on lava panels.
+  static const thermalInsulator = RelicDef(
+    id: 'thermal_insulator',
+    name: 'Isolante Térmico',
+    description: 'Painéis de lava não causam dano a você.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+  );
+
   /// The relic saved as [id]; null if it no longer exists.
   static RelicDef? byId(String id) =>
       [...all, ...boss].where((r) => r.id == id).firstOrNull;
@@ -453,5 +591,19 @@ abstract final class Relics {
     phaseTuner,
     decoder,
     luckyChip,
+    medKit,
+    helmet,
+    quickHolster,
+    humidifier,
+    extraFuel,
+    reactiveSpikes,
+    routeRadar,
+    rewardChip,
+    phoenixCore,
+    escortDrone,
+    doubleTrigger,
+    elementalAmp,
+    absorbPlate,
+    thermalInsulator,
   ];
 }

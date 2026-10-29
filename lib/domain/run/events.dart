@@ -132,13 +132,16 @@ class EventDef {
 /// What a "?" node turns out to be once entered.
 enum UnknownRoom { event, battle, elite, shop }
 
-/// 55% event, 20% normal battle, 10% elite, 15% shop.
-UnknownRoom rollUnknownRoom(Random random) => switch (random.nextInt(100)) {
-  < 55 => UnknownRoom.event,
-  < 75 => UnknownRoom.battle,
-  < 85 => UnknownRoom.elite,
-  _ => UnknownRoom.shop,
-};
+/// 55% event, 20% normal battle, 10% elite, 15% shop. With [noFights]
+/// (Radar de Rota) the fights become events.
+UnknownRoom rollUnknownRoom(Random random, {bool noFights = false}) =>
+    switch (random.nextInt(100)) {
+      < 55 => UnknownRoom.event,
+      < 85 when noFights => UnknownRoom.event,
+      < 75 => UnknownRoom.battle,
+      < 85 => UnknownRoom.elite,
+      _ => UnknownRoom.shop,
+    };
 
 /// HP costs never kill: the run keeps at least 1 HP.
 void _payHp(RunState run, int amount) => run.hp = max(1, run.hp - amount);

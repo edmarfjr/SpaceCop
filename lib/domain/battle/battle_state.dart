@@ -21,6 +21,19 @@ const int heavyMoveCooldown = 8;
 
 /// Percent the Implante Neural slows the gauge down.
 const int neuralGaugeSlow = 25;
+
+/// Share of max HP the Núcleo Fênix brings the player back with.
+const double phoenixHeal = 0.3;
+
+/// Drone de Escolta: a shot this strong this often.
+const int droneEvery = 5 * ticksPerSecond;
+const int droneDamage = 5;
+
+/// Damage the Espinhos Reativos deal to each enemy next to the player.
+const int spikesDamage = 5;
+
+/// Gatilho Duplo: every this many cards, the next one runs twice.
+const int doubleTriggerEvery = 8;
 const int playerAttackCooldown = 10;
 
 /// Cards drawn from the top of the deck on each refill.
@@ -292,6 +305,11 @@ class Fighter {
   /// Ticks left on each active status.
   final Map<Status, int> statuses = {};
 
+  /// Multiplies the statuses applied to this unit, and Queimando on top:
+  /// the player's relics, on enemies.
+  int statusScale = 1;
+  int burnScale = 1;
+
   bool get isDead => hp <= 0;
 
   /// Whether pushes and pulls can move this unit.
@@ -307,6 +325,7 @@ class Fighter {
 
   /// Re-applying keeps the longer of the two durations.
   void applyStatus(Status status, int ticks) {
+    ticks *= statusScale * (status == Status.burning ? burnScale : 1);
     statuses[status] = max(statuses[status] ?? 0, ticks);
   }
 
@@ -532,7 +551,7 @@ class BattleState {
        random = random ?? Random(),
        deck = Deck(deckCards, random: random) {
     for (final spawn in encounter.spawns) {
-      final enemy = EnemyFighter(spawn.def, spawn.pos);
+      final enemy = _boostStatuses(EnemyFighter(spawn.def, spawn.pos));
       spawn.def.behavior.onBattleStart(enemy);
       if (openingStunTicks > 0) {
         enemy.applyStatus(Status.stunned, openingStunTicks);
@@ -646,6 +665,18 @@ class BattleState {
   /// The Armadura already stopped this battle's first hit.
   bool armorUsed = false;
 
+  /// The Coldre Rápido already paid for this battle's first card.
+  bool holsterUsed = false;
+
+  /// The Placa de Absorção already gave its Energia this hand.
+  bool plateUsed = false;
+
+  /// Cards used this battle, for the Gatilho Duplo.
+  int cardsUsed = 0;
+
+  /// The Núcleo Fênix brought the player back; the run drops it.
+  bool phoenixUsed = false;
+
   /// Hundredths of a gauge tick not filled yet: each tick adds 100 plus
   /// the speed bonuses.
   int _gaugeProgress = 0;
@@ -684,7 +715,11 @@ class BattleState {
     if (index >= 0 && index < hand.length) selectedIndex = index;
   }
 
-  bool canAfford(ChipCard card) => card.def.cost <= energy;
+  bool canAfford(ChipCard card) => costOf(card) <= energy;
+
+  /// What [card] costs now: 0 for the first one with the Coldre Rápido.
+  int costOf(ChipCard card) =>
+      hasRelic(Relics.quickHolster) && !holsterUsed ? 0 : card.def.cost;
 
   // ---------------------------------------------------------------- panels
 
@@ -758,6 +793,7 @@ class BattleState {
     energy = energyMax + carried;
     energyBonus = 0;
     projectileRefunded = false;
+    plateUsed = false;
     selectedIndex = 0;
     gauge = 0;
     waitingForPlayer = pauseOnNewHand;
@@ -792,6 +828,19 @@ class BattleState {
     if (_chainTicks > 0 && --_chainTicks == 0) chainCount = 0;
     _refillHand();
     _updatePlayer(input);
+    if (hasRelic(Relics.escortDrone) && ticks % droneEvery == 0) {
+      projectiles.add(
+        Projectile(
+          team: Team.player,
+          pos: player.pos + const GridPos(1, 0),
+          dir: 1,
+          stepTicks: 0,
+          damage: droneDamage,
+          pattern: const [GridPos(0, 0)],
+          element: Element.neutral,
+        ),
+      );
+    }
     runes.remove(player.pos);
     _updateEnemies();
     _updateObstacles();
@@ -825,6 +874,11 @@ class BattleState {
     enemies.removeWhere((e) => e.isDead);
     obstacles.removeWhere((o) => o.isDead);
 
+    if (player.isDead && hasRelic(Relics.phoenixCore) && !phoenixUsed) {
+      phoenixUsed = true;
+      player.hp = (player.maxHp * phoenixHeal).round();
+      events.add(BattleEvent(BattleEventKind.blocked, unit: player));
+    }
     if (player.isDead) {
       phase = BattlePhase.lost;
       events.add(const BattleEvent(BattleEventKind.lost));
@@ -991,7 +1045,8 @@ class BattleState {
         if (panel.state == PanelState.grass) {
           unit.hp = min(unit.maxHp, unit.hp + grassHeal);
         } else if (panel.state == PanelState.lava &&
-            unit.element != Element.fire) {
+            unit.element != Element.fire &&
+            !(unit == player && hasRelic(Relics.thermalInsulator))) {
           damage(unit, lavaDamage);
         }
       }
@@ -1147,7 +1202,12 @@ class BattleState {
     overclocked = false;
     _activate(def);
     if (twice) _activate(def);
-    energy -= def.cost;
+    energy -= costOf(card);
+    holsterUsed = true;
+    if (hasRelic(Relics.doubleTrigger) &&
+        ++cardsUsed % doubleTriggerEvery == 0) {
+      overclocked = true;
+    }
     if (def.exhaust && !(hasRelic(Relics.tacticalPack) && !packUsed)) {
       deck.exhaust(card);
     } else {
@@ -1912,8 +1972,30 @@ class BattleState {
       events.add(BattleEvent(BattleEventKind.blocked, unit: target));
       return;
     }
+    if (target is PlayerFighter && total > 0) {
+      if (hasRelic(Relics.helmet)) total = max(0, total - 1);
+      if (total > 0) _playerHurt();
+    }
     target.takeDamage(total);
     if (total > 0) hits.add((target: target, amount: total));
+  }
+
+  /// The player relics that answer a hit: Placa de Absorção and Espinhos
+  /// Reativos.
+  void _playerHurt() {
+    if (hasRelic(Relics.absorbPlate) && !plateUsed) {
+      plateUsed = true;
+      energy++;
+    }
+    if (hasRelic(Relics.reactiveSpikes)) {
+      for (final enemy in List.of(enemies)) {
+        if (enemy.cells.any(
+          (c) => (c.x - player.pos.x).abs() + (c.y - player.pos.y).abs() == 1,
+        )) {
+          damage(enemy, spikesDamage);
+        }
+      }
+    }
   }
 
   /// How much a card of [family] hurts [target]: by what it is made of,
@@ -2036,10 +2118,16 @@ class BattleState {
 
   /// Adds an enemy mid-battle (Colossus fist, Maestro notes).
   EnemyFighter summon(EnemyDef def, GridPos pos, {EnemyFighter? linkedTo}) {
-    final unit = EnemyFighter(def, pos)..linkedTo = linkedTo;
+    final unit = _boostStatuses(EnemyFighter(def, pos))..linkedTo = linkedTo;
     enemies.add(unit);
     return unit;
   }
+
+  /// Amplificador Elemental and Combustível Extra lengthen the statuses
+  /// [enemy] takes.
+  EnemyFighter _boostStatuses(EnemyFighter enemy) => enemy
+    ..statusScale = hasRelic(Relics.elementalAmp) ? 2 : 1
+    ..burnScale = hasRelic(Relics.extraFuel) ? 2 : 1;
 
   /// Obstacles with a lifetime expire; every second turrets fire an Elec
   /// shot down their row and tesla coils zap the first enemy of theirs.
