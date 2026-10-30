@@ -113,7 +113,7 @@ class MobileCannonBehavior extends EnemyBehavior {
       case EnemyState.idle:
         if (enemy.moveTimer > 0) {
           enemy.moveTimer--;
-        } else if (enemy.pos.y == player.pos.y) {
+        } else if (enemy.pos.y == battle.aimPos.y) {
           enemy
             ..attackTimer = def.attackTicks
             ..state = EnemyState.attacking;
@@ -127,7 +127,7 @@ class MobileCannonBehavior extends EnemyBehavior {
           enemy.state = EnemyState.moving;
         }
       case EnemyState.moving:
-        battle.tryMove(enemy, GridPos(0, (player.pos.y - enemy.pos.y).sign));
+        battle.tryMove(enemy, GridPos(0, (battle.aimPos.y - enemy.pos.y).sign));
         enemy
           ..moveTimer = def.moveTicks
           ..state = EnemyState.idle;
@@ -156,7 +156,7 @@ class RootBehavior extends EnemyBehavior {
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer-- > 0) return;
     enemy.timer = cycleTicks;
-    final cells = _column(battle.player.pos.x);
+    final cells = _column(battle.aimPos.x);
     battle.schedule(enemy, cells, basicWarnTicks, lob: Lob.ball, () {
       for (final cell in cells) {
         battle.strike(cell, damage, Team.player, enemy.element);
@@ -196,7 +196,7 @@ class BubblerBehavior extends EnemyBehavior {
     }
     if (enemy.timer-- > 0) return;
     enemy.timer = cycleTicks;
-    final aim = battle.player.pos;
+    final aim = battle.aimPos;
     battle.schedule(enemy, [aim], basicWarnTicks, lob: Lob.ball, () {
       battle.strike(aim, damage, Team.player, enemy.element);
       if (battle.panelAt(aim).walkable) battle.setPanel(aim, PanelState.ice);
@@ -225,7 +225,7 @@ class CannonBehavior extends EnemyBehavior {
       enemy.timer--;
       return;
     }
-    if (battle.player.pos.y != enemy.pos.y) {
+    if (battle.aimPos.y != enemy.pos.y) {
       enemy
         ..attackTimer = 0
         ..state = EnemyState.idle;
@@ -284,7 +284,7 @@ class BruteBehavior extends EnemyBehavior {
       return;
     }
     if (enemy.moveTimer-- > 0) return;
-    final dy = (battle.player.pos.y - enemy.pos.y).sign;
+    final dy = (battle.aimPos.y - enemy.pos.y).sign;
     if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
     enemy.moveTimer = enemy.def.moveTicks;
   }
@@ -368,7 +368,7 @@ class DiggerBehavior extends EnemyBehavior {
           ..stage = _up
           ..buried = 0
           ..timer = upTicks;
-        final aim = battle.player.pos;
+        final aim = battle.aimPos;
         battle.schedule(
           enemy,
           [aim],
@@ -472,7 +472,7 @@ class LavaGuardBehavior extends EnemyBehavior {
     }
     if (enemy.moveTimer-- > 0) return;
     enemy.moveTimer = flameEvery;
-    final y = battle.player.pos.y;
+    final y = battle.aimPos.y;
     final cells = [GridPos(1, y), GridPos(2, y)];
     battle.schedule(enemy, cells, ticksPerSecond, lob: Lob.ball, () {
       final amount = battle.boosted(enemy, damage, Element.fire);
@@ -523,8 +523,8 @@ class ColossusBehavior extends EnemyBehavior {
     final every = enemy.stage == 1 ? hammerEvery * 3 ~/ 4 : hammerEvery;
     if (++enemy.timer < every) return;
     enemy.timer = 0;
-    final cells = _column(battle.player.pos.x);
-    final fistAt = GridPos(playerColumns, battle.player.pos.y);
+    final cells = _column(battle.aimPos.x);
+    final fistAt = GridPos(playerColumns, battle.aimPos.y);
     battle.schedule(enemy, cells, ticksPerSecond, lob: Lob.ball, () {
       for (final cell in cells) {
         battle.strike(cell, damage, Team.player, enemy.element);
@@ -609,7 +609,7 @@ class MaestroBehavior extends EnemyBehavior {
     // Single-panel attack of the current element.
     if (++enemy.moveTimer >= attackEvery) {
       enemy.moveTimer = 0;
-      final aim = battle.player.pos;
+      final aim = battle.aimPos;
       battle.schedule(
         enemy,
         [aim],
@@ -709,7 +709,7 @@ void _burst(
 /// Ready to attack but not in the player's row: steps toward it every
 /// [moveTicks] instead of wandering. False when already lined up.
 bool _seekRow(EnemyFighter enemy, BattleState battle, int moveTicks) {
-  final dy = (battle.player.pos.y - enemy.pos.y).sign;
+  final dy = (battle.aimPos.y - enemy.pos.y).sign;
   if (dy == 0) return false;
   if (enemy.moveTimer-- <= 0) {
     enemy.moveTimer = moveTicks;
@@ -723,7 +723,7 @@ bool _seekRow(EnemyFighter enemy, BattleState battle, int moveTicks) {
 void _flee(EnemyFighter enemy, BattleState battle, int moveTicks) {
   if (enemy.moveTimer-- > 0) return;
   enemy.moveTimer = moveTicks;
-  final player = battle.player.pos;
+  final player = battle.aimPos;
   int distance(GridPos p) => (p.y - player.y).abs() * 2 + p.x;
   final steps = [
     const GridPos(1, 0),
@@ -882,7 +882,7 @@ class GruntMeleeBehavior extends EnemyBehavior {
       return;
     }
     if (_seekRow(enemy, battle, wanderTicks)) return;
-    final aim = battle.player.pos;
+    final aim = battle.aimPos;
     final spot = aim + const GridPos(1, 0);
     if (!spot.inBounds) {
       enemy.timer = retryTicks;
@@ -965,7 +965,7 @@ class GruntGrenadeBehavior extends EnemyBehavior {
     _wander(enemy, battle, moveTicks);
     if (enemy.timer-- > 0) return;
     enemy.timer = cycleTicks;
-    final aim = battle.player.pos;
+    final aim = battle.aimPos;
     battle.schedule(enemy, [aim], basicWarnTicks, lob: Lob.ball, () {
       battle.strike(aim, damage, Team.player, enemy.element);
       if (battle.panelAt(aim).walkable) battle.setPanel(aim, PanelState.lava);
@@ -992,7 +992,7 @@ class GruntArtilleryBehavior extends EnemyBehavior {
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer-- > 0) return;
     enemy.timer = cycleTicks;
-    final aim = battle.player.pos;
+    final aim = battle.aimPos;
     battle.schedule(
       enemy,
       [aim],
@@ -1155,7 +1155,7 @@ class TankBehavior extends EnemyBehavior {
     }
     // [EnemyFighter.timer] goes negative while lining up.
     var next = chargeOnly ? 2 : enemy.attackTimer % 3;
-    if (next != 1 && enemy.pos.y != battle.player.pos.y) {
+    if (next != 1 && enemy.pos.y != battle.aimPos.y) {
       if (chargeOnly || enemy.timer > -seekLimitTicks) {
         enemy.timer--;
         _seekRow(enemy, battle, seekTicks);
@@ -1290,7 +1290,7 @@ class ShieldBearerBehavior extends EnemyBehavior {
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.timer > 0) enemy.timer--;
-    if (enemy.timer <= 0 && enemy.pos.y == battle.player.pos.y) {
+    if (enemy.timer <= 0 && enemy.pos.y == battle.aimPos.y) {
       // The shield drops to fire, and stays down a moment after.
       enemy
         ..timer = cycleTicks
@@ -1439,7 +1439,7 @@ class PriestessBehavior extends EnemyBehavior {
   }
 
   static void _cast(EnemyFighter caster, BattleState battle, int ticks) {
-    final aim = battle.player.pos;
+    final aim = battle.aimPos;
     battle.schedule(
       caster,
       [aim],
@@ -1530,7 +1530,7 @@ class TribeKingBehavior extends EnemyBehavior {
     if (enemy.stage == 0 && enemy.hp * 2 < enemy.maxHp) _rage(enemy, battle);
     if (!enemy.attacking && enemy.moveTimer-- <= 0) {
       enemy.moveTimer = moveTicks;
-      final dy = (battle.player.pos.y - enemy.pos.y).sign;
+      final dy = (battle.aimPos.y - enemy.pos.y).sign;
       if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
     }
     if (enemy.attacking || enemy.timer-- > 0) return;
@@ -1651,7 +1651,7 @@ class ShadowFlyBehavior extends EnemyBehavior {
     if (spots.isNotEmpty) {
       enemy.pos = spots[battle.random.nextInt(spots.length)];
     }
-    final aim = battle.player.pos;
+    final aim = battle.aimPos;
     battle.schedule(
       enemy,
       [aim],
@@ -1779,7 +1779,7 @@ class PredatorBehavior extends EnemyBehavior {
         ..timer = hiddenTicks;
       return;
     }
-    final row = battle.player.pos.y;
+    final row = battle.aimPos.y;
     final free = _freeEnemyPanels(battle);
     final inRow = free.where((c) => c.y == row).toList()
       ..sort((a, b) => a.x.compareTo(b.x));
@@ -1793,7 +1793,7 @@ class PredatorBehavior extends EnemyBehavior {
       ..hidden = false
       ..stage = _visible
       ..timer = visibleTicks;
-    final cells = _column(battle.player.pos.x);
+    final cells = _column(battle.aimPos.x);
     battle.schedule(enemy, cells, minWarnTicks, () {
       for (final cell in cells) {
         battle.strike(cell, damage, Team.player, enemy.element);
@@ -1847,7 +1847,7 @@ class StalkerBehavior extends EnemyBehavior {
       return;
     }
     if (enemy.moveTimer-- > 0) return;
-    final dy = (battle.player.pos.y - enemy.pos.y).sign;
+    final dy = (battle.aimPos.y - enemy.pos.y).sign;
     if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
     enemy.moveTimer = enemy.def.moveTicks;
   }
@@ -1908,7 +1908,7 @@ class TrapBehavior extends EnemyBehavior {
       _wander(enemy, battle, moveTicks);
       return;
     }
-    final aim = battle.player.pos;
+    final aim = battle.aimPos;
     enemy
       ..stage = _diving
       ..home = enemy.pos;
@@ -1991,7 +1991,7 @@ class SphereBehavior extends EnemyBehavior {
     enemy
       ..timer = gapTicks
       ..stage += 1;
-    final aim = battle.player.pos;
+    final aim = battle.aimPos;
     battle.schedule(
       enemy,
       [aim],
@@ -2058,7 +2058,7 @@ class VoidEyeBehavior extends EnemyBehavior {
     }
     if (!enemy.attacking && enemy.moveTimer-- <= 0) {
       enemy.moveTimer = moveTicks;
-      final y = battle.player.pos.y;
+      final y = battle.aimPos.y;
       final dy = y < enemy.pos.y
           ? -1
           : y > enemy.pos.y + 1
@@ -2070,7 +2070,7 @@ class VoidEyeBehavior extends EnemyBehavior {
     enemy.timer = enemy.stage == _awake ? attackEvery * 7 ~/ 10 : attackEvery;
     switch (enemy.attackTimer++ % 3) {
       case 0:
-        _gaze(enemy, battle, battle.player.pos, 0);
+        _gaze(enemy, battle, battle.aimPos, 0);
         if (enemy.stage == _awake) {
           final side = _side(battle, Team.player);
           _gaze(
@@ -2209,7 +2209,7 @@ class ColonelBehavior extends EnemyBehavior {
       enemy.pose = enemy.stage == 1 ? furyPose : idlePose;
       if (enemy.moveTimer-- <= 0) {
         enemy.moveTimer = moveTicks;
-        final dy = (battle.player.pos.y - enemy.pos.y).sign;
+        final dy = (battle.aimPos.y - enemy.pos.y).sign;
         if (dy != 0) battle.tryMove(enemy, GridPos(0, dy));
       }
     }
@@ -2289,10 +2289,10 @@ class ColonelBehavior extends EnemyBehavior {
   /// Contrato: the player's panel, and another one in Fury.
   void _contract(EnemyFighter enemy, BattleState battle) {
     enemy.pose = radioPose;
-    final cells = [battle.player.pos];
+    final cells = [battle.aimPos];
     if (enemy.stage == 1) {
       final others = _side(battle, Team.player)
-        ..remove(battle.player.pos)
+        ..remove(battle.aimPos)
         ..shuffle(battle.random);
       cells.addAll(others.take(1));
     }
@@ -2306,7 +2306,7 @@ class ColonelBehavior extends EnemyBehavior {
   /// Coquetel Molotov: a cross around the player turns to lava.
   void _molotov(EnemyFighter enemy, BattleState battle) {
     enemy.pose = throwPose;
-    final center = battle.player.pos;
+    final center = battle.aimPos;
     final cross = [
       for (final offset in const [
         GridPos(0, 0),
@@ -2773,7 +2773,7 @@ class SerpentBehavior extends EnemyBehavior {
   /// One step of the head, toward the player's row when it can; each
   /// segment takes the panel of the one before it.
   void _slither(EnemyFighter enemy, BattleState battle) {
-    final dy = (battle.player.pos.y - enemy.pos.y).sign;
+    final dy = (battle.aimPos.y - enemy.pos.y).sign;
     final options = [
       for (final step in [
         if (dy != 0) GridPos(0, dy),
@@ -2810,7 +2810,7 @@ class SerpentBehavior extends EnemyBehavior {
 
   /// Mergulho: down, out under the player's panel, back up exposed.
   void _dive(EnemyFighter enemy, BattleState battle, {required bool again}) {
-    final aim = battle.player.pos;
+    final aim = battle.aimPos;
     _setHidden(enemy, true);
     battle.schedule(enemy, [aim], diveWarn, () {
       battle.strike(aim, diveDamage, Team.player, enemy.element);
@@ -2831,9 +2831,9 @@ class SerpentBehavior extends EnemyBehavior {
 
   void _sand(EnemyFighter enemy, BattleState battle) {
     final others = _side(battle, Team.player)
-      ..remove(battle.player.pos)
+      ..remove(battle.aimPos)
       ..shuffle(battle.random);
-    final cells = [battle.player.pos, ...others.take(sandCells - 1)];
+    final cells = [battle.aimPos, ...others.take(sandCells - 1)];
     battle.schedule(enemy, cells, spellWarn, kind: TelegraphKind.terrain, () {
       for (final cell in cells) {
         battle.panelAt(cell).smokeTicks = sandTicks;

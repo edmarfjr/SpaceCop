@@ -145,6 +145,7 @@ abstract final class SpriteFiles {
     ObstacleKind.reflector: 'chips/stasisGen.png',
     ObstacleKind.tesla: 'chips/teslaCoil.png',
     ObstacleKind.medic: 'obstacles/drone.png',
+    ObstacleKind.decoy: player,
   };
 
   static final chips = <String, String>{

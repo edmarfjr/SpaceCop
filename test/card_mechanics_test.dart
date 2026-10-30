@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:starcop/domain/battle/battle_state.dart';
+import 'package:starcop/domain/battle/enemies.dart';
+import 'package:starcop/domain/battle/enemy_behaviors.dart';
 import 'package:starcop/domain/chips/battle_chip.dart';
 import 'package:starcop/domain/chips/chip_library.dart';
 import 'package:starcop/domain/element.dart';
@@ -206,6 +208,27 @@ void main() {
       expect(battle.enemies.single.hp, 100);
       wait(battle, 3 * ticksPerSecond);
       expect(battle.enemies.single.hp, 100 - boom(30));
+    });
+  });
+
+  group('phase 4', () {
+    test('Holograma draws the Raiz strike, then the aim goes back', () {
+      final battle = battleWith(
+        [Chips.hologram],
+        spawns: [const EnemySpawn(Enemies.root, GridPos(4, 1))],
+      );
+      use(battle, Chips.hologram);
+      final decoy = battle.obstacles.single;
+      expect(decoy.pos, const GridPos(2, 1));
+      expect(battle.aimPos, decoy.pos);
+      wait(battle, RootBehavior.cycleTicks ~/ 2 + basicWarnTicks);
+      expect(decoy.hp, decoyHp - RootBehavior.damage);
+      expect(battle.player.hp, 100);
+      wait(battle, decoyTicks);
+      expect(battle.obstacles, isEmpty);
+      expect(battle.aimPos, battle.player.pos);
+      wait(battle, RootBehavior.cycleTicks + basicWarnTicks);
+      expect(battle.player.hp, lessThan(100));
     });
   });
 }

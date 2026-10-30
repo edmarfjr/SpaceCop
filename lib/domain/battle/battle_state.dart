@@ -102,6 +102,8 @@ const int teslaZapDamage = 5;
 const int medicHp = 20;
 const int medicTicks = 8 * ticksPerSecond;
 const int medicHeal = 2;
+const int decoyHp = 20;
+const int decoyTicks = 5 * ticksPerSecond;
 
 /// Mira Laser: a marked unit takes this much more from each hit.
 const int markBonus = 5;
@@ -175,7 +177,16 @@ enum HitKind {
   area,
 }
 
-enum ObstacleKind { rock, barricade, mine, turret, reflector, tesla, medic }
+enum ObstacleKind {
+  rock,
+  barricade,
+  mine,
+  turret,
+  reflector,
+  tesla,
+  medic,
+  decoy,
+}
 
 /// Red outlines warn of damage, blue ones of terrain changes.
 enum TelegraphKind { damage, terrain }
@@ -798,6 +809,16 @@ class BattleState {
   // ----------------------------------------------------------------- units
 
   Iterable<Fighter> get units => [player, ...enemies, ...obstacles];
+
+  /// Where enemies aim: a standing Holograma, else the player.
+  GridPos get aimPos {
+    for (final obstacle in obstacles) {
+      if (obstacle.kind == ObstacleKind.decoy && !obstacle.isDead) {
+        return obstacle.pos;
+      }
+    }
+    return player.pos;
+  }
 
   /// Living, visible unit standing on [pos], of any team.
   Fighter? unitAt(GridPos pos) {
@@ -1677,6 +1698,18 @@ class BattleState {
             team: Team.player,
             element: element,
             ticksLeft: _lasting(amount ?? turretTicks),
+          ),
+        );
+      case ObstacleKind.decoy:
+        final pos = player.pos + const GridPos(1, 0);
+        if (!free(pos) || ownerAt(pos) != Team.player) return;
+        obstacles.add(
+          Obstacle(
+            kind,
+            pos: pos,
+            hp: decoyHp,
+            team: Team.player,
+            ticksLeft: _lasting(amount ?? decoyTicks),
           ),
         );
       case ObstacleKind.medic:

@@ -1072,6 +1072,19 @@ abstract final class Chips {
     effect: HomingEffect(1),
   );
 
+  static const hologram = ChipDef(
+    id: 'hologram',
+    name: 'Holograma',
+    description:
+        'Isca de 20 HP à sua frente por 5 s: os inimigos miram nela.',
+    cost: 1,
+    family: ChipFamily.equipment,
+    rarity: Rarity.uncommon,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: SpawnObstacleEffect(ObstacleKind.decoy),
+  );
+
   static const _square = [
     GridPos(-1, -1),
     GridPos(0, -1),
@@ -1356,6 +1369,15 @@ abstract final class Chips {
       _up(homingRocket, damage: 20),
       _up(c4, damage: 45),
       _up(
+        hologram,
+        description:
+            'Isca de 20 HP à sua frente por 8 s: os inimigos miram nela.',
+        effect: const SpawnObstacleEffect(
+          ObstacleKind.decoy,
+          amount: 8 * ticksPerSecond,
+        ),
+      ),
+      _up(
         assistedAim,
         description:
             'Os 2 próximos tiros caem direto no inimigo com menos vida, em '
@@ -1447,6 +1469,7 @@ abstract final class Chips {
     homingRocket,
     c4,
     assistedAim,
+    hologram,
   ];
 
   /// Every card, offered or not (Bug), by id: what a saved deck
@@ -1528,6 +1551,7 @@ abstract final class Chips {
       homingRocket,
       c4,
       assistedAim,
+      hologram,
       bug,
     ])
       def.id: def,
