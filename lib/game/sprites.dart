@@ -139,7 +139,7 @@ abstract final class SpriteFiles {
   static const chipFrameUpgraded = 'chips/chipEvo.png';
 
   static const obstacles = <ObstacleKind, String>{
-    ObstacleKind.rock: 'chips/pedra.png',
+    ObstacleKind.rock: 'obstacles/pedra.png',
     ObstacleKind.barricade: 'chips/barricata.png',
     ObstacleKind.turret: 'obstacles/drone.png',
     ObstacleKind.reflector: 'chips/stasisGen.png',
