@@ -650,6 +650,12 @@ class BattleState {
   /// The next chaining card counts as [chainFamily] (Coringa).
   bool wildcard = false;
 
+  /// Shooting cards left that land on [weakestEnemy] (Mira Assistida).
+  int homingShots = 0;
+
+  /// Where this card's shots appear, while one homes in.
+  GridPos? _homingCell;
+
   /// Added to every Projectile card until the battle ends (Munição
   /// Especial).
   int projectileBonus = 0;
@@ -1235,6 +1241,13 @@ class BattleState {
     final chain = _advanceChain(family);
     final ammo = def.family == ChipFamily.projectile ? projectileBonus : 0;
     final spends = _spendsBonus(def);
+    _homingCell = null;
+    if (homingShots > 0 && _firesShots(def)) {
+      if (weakestEnemy() case final target?) {
+        homingShots--;
+        _homingCell = target.pos;
+      }
+    }
     final bonus = spends
         ? damageBonus + (attackCharges > 0 ? chargeBonus : 0)
         : 0;
@@ -1280,8 +1293,11 @@ class BattleState {
         :final wetTicks,
         :final shieldTicks,
         :final crack,
+        :final homing,
       ):
-        final target = player.pos + GridPos(distance, 0);
+        final target =
+            (homing ? weakestEnemy()?.pos : null) ??
+            player.pos + GridPos(distance, 0);
         final shot = Projectile(
           team: Team.player,
           pos: target,
@@ -1326,7 +1342,11 @@ class BattleState {
             }
           }
         });
-      case CrackEffect() || PushEffect() || PullEffect() || StatusShotEffect():
+      case CrackEffect() ||
+          PushEffect() ||
+          PullEffect() ||
+          StatusShotEffect() ||
+          BounceEffect():
         _fire(
           def,
           def.damage == 0 ? 0 : damage,
@@ -1335,6 +1355,29 @@ class BattleState {
         );
       case ChainScaleEffect():
         _fire(def, damage, status: status);
+      case StickyBombEffect(:final delay):
+        final victim = _targetAt(_tossTarget(), Team.enemy);
+        if (victim != null) {
+          flashes.add(HitFlash(victim.pos));
+          final bomb = damage;
+          schedule(player, const [], delay, telegraph: false, () {
+            _impact(
+              Projectile(
+                team: Team.player,
+                pos: victim.pos,
+                dir: 1,
+                stepTicks: 0,
+                damage: bomb,
+                pattern: const GrenadeEffect().pattern,
+                element: def.element,
+                family: def.family,
+              ),
+              Team.enemy,
+            );
+          });
+        }
+      case HomingEffect(:final count):
+        homingShots += count;
       case WildcardEffect():
         wildcard = true;
       case AttackChargesEffect(:final count, :final amount):
@@ -1352,13 +1395,14 @@ class BattleState {
       case GaugeSpeedEffect(:final percent):
         gaugeSpeedBonus += percent;
       case BurstEffect(:final count, :final gapTicks):
+        final from = _homingCell;
         _fire(def, damage, status: status);
         for (var i = 1; i < count; i++) {
           schedule(
             player,
             const [],
             i * gapTicks,
-            () => _fire(def, damage, status: status),
+            () => _fire(def, damage, status: status, from: from),
             telegraph: false,
           );
         }
@@ -1455,7 +1499,34 @@ class BattleState {
       damageBonus = 0;
       if (attackCharges > 0) attackCharges--;
     }
+    _homingCell = null;
   }
+
+  /// Living, visible enemy with the least HP; ties go to the front one,
+  /// then the top one.
+  EnemyFighter? weakestEnemy() {
+    final targets = [
+      for (final enemy in enemies)
+        if (!enemy.isDead && !enemy.hidden) enemy,
+    ];
+    if (targets.isEmpty) return null;
+    int score(EnemyFighter e) =>
+        (e.hp * gridColumns + e.pos.x) * gridRows + e.pos.y;
+    return targets.reduce((a, b) => score(a) <= score(b) ? a : b);
+  }
+
+  /// Cards whose shots travel the row, which Mira Assistida redirects.
+  bool _firesShots(ChipDef def) => switch (def.effect) {
+    ProjectileEffect() => def.pose != ChipPose.toss,
+    CrackEffect() ||
+    PushEffect() ||
+    PullEffect() ||
+    StatusShotEffect() ||
+    BounceEffect() ||
+    BurstEffect() ||
+    ChainScaleEffect() => true,
+    _ => false,
+  };
 
   /// Attacks that deal damage take Bala Oca and Adrenalina bonuses, and use
   /// them up; damage-free shots (Gancho, Mira Laser) leave them.
@@ -1472,7 +1543,9 @@ class BattleState {
         MeleeEffect() ||
         DashEffect() ||
         RowStrikeEffect() ||
-        ChainScaleEffect() => true,
+        ChainScaleEffect() ||
+        BounceEffect() ||
+        StickyBombEffect() => true,
         _ => false,
       };
 
@@ -1483,11 +1556,13 @@ class BattleState {
     List<GridPos> pattern = const [GridPos(0, 0)],
     ChipEffect? onHit,
     Status? status,
+    GridPos? from,
   }) {
     projectiles.add(
       Projectile(
         team: Team.player,
-        pos: player.pos + const GridPos(1, 0),
+        // A homing shot appears on its target and lands on the next tick.
+        pos: from ?? _homingCell ?? player.pos + const GridPos(1, 0),
         dir: 1,
         stepTicks: 0,
         damage: damage,
@@ -2338,6 +2413,27 @@ class BattleState {
 
   void _applyOnHit(Projectile shot, Fighter target) {
     switch (shot.onHit) {
+      case BounceEffect(:final adjacent):
+        final others = [
+          for (final enemy in enemies)
+            if (enemy != target &&
+                !enemy.isDead &&
+                !enemy.hidden &&
+                (!adjacent ||
+                    (enemy.pos.x - target.pos.x).abs() +
+                            (enemy.pos.y - target.pos.y).abs() ==
+                        1))
+              enemy,
+        ];
+        if (others.isEmpty) return;
+        final next = others[random.nextInt(others.length)];
+        strike(
+          next.pos,
+          shot.damage,
+          Team.enemy,
+          shot.element,
+          family: shot.family,
+        );
       case CrackEffect():
         setPanel(target.pos, PanelState.cracked);
       case PushEffect(:final steps, :final status):

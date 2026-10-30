@@ -996,6 +996,82 @@ abstract final class Chips {
     exhaust: true,
   );
 
+  static const ricochet = ChipDef(
+    id: 'ricochet',
+    name: 'Ricochete',
+    description:
+        'Acerta o primeiro inimigo da linha e quica em outro inimigo '
+        'qualquer.',
+    cost: 1,
+    family: ChipFamily.projectile,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 10,
+    effect: BounceEffect(),
+  );
+
+  static const voltaicArc = ChipDef(
+    id: 'voltaic_arc',
+    name: 'Arco Voltaico',
+    description:
+        'Acerta o primeiro inimigo da linha e salta para um inimigo ao lado '
+        'dele.',
+    cost: 1,
+    family: ChipFamily.energy,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 10,
+    element: Element.elec,
+    effect: BounceEffect(adjacent: true),
+  );
+
+  static const homingRocket = ChipDef(
+    id: 'homing_rocket',
+    name: 'Foguete Teleguiado',
+    description:
+        'Cai no inimigo com menos vida, em qualquer linha: explode em cruz. '
+        'Uso único.',
+    cost: 2,
+    family: ChipFamily.explosive,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    effect: GrenadeEffect(homing: true),
+    pose: ChipPose.toss,
+    exhaust: true,
+  );
+
+  static const c4 = ChipDef(
+    id: 'c4',
+    name: 'Carga C4',
+    description:
+        'Gruda no primeiro inimigo da linha e explode em cruz 3 s depois. '
+        'Uso único.',
+    cost: 1,
+    family: ChipFamily.explosive,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 30,
+    effect: StickyBombEffect(3 * ticksPerSecond),
+    exhaust: true,
+  );
+
+  static const assistedAim = ChipDef(
+    id: 'assisted_aim',
+    name: 'Mira Assistida',
+    description:
+        'O próximo tiro cai direto no inimigo com menos vida, em qualquer '
+        'linha.',
+    cost: 0,
+    family: ChipFamily.tactical,
+    rarity: Rarity.uncommon,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: HomingEffect(1),
+  );
+
   static const _square = [
     GridPos(-1, -1),
     GridPos(0, -1),
@@ -1275,6 +1351,17 @@ abstract final class Chips {
       _up(tacticalReload, cost: 0),
       _up(resonance, damage: 7),
       _up(wildcard, cost: 0),
+      _up(ricochet, damage: 15),
+      _up(voltaicArc, damage: 15),
+      _up(homingRocket, damage: 20),
+      _up(c4, damage: 45),
+      _up(
+        assistedAim,
+        description:
+            'Os 2 próximos tiros caem direto no inimigo com menos vida, em '
+            'qualquer linha.',
+        effect: const HomingEffect(2),
+      ),
       _up(
         adrenaline,
         description: 'Os 3 próximos ataques causam +8 de dano. Uso único.',
@@ -1355,6 +1442,11 @@ abstract final class Chips {
     resonance,
     wildcard,
     adrenaline,
+    ricochet,
+    voltaicArc,
+    homingRocket,
+    c4,
+    assistedAim,
   ];
 
   /// Every card, offered or not (Bug), by id: what a saved deck
@@ -1431,6 +1523,11 @@ abstract final class Chips {
       resonance,
       wildcard,
       adrenaline,
+      ricochet,
+      voltaicArc,
+      homingRocket,
+      c4,
+      assistedAim,
       bug,
     ])
       def.id: def,

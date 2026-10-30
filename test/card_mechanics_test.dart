@@ -151,4 +151,61 @@ void main() {
       expect(battle.enemies.single.hp, 100 - 3 * 15);
     });
   });
+
+  group('phase 3', () {
+    test('Foguete Teleguiado lands on the weakest enemy', () {
+      final battle = battleWith(
+        [Chips.homingRocket],
+        spawns: [dummyAt(3, 1), dummyAt(5, 0)],
+      );
+      final [strong, weak] = battle.enemies;
+      weak.hp = 50;
+      use(battle, Chips.homingRocket);
+      wait(battle, 30);
+      expect(weak.hp, 50 - boom(15));
+      expect(strong.hp, 100);
+    });
+
+    test('Mira Assistida: the next shot lands on the weakest enemy', () {
+      final battle = battleWith(
+        [Chips.assistedAim, Chips.shot],
+        spawns: [dummyAt(3, 1), dummyAt(4, 2)],
+      );
+      final [strong, weak] = battle.enemies;
+      weak.hp = 40;
+      use(battle, Chips.assistedAim);
+      use(battle, Chips.shot);
+      expect(weak.hp, 40 - Chips.shot.damage);
+      expect(strong.hp, 100);
+      expect(battle.homingShots, 0);
+    });
+
+    test('Ricochete bounces to another enemy', () {
+      final battle = battleWith(
+        [Chips.ricochet],
+        spawns: [dummyAt(3, 1), dummyAt(5, 0)],
+      );
+      use(battle, Chips.ricochet);
+      for (final enemy in battle.enemies) {
+        expect(enemy.hp, 90);
+      }
+    });
+
+    test('Arco Voltaico jumps only to an enemy next to the target', () {
+      final battle = battleWith(
+        [Chips.voltaicArc],
+        spawns: [dummyAt(3, 1), dummyAt(4, 1), dummyAt(5, 0)],
+      );
+      use(battle, Chips.voltaicArc);
+      expect(battle.enemies.map((e) => e.hp), [90, 90, 100]);
+    });
+
+    test('Carga C4 blows up 3 s after it sticks', () {
+      final battle = battleWith([Chips.c4], spawns: [dummyAt(3, 1)]);
+      use(battle, Chips.c4);
+      expect(battle.enemies.single.hp, 100);
+      wait(battle, 3 * ticksPerSecond);
+      expect(battle.enemies.single.hp, 100 - boom(30));
+    });
+  });
 }

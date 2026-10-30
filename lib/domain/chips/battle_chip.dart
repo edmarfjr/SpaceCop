@@ -161,6 +161,7 @@ class GrenadeEffect extends ChipEffect {
     this.wetTicks = 0,
     this.shieldTicks = 0,
     this.crack = false,
+    this.homing = false,
   });
 
   final int distance;
@@ -175,6 +176,34 @@ class GrenadeEffect extends ChipEffect {
 
   /// Every panel of the blast cracks (Bomba de Fissura).
   final bool crack;
+
+  /// Lands on the enemy with the least HP instead (Foguete Teleguiado).
+  final bool homing;
+}
+
+/// Projectile that, on hitting, also hits another enemy for the same
+/// damage: one next to the target with [adjacent] (Arco Voltaico), any
+/// other otherwise (Ricochete).
+class BounceEffect extends ChipEffect {
+  const BounceEffect({this.adjacent = false});
+
+  final bool adjacent;
+}
+
+/// Sticks to the first enemy of the row; [delay] later it blows up in a
+/// cross wherever that enemy is (Carga C4).
+class StickyBombEffect extends ChipEffect {
+  const StickyBombEffect(this.delay);
+
+  final int delay;
+}
+
+/// The next [count] shooting cards land straight on the enemy with the
+/// least HP (Mira Assistida).
+class HomingEffect extends ChipEffect {
+  const HomingEffect(this.count);
+
+  final int count;
 }
 
 /// Projectile that cracks the panel under the first target it hits.
