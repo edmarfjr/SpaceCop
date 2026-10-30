@@ -362,8 +362,13 @@ class _NodeButtonState extends State<_NodeButton>
   }
 }
 
+/// Dashed paths that stop [_inset] short of each node's center.
 class _EdgePainter extends CustomPainter {
   _EdgePainter(this.map, this.center);
+
+  static const _inset = 10.0;
+  static const _dash = 4.0;
+  static const _gap = 3.0;
 
   final RunMap map;
   final Offset Function(MapNode) center;
@@ -375,7 +380,15 @@ class _EdgePainter extends CustomPainter {
       ..strokeWidth = 1;
     for (final node in map.usedNodes) {
       for (final next in map.nextOf(node)) {
-        canvas.drawLine(center(node), center(next), paint);
+        final from = center(node);
+        final delta = center(next) - from;
+        final length = delta.distance;
+        if (length <= 2 * _inset) continue;
+        final dir = delta / length;
+        for (var d = _inset; d < length - _inset; d += _dash + _gap) {
+          final end = min(d + _dash, length - _inset);
+          canvas.drawLine(from + dir * d, from + dir * end, paint);
+        }
       }
     }
   }
