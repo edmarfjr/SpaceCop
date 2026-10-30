@@ -1,9 +1,11 @@
 import 'dart:math';
 
+import '../battle/enemies.dart';
 import '../chips/battle_chip.dart';
 import '../chips/chip_library.dart';
 import '../map/run_map.dart';
 import '../rarity.dart';
+import 'events.dart';
 import 'relics.dart';
 
 /// Credits for winning a normal or elite battle.
@@ -34,7 +36,7 @@ class RunState {
       random,
       MapGenerator(random: random).generate(),
       Chips.starterDeck(),
-    );
+    ).._rollBoss();
   }
 
   RunState._(this.random, this.map, this.deck);
@@ -67,7 +69,19 @@ class RunState {
       ..relics.addAll([
         for (final id in (json['relics']! as List).cast<String>())
           ?Relics.byId(id),
-      ]);
+      ])
+      ..drawnNormals.addAll(_ints(json['drawnNormals']))
+      ..drawnElites.addAll(_ints(json['drawnElites']))
+      ..drawnCards.addAll(_strings(json['drawnCards']))
+      ..seenRelics.addAll(_strings(json['seenRelics']))
+      ..seenEvents.addAll(_strings(json['seenEvents']));
+    // Saves from before the pools have no boss yet.
+    if (json['bossIndex'] case final int i
+        when i < Encounters.bossesOf(run.act).length) {
+      run.bossIndex = i;
+    } else {
+      run._rollBoss();
+    }
     if (json['current'] case [final int floor, final int x]) {
       run.current = run.map.nodeAt(floor, x);
     }
@@ -93,7 +107,19 @@ class RunState {
     },
     'map': map.toJson(),
     'jumps': jumps,
+    'bossIndex': bossIndex,
+    'drawnNormals': drawnNormals.toList(),
+    'drawnElites': drawnElites.toList(),
+    'drawnCards': drawnCards.toList(),
+    'seenRelics': seenRelics.toList(),
+    'seenEvents': seenEvents.toList(),
   };
+
+  static Iterable<int> _ints(Object? list) =>
+      (list as List?)?.cast<int>() ?? const [];
+
+  static Iterable<String> _strings(Object? list) =>
+      (list as List?)?.cast<String>() ?? const [];
 
   final Random random;
 
@@ -137,6 +163,27 @@ class RunState {
   /// anything else.
   final List<PickupStep> pending = [];
 
+  /// This act's boss, an index into [Encounters.bossesOf]; picked with the
+  /// map, so the map can show it.
+  int bossIndex = 0;
+
+  /// Basic enemies and elite fights drawn this act, as indices into the
+  /// act's lists. Each is a bag: nothing repeats until all of it was drawn,
+  /// then it starts over.
+  final Set<int> drawnNormals = {};
+  final Set<int> drawnElites = {};
+
+  /// Ids of the cards offered so far; a rarity starts over when too few of
+  /// it are left.
+  final Set<String> drawnCards = {};
+
+  /// Ids of the relics already offered, taken or not: never offered again.
+  final Set<String> seenRelics = {};
+
+  /// Titles of the events already visited: none repeats in a run. The
+  /// third act draws from the first act's, so it gets the ones left.
+  final Set<String> seenEvents = {};
+
   bool hasRelic(RelicDef relic) => relics.contains(relic);
 
   /// The next floor's nodes on the paths, or all of them while [jumps]
@@ -168,8 +215,61 @@ class RunState {
     assert(!lastAct, 'no act after the last');
     act++;
     map = MapGenerator(random: random).generate();
+    drawnNormals.clear();
+    drawnElites.clear();
+    _rollBoss();
     current = null;
     hp += ((maxHp - hp) * actHeal).round();
+  }
+
+  void _rollBoss() =>
+      bossIndex = random.nextInt(Encounters.bossesOf(act).length);
+
+  /// The act's boss fight.
+  Encounter get bossEncounter => Encounters.bossesOf(act)[bossIndex];
+
+  /// The act's boss itself, for its map art.
+  EnemyDef get boss => bossEncounter.spawns.first.def;
+
+  /// A random index below [length] not in [drawn], which it joins; [drawn]
+  /// starts over once every index is in it.
+  int _draw(Set<int> drawn, int length) {
+    if (drawn.length >= length) drawn.clear();
+    final left = [
+      for (var i = 0; i < length; i++)
+        if (!drawn.contains(i)) i,
+    ];
+    final i = left[random.nextInt(left.length)];
+    drawn.add(i);
+    return i;
+  }
+
+  /// A normal fight, its enemies drawn from the act's bag.
+  Encounter normalEncounter() {
+    final pool = Enemies.basicsOf(act);
+    return Encounters.normal(
+      random,
+      act: act,
+      draw: () => pool[_draw(drawnNormals, pool.length)],
+    );
+  }
+
+  /// An elite fight drawn from the act's bag.
+  Encounter eliteEncounter() {
+    final all = Encounters.elitesOf(act);
+    return all[_draw(drawnElites, all.length)](random);
+  }
+
+  /// An event of the act not visited yet in the run; null if none is left.
+  EventDef? drawEvent() {
+    final left = [
+      for (final event in Events.of(act))
+        if (!seenEvents.contains(event.title)) event,
+    ];
+    if (left.isEmpty) return null;
+    final event = left[random.nextInt(left.length)];
+    seenEvents.add(event.title);
+    return event;
   }
 
   /// Campfire: heal 30% of max HP.
@@ -273,47 +373,73 @@ class RunState {
     }
   }
 
-  /// Up to 3 boss relics the run doesn't own yet.
-  List<RelicDef> rollBossRelics() => ([
-    for (final r in Relics.boss)
-      if (!relics.contains(r)) r,
-  ]..shuffle(random)).take(3).toList();
+  /// Relics the run doesn't own and was never offered.
+  bool _relicLeft(RelicDef relic) =>
+      !relics.contains(relic) && !seenRelics.contains(relic.id);
 
-  /// A relic the run doesn't own yet, optionally of one [kind], rarer ones
-  /// less often.
+  /// Marks [offered] as seen and returns it.
+  List<RelicDef> _offerRelics(List<RelicDef> offered) {
+    seenRelics.addAll([for (final r in offered) r.id]);
+    return offered;
+  }
+
+  /// Up to 3 boss relics the run doesn't own and was never offered.
+  List<RelicDef> rollBossRelics() => _offerRelics(
+    ([...Relics.boss.where(_relicLeft)]..shuffle(random)).take(3).toList(),
+  );
+
+  /// A relic the run doesn't own and was never offered, optionally of one
+  /// [kind], rarer ones less often.
   RelicDef? randomRelic({RelicKind? kind}) {
     final picked = rollRelics(1, kind: kind);
     return picked.isEmpty ? null : picked.single;
   }
 
-  /// Up to [count] distinct relics the run doesn't own yet, by rarity.
-  List<RelicDef> rollRelics(int count, {RelicKind? kind}) => pickByRarity(
-    [
-      for (final r in Relics.all)
-        if (!relics.contains(r) && (kind == null || r.kind == kind)) r,
-    ],
-    (r) => r.rarity,
-    count,
-    random,
+  /// Up to [count] distinct relics the run doesn't own and was never
+  /// offered, by rarity. They count as offered from now on.
+  List<RelicDef> rollRelics(int count, {RelicKind? kind}) => _offerRelics(
+    pickByRarity(
+      [
+        for (final r in Relics.all)
+          if (_relicLeft(r) && (kind == null || r.kind == kind)) r,
+      ],
+      (r) => r.rarity,
+      count,
+      random,
+    ),
   );
 
-  /// Picks [count] distinct chips to offer, by rarity; [elite] and Chip da
-  /// Sorte roll rare ones more often, and a [boss] offers only rare ones.
-  List<ChipDef> rollRewards(
-    int count, {
-    bool elite = false,
-    bool boss = false,
-  }) => pickByRarity(
-    [
+  /// Picks [count] distinct chips to offer, by rarity, from those not
+  /// offered yet; [elite] and Chip da Sorte roll rare ones more often, and
+  /// a [boss] offers only rare ones.
+  List<ChipDef> rollRewards(int count, {bool elite = false, bool boss = false}) {
+    final pool = [
       for (final chip in Chips.all)
         if (!boss || chip.rarity == Rarity.rare) chip,
-    ],
-    (c) => c.rarity,
-    count,
-    random,
-    elite: elite,
-    lucky: hasRelic(Relics.luckyChip),
-  );
+    ];
+    for (final rarity in Rarity.values) {
+      final ofRarity = [
+        for (final chip in pool)
+          if (chip.rarity == rarity) chip.id,
+      ];
+      if (ofRarity.where((id) => !drawnCards.contains(id)).length < count) {
+        drawnCards.removeAll(ofRarity);
+      }
+    }
+    final picked = pickByRarity(
+      [
+        for (final chip in pool)
+          if (!drawnCards.contains(chip.id)) chip,
+      ],
+      (c) => c.rarity,
+      count,
+      random,
+      elite: elite,
+      lucky: hasRelic(Relics.luckyChip),
+    );
+    drawnCards.addAll([for (final chip in picked) chip.id]);
+    return picked;
+  }
 }
 
 /// One item of the Espólios screen.

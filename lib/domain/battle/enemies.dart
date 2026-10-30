@@ -622,10 +622,16 @@ abstract final class Encounters {
     _ => playerColumns,
   };
 
-  /// One or two basic enemies of [act] on distinct cells. In the ruins the
+  /// One or two basic enemies of [act] on distinct cells, each one [draw]n
+  /// (a random one of the act's basics by default). In the ruins the
   /// Escaravelhos come three at a time, and the Curandeiro never alone.
-  static Encounter normal(Random random, {int act = 1}) {
+  static Encounter normal(
+    Random random, {
+    int act = 1,
+    EnemyDef Function()? draw,
+  }) {
     final pool = Enemies.basicsOf(act);
+    draw ??= () => pool[random.nextInt(pool.length)];
     if (act == 2 && random.nextInt(6) == 0) {
       return const Encounter([
         EnemySpawn(Enemies.scarab, GridPos(4, 0)),
@@ -634,66 +640,83 @@ abstract final class Encounters {
       ]);
     }
     final spawns = <EnemySpawn>[];
-    final count = 1 + random.nextInt(2);
+    var count = 1 + random.nextInt(2);
     while (spawns.length < count) {
-      final def = pool[random.nextInt(pool.length)];
-      if (def == Enemies.etHealer && count == 1) continue;
+      final def = draw();
+      if (def == Enemies.etHealer) count = 2;
       final minX = _minX(def);
-      final pos = GridPos(
-        minX + random.nextInt(gridColumns - minX),
-        random.nextInt(gridRows),
-      );
-      if (spawns.any((s) => s.pos == pos)) continue;
+      GridPos pos;
+      do {
+        pos = GridPos(
+          minX + random.nextInt(gridColumns - minX),
+          random.nextInt(gridRows),
+        );
+      } while (spawns.any((s) => s.pos == pos));
       spawns.add(EnemySpawn(def, pos));
     }
     return Encounter(spawns);
   }
 
-  static Encounter elite(Random random, {int act = 1}) => switch (act) {
-    2 => switch (random.nextInt(4)) {
-      0 => Encounter([
+  /// Each act's elite fights.
+  static List<Encounter Function(Random)> elitesOf(int act) => switch (act) {
+    2 => [
+      (random) => Encounter([
         EnemySpawn(Enemies.etRider, GridPos(4, random.nextInt(gridRows))),
       ]),
-      1 => const Encounter([EnemySpawn(Enemies.ruinGolem, GridPos(4, 0))]),
-      2 => const Encounter([EnemySpawn(Enemies.priestess, GridPos(4, 1))]),
-      _ => const Encounter([
+      (_) => const Encounter([EnemySpawn(Enemies.ruinGolem, GridPos(4, 0))]),
+      (_) => const Encounter([EnemySpawn(Enemies.priestess, GridPos(4, 1))]),
+      (_) => const Encounter([
         EnemySpawn(Enemies.portal, GridPos(5, 1)),
         EnemySpawn(Enemies.etShieldBearer, GridPos(4, 1)),
       ]),
-    },
-    3 =>
-      random.nextBool()
-          ? const Encounter([EnemySpawn(Enemies.predator, GridPos(4, 1))])
-          : const Encounter([EnemySpawn(Enemies.stalker, GridPos(4, 1))]),
-    _ => switch (random.nextInt(4)) {
-      0 => Encounter([
+    ],
+    3 => [
+      (_) => const Encounter([EnemySpawn(Enemies.predator, GridPos(4, 1))]),
+      (_) => const Encounter([EnemySpawn(Enemies.stalker, GridPos(4, 1))]),
+    ],
+    _ => [
+      (random) => Encounter([
         EnemySpawn(Enemies.brute, GridPos(4, random.nextInt(gridRows))),
       ]),
-      1 => const Encounter([EnemySpawn(Enemies.digger, GridPos(4, 1))]),
-      2 => const Encounter([
+      (_) => const Encounter([EnemySpawn(Enemies.digger, GridPos(4, 1))]),
+      (_) => const Encounter([
         EnemySpawn(Enemies.prism, GridPos(4, 0)),
         EnemySpawn(Enemies.prism, GridPos(5, 2)),
       ]),
-      _ => const Encounter([EnemySpawn(Enemies.lavaGuard, GridPos(5, 1))]),
-    },
+      (_) => const Encounter([EnemySpawn(Enemies.lavaGuard, GridPos(5, 1))]),
+    ],
   };
 
-  /// Each act's boss.
-  static Encounter boss(Random random, {int act = 1}) => switch (act) {
-    2 => switch (random.nextInt(3)) {
-      0 => const Encounter([EnemySpawn(Enemies.tribeKing, GridPos(4, 1))]),
-      1 => const Encounter([EnemySpawn(Enemies.highPriest, GridPos(5, 1))]),
-      _ => const Encounter([EnemySpawn(Enemies.serpent, GridPos(3, 1))]),
-    },
-    3 => const Encounter([EnemySpawn(Enemies.voidEye, GridPos(4, 0))]),
-    _ => switch (random.nextInt(3)) {
-      0 => const Encounter([EnemySpawn(Enemies.tank, GridPos(4, 1))]),
-      1 => const Encounter([
+  /// Each act's possible bosses; the first spawn is the boss itself.
+  static List<Encounter> bossesOf(int act) => switch (act) {
+    2 => const [
+      Encounter([EnemySpawn(Enemies.tribeKing, GridPos(4, 1))]),
+      Encounter([EnemySpawn(Enemies.highPriest, GridPos(5, 1))]),
+      Encounter([EnemySpawn(Enemies.serpent, GridPos(3, 1))]),
+    ],
+    3 => const [
+      Encounter([EnemySpawn(Enemies.voidEye, GridPos(4, 0))]),
+    ],
+    _ => const [
+      Encounter([EnemySpawn(Enemies.tank, GridPos(4, 1))]),
+      Encounter([
         EnemySpawn(Enemies.colonel, GridPos(5, 1)),
         EnemySpawn(Enemies.colonelGuard, GridPos(4, 0)),
         EnemySpawn(Enemies.colonelGuard, GridPos(4, 2)),
       ]),
-      _ => const Encounter([EnemySpawn(Enemies.argos, GridPos(4, 0))]),
-    },
+      Encounter([EnemySpawn(Enemies.argos, GridPos(4, 0))]),
+    ],
   };
+
+  /// A random elite fight of [act].
+  static Encounter elite(Random random, {int act = 1}) {
+    final all = elitesOf(act);
+    return all[random.nextInt(all.length)](random);
+  }
+
+  /// A random boss of [act].
+  static Encounter boss(Random random, {int act = 1}) {
+    final all = bossesOf(act);
+    return all[random.nextInt(all.length)];
+  }
 }

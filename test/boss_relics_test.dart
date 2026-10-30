@@ -33,13 +33,15 @@ BattleState battleWithRelics(
 void main() {
   test('a boss offers 3 distinct boss relics the run does not own', () {
     final run = RunState(random: Random(3))..relics.add(Relics.etCrown);
-    for (var i = 0; i < 20; i++) {
-      final offered = run.rollBossRelics();
-      expect(offered, hasLength(3));
-      expect(offered.toSet(), hasLength(3));
-      expect(offered, isNot(contains(Relics.etCrown)));
-      expect(offered.every(Relics.boss.contains), isTrue);
-    }
+    final first = run.rollBossRelics();
+    expect(first, hasLength(3));
+    expect(first.toSet(), hasLength(3));
+    expect(first, isNot(contains(Relics.etCrown)));
+    expect(first.every(Relics.boss.contains), isTrue);
+    final second = run.rollBossRelics();
+    expect(second, hasLength(2), reason: 'offered ones never come back');
+    expect(second.any(first.contains), isFalse);
+    expect(run.rollBossRelics(), isEmpty);
     for (final relic in Relics.boss) {
       expect(Relics.all, isNot(contains(relic)), reason: 'boss only');
     }

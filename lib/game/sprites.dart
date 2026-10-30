@@ -308,6 +308,10 @@ abstract final class SpriteFiles {
     NodeType.boss: 'icons/boss.png',
   };
 
+  /// Map art of each boss, by the boss itself; bosses without one show the
+  /// boss node icon.
+  static final bosses = <EnemyDef, String>{};
+
   static Set<String> get all => {
     player,
     credits,
@@ -338,6 +342,7 @@ abstract final class SpriteFiles {
     relicPlaceholder,
     ...events.values,
     ...nodes.values,
+    ...bosses.values,
   };
 }
 
@@ -477,4 +482,7 @@ class GameSprites {
   };
 
   Sprite node(NodeType type) => _file(SpriteFiles.nodes[type]!);
+
+  Sprite bossNode(EnemyDef boss) =>
+      _file(SpriteFiles.bosses[boss] ?? SpriteFiles.nodes[NodeType.boss]!);
 }

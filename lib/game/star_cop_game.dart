@@ -174,35 +174,39 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     run.enter(node);
     switch (node.type!) {
       case NodeType.battle:
-        _startBattle(Encounters.normal(run.random, act: run.act));
+        _startBattle(run.normalEncounter());
       case NodeType.elite:
-        _startBattle(Encounters.elite(run.random, act: run.act));
+        _startBattle(run.eliteEncounter());
       case NodeType.boss:
-        _startBattle(Encounters.boss(run.random, act: run.act));
+        _startBattle(run.bossEncounter);
       case NodeType.rest:
         _goTo(GamePhase.rest);
       case NodeType.shop:
         shop = Shop(run);
         _goTo(GamePhase.shop);
       case NodeType.event:
-        switch (rollUnknownRoom(
+        UnknownRoom roll() => rollUnknownRoom(
           run.random,
           noFights: run.hasRelic(Relics.routeRadar),
-        )) {
+        );
+        var room = roll();
+        final drawn = room == UnknownRoom.event ? run.drawEvent() : null;
+        // No event left in the run: the "?" is another room.
+        while (room == UnknownRoom.event && drawn == null) {
+          room = roll();
+        }
+        switch (room) {
           case UnknownRoom.event:
-            // TODO: events shouldn't repeat in a run; they still do while
-            // there are only a few.
-            final pool = Events.of(run.act);
-            event = pool[run.random.nextInt(pool.length)];
+            event = drawn;
             eventChoice = null;
             eventCards = null;
             eventPick = null;
             _goTo(GamePhase.event);
           case UnknownRoom.battle:
-            _startBattle(Encounters.normal(run.random, act: run.act));
+            _startBattle(run.normalEncounter());
           case UnknownRoom.elite:
             _eliteFight = true;
-            _startBattle(Encounters.elite(run.random, act: run.act));
+            _startBattle(run.eliteEncounter());
           case UnknownRoom.shop:
             shop = Shop(run);
             _goTo(GamePhase.shop);
@@ -343,9 +347,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
         _fightReward = onWin;
         _startBattle(
           encounter?.call(run) ??
-              (elite
-                  ? Encounters.elite(run.random, act: run.act)
-                  : Encounters.normal(run.random, act: run.act)),
+              (elite ? run.eliteEncounter() : run.normalEncounter()),
         );
     }
   }

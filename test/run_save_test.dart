@@ -13,6 +13,40 @@ void main() {
     jsonDecode(jsonEncode(run.toJson())) as Map<String, Object?>,
   );
 
+  test('a saved run keeps its pools', () {
+    final run = RunState(random: Random(11));
+    run.normalEncounter();
+    run.eliteEncounter();
+    run.drawEvent();
+    run.rollRelics(2);
+    run.rollRewards(3);
+    final loaded = roundTrip(run);
+    expect(loaded.bossIndex, run.bossIndex);
+    expect(loaded.drawnNormals, run.drawnNormals);
+    expect(loaded.drawnElites, run.drawnElites);
+    expect(loaded.drawnCards, run.drawnCards);
+    expect(loaded.seenRelics, run.seenRelics);
+    expect(loaded.seenEvents, run.seenEvents);
+  });
+
+  test('a save from before the pools still loads, with a boss', () {
+    final json = jsonDecode(jsonEncode(RunState(random: Random(12)).toJson()))
+        as Map<String, Object?>;
+    for (final key in [
+      'bossIndex',
+      'drawnNormals',
+      'drawnElites',
+      'drawnCards',
+      'seenRelics',
+      'seenEvents',
+    ]) {
+      json.remove(key);
+    }
+    final loaded = RunState.fromJson(json);
+    expect(loaded.seenEvents, isEmpty);
+    expect(loaded.bossIndex, lessThan(3));
+  });
+
   test('a saved run comes back the same', () {
     final run = RunState(random: Random(7))
       ..act = 2
