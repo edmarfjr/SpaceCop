@@ -35,6 +35,10 @@ enum GamePhase {
 abstract final class Overlays {
   static const menu = 'menu';
   static const compendium = 'compendium';
+
+  /// Shown on top of any screen while a relic just taken asks for choices
+  /// ([RunState.pending]).
+  static const pickup = 'pickup';
   static const map = 'map';
   static const hud = 'hud';
   static const reward = 'reward';
@@ -255,6 +259,40 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     GameAudio.instance.play(Sfx.confirm);
     run.claim(spoil, card: card, relic: relic);
     spoils.remove(spoil);
+    checkPickups();
+  }
+
+  /// Opens the relic choices waiting in [RunState.pending], if any; steps
+  /// with nothing to pick are dropped.
+  void checkPickups() {
+    final pending = run.pending;
+    while (pending.isNotEmpty) {
+      final step = pending.first;
+      if (step is! DeckPickStep || step.cards(run).isNotEmpty) break;
+      pending.removeAt(0);
+    }
+    if (pending.isNotEmpty && !overlays.isActive(Overlays.pickup)) {
+      overlays.add(Overlays.pickup);
+    }
+  }
+
+  /// The current relic choice was made: [card] picked from the deck, or
+  /// [reward] (null skips it) taken from a card reward.
+  void resolvePickup({ChipCard? card, ChipDef? reward}) {
+    final step = run.pending.removeAt(0);
+    switch (step) {
+      case DeckPickStep():
+        step.apply(run, card!);
+        GameAudio.instance.play(Sfx.confirm);
+      case CardRewardStep():
+        if (reward != null) run.deck.add(ChipCard(reward));
+        GameAudio.instance.play(reward == null ? Sfx.cancel : Sfx.confirm);
+    }
+    checkPickups();
+    if (run.pending.isEmpty) {
+      overlays.remove(Overlays.pickup);
+      if (phase.value == GamePhase.map) RunSave.write(run);
+    }
   }
 
   /// Event card choice: [chip] null means "skip".
@@ -347,6 +385,9 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     overlays.removeAll(overlays.activeOverlays.toList());
     overlays.add(Overlays.forPhase(next));
     phase.value = next;
+    if (next != GamePhase.menu && next != GamePhase.compendium) {
+      checkPickups();
+    }
     // A finished run can't be continued.
     if (next == GamePhase.gameOver || next == GamePhase.victory) {
       RunSave.clear();

@@ -63,6 +63,7 @@ class RunState {
       ..openingStunTicks = json['openingStunTicks']! as int
       ..energyBaseBonus = json['energyBaseBonus']! as int
       ..nextBattleEnergy = json['nextBattleEnergy']! as int
+      ..jumps = json['jumps'] as int? ?? 0
       ..relics.addAll([
         for (final id in (json['relics']! as List).cast<String>())
           ?Relics.byId(id),
@@ -91,6 +92,7 @@ class RunState {
       null => null,
     },
     'map': map.toJson(),
+    'jumps': jumps,
   };
 
   final Random random;
@@ -127,13 +129,35 @@ class RunState {
 
   MapNode? current;
 
+  /// Propulsor de Salto: moves left that may go to any node of the next
+  /// floor, off the paths.
+  int jumps = 0;
+
+  /// Choices a relic asked for when it was taken, shown one by one before
+  /// anything else.
+  final List<PickupStep> pending = [];
+
   bool hasRelic(RelicDef relic) => relics.contains(relic);
 
-  List<MapNode> get availableNodes =>
-      current == null ? map.startNodes : map.nextOf(current!);
+  /// The next floor's nodes on the paths, or all of them while [jumps]
+  /// are left.
+  List<MapNode> get availableNodes {
+    final from = current;
+    if (from == null) return map.startNodes;
+    final next = map.nextOf(from);
+    if (jumps == 0) return next;
+    final floor = [
+      for (final n in map.usedNodes)
+        if (n.floor == from.floor + 1) n,
+    ];
+    return floor.isEmpty ? next : floor;
+  }
 
   void enter(MapNode node) {
     assert(availableNodes.contains(node), 'node not reachable');
+    if (current case final from? when !map.nextOf(from).contains(node)) {
+      jumps--;
+    }
     node.visited = true;
     current = node;
   }
@@ -169,11 +193,28 @@ class RunState {
     if (!hasRelic(Relics.armoredVault)) credits += amount;
   }
 
-  /// Takes [relic], with its max HP change.
+  /// Takes [relic], with its max HP change (a gain heals as much) and what
+  /// it does once taken; choices it asks for wait in [pending].
   void addRelic(RelicDef relic) {
     relics.add(relic);
     maxHp = max(1, maxHp + relic.maxHp);
-    hp = min(hp, maxHp);
+    hp = min(max(hp, hp + relic.maxHp), maxHp);
+    relic.onPickup?.call(this);
+  }
+
+  /// A random card of the pool other than [def], for transforms.
+  ChipDef transformed(ChipDef def) {
+    final pool = [
+      for (final c in Chips.all)
+        if (c.id != def.id) c,
+    ];
+    return pool[random.nextInt(pool.length)];
+  }
+
+  /// Swaps [card] for [def] in the deck, in place.
+  void replace(ChipCard card, ChipDef def) {
+    final index = deck.indexOf(card);
+    if (index >= 0) deck[index] = ChipCard(def);
   }
 
   /// Deck cards a campfire can upgrade.
@@ -305,4 +346,31 @@ class BossRelicSpoil extends Spoil {
   const BossRelicSpoil(this.relics);
 
   final List<RelicDef> relics;
+}
+
+/// One choice a relic asks for when it is taken.
+sealed class PickupStep {
+  const PickupStep(this.title);
+
+  final String title;
+}
+
+/// Pick a card of the deck that passes [pickable], then [apply] it.
+class DeckPickStep extends PickupStep {
+  const DeckPickStep(super.title, this.apply, {this.pickable});
+
+  final bool Function(ChipDef def)? pickable;
+  final void Function(RunState run, ChipCard card) apply;
+
+  List<ChipCard> cards(RunState run) => [
+    for (final card in run.deck)
+      if (pickable?.call(card.def) ?? true) card,
+  ];
+}
+
+/// A card reward, like a battle's: one of [cards] for the deck, or none.
+class CardRewardStep extends PickupStep {
+  const CardRewardStep(super.title, this.cards);
+
+  final List<ChipDef> cards;
 }

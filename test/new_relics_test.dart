@@ -37,7 +37,7 @@ const use = PlayerInput(useChip: true);
 
 void main() {
   test('the 14 new relics are in the pool, 3 common, 5 uncommon, 6 rare', () {
-    final added = Relics.all.skip(23).toList();
+    final added = Relics.all.skip(23).take(14).toList();
     expect(added, hasLength(14));
     expect(added.where((r) => r.rarity == Rarity.common), hasLength(3));
     expect(added.where((r) => r.rarity == Rarity.uncommon), hasLength(5));

@@ -61,6 +61,9 @@ class Deck {
   /// Removes a single-use card from this battle (it stays in the run deck).
   void exhaust(ChipCard card) => _hand.remove(card);
 
+  /// Puts [card] on top of the draw pile, so it is drawn next.
+  void addToTop(ChipCard card) => _drawPile.add(card);
+
   void discardHand() {
     _discardPile.addAll(_hand);
     _hand.clear();

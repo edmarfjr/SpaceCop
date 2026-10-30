@@ -156,7 +156,7 @@ OfferChoice? relicChoice(RunState run) {
     for (final relic in pool)
       EventOffer(
         relic.name,
-        (run) => run.relics.add(relic),
+        (run) => run.addRelic(relic),
         description: relic.description,
         relic: relic,
       ),
@@ -217,7 +217,7 @@ EventFollowUp? _copyFiles(RunState run, ChipCard? _) {
   run.energyBaseBonus--;
   final relic = run.randomRelic(kind: RelicKind.combat);
   if (relic == null) return null;
-  run.relics.add(relic);
+  run.addRelic(relic);
   return _notice('Você encontrou: ${relic.name}');
 }
 
@@ -312,7 +312,7 @@ EventFollowUp? _mysteryBox(RunState run, ChipCard? _) {
     run.deck.add(ChipCard(Chips.bug));
     return _notice('A caixa só tinha sucata: você recebe Bug');
   }
-  run.relics.add(relic);
+  run.addRelic(relic);
   return _notice('Dentro da caixa: ${relic.name}');
 }
 
@@ -392,7 +392,7 @@ EventFollowUp? _copySymbols(RunState run, ChipCard? _) {
     run.gainCredits(_symbolsCredits);
     return _notice('Você já entende os símbolos: +$_symbolsCredits Créditos');
   }
-  run.relics.add(Relics.decoder);
+  run.addRelic(Relics.decoder);
   return _notice('Você encontrou: ${Relics.decoder.name}');
 }
 
@@ -412,7 +412,7 @@ EventFollowUp? _offerBlood(RunState run, ChipCard? _) {
       ? run.randomRelic()
       : pool[run.random.nextInt(pool.length)];
   if (relic == null) return null;
-  run.relics.add(relic);
+  run.addRelic(relic);
   return _notice('O altar lhe concede: ${relic.name}');
 }
 
@@ -472,7 +472,7 @@ EventFollowUp? _grabPart(RunState run, ChipCard? _) {
     run.gainCredits(_symbolsCredits);
     return _notice('Uma bobina repetida: +$_symbolsCredits Créditos');
   }
-  run.relics.add(Relics.superconductor);
+  run.addRelic(Relics.superconductor);
   return _notice('Você arrancou: ${Relics.superconductor.name}');
 }
 
@@ -509,7 +509,7 @@ EventFollowUp? _hackStasis(RunState run, ChipCard? _) {
     _payHp(run, _stasisShockHp);
     return _notice('A cápsula dá um choque: −$_stasisShockHp HP');
   }
-  run.relics.add(relic);
+  run.addRelic(relic);
   return _notice('A cápsula se abre: ${relic.name}');
 }
 

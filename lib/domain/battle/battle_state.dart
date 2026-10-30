@@ -80,7 +80,6 @@ const double engineeringKitBonus = 1.5;
 const double chain2Multiplier = 1.25;
 const double chain3Multiplier = 1.5;
 
-
 /// Pulled while already in the front enemy column.
 const int pullStunTicks = ticksPerSecond;
 
@@ -167,7 +166,6 @@ enum TelegraphKind { damage, terrain }
 enum BattleEventKind {
   /// The player used [BattleEvent.chip] (once per run of its effect).
   chipUsed,
-
 
   /// A chain reached [BattleEvent.amount] chips (2 or 3).
   chain,
@@ -628,7 +626,6 @@ class BattleState {
   /// Status the chip being used applies (3rd chip of a chain).
   Status? _chainStatus;
 
-
   /// The current gauge fills 50% faster (Gatilho de Corrente).
   bool gaugeBoosted = false;
 
@@ -665,6 +662,17 @@ class BattleState {
 
   /// The Núcleo Fênix brought the player back; the run drops it.
   bool phoenixUsed = false;
+
+  /// Cards that exist only for this battle (Impressora 3D): used, they are
+  /// exhausted.
+  final Set<ChipCard> temporary = {};
+
+  /// Adds a copy of [def] for this battle only, on top of the draw pile.
+  void addTemporaryCard(ChipDef def) {
+    final card = ChipCard(def);
+    temporary.add(card);
+    deck.addToTop(card);
+  }
 
   /// Hundredths of a gauge tick not filled yet: each tick adds 100 plus
   /// the speed bonuses.
@@ -1144,7 +1152,9 @@ class BattleState {
         ++cardsUsed % doubleTriggerEvery == 0) {
       overclocked = true;
     }
-    if (def.exhaust && !(hasRelic(Relics.tacticalPack) && !packUsed)) {
+    if (temporary.contains(card)) {
+      deck.exhaust(card);
+    } else if (def.exhaust && !(hasRelic(Relics.tacticalPack) && !packUsed)) {
       deck.exhaust(card);
     } else {
       if (def.exhaust) packUsed = true;

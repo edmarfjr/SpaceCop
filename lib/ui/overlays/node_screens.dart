@@ -353,6 +353,7 @@ class _ShopOverlayState extends State<ShopOverlay> {
         case RelicDef():
           if (shop.buyRelic(item)) GameAudio.instance.play(Sfx.buy);
           _selected = null;
+          game.checkPickups();
         default:
           _removing = true;
       }
@@ -1031,4 +1032,49 @@ class GameOverOverlay extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// Over any screen: the choices a relic just taken asks for, one at a time
+/// (a card of the deck to duplicate, remove, transform or upgrade; a card
+/// reward).
+class PickupOverlay extends StatefulWidget {
+  const PickupOverlay({super.key, required this.game});
+
+  final StarCopGame game;
+
+  @override
+  State<PickupOverlay> createState() => _PickupOverlayState();
+}
+
+class _PickupOverlayState extends State<PickupOverlay> {
+  StarCopGame get game => widget.game;
+
+  @override
+  Widget build(BuildContext context) {
+    final step = game.run.pending.firstOrNull;
+    return switch (step) {
+      null => const SizedBox.shrink(),
+      final DeckPickStep step => _Panel(
+        title: 'Relíquia',
+        children: [
+          ChipPicker(
+            title: step.title,
+            cards: step.cards(game.run),
+            sprites: game.sprites,
+            grouped: true,
+            onPick: (card) => setState(() => game.resolvePickup(card: card)),
+          ),
+        ],
+      ),
+      final CardRewardStep step => CardReward(
+        // A new key per step, so its cards don't keep the last one's focus.
+        key: ObjectKey(step),
+        title: step.title,
+        cards: step.cards,
+        game: game,
+        onPick: (def) => setState(() => game.resolvePickup(reward: def)),
+        onSkip: () => setState(() => game.resolvePickup()),
+      ),
+    };
+  }
 }

@@ -98,7 +98,14 @@ class _MapOverlayState extends State<MapOverlay> {
     children: [
       Padding(
         padding: const EdgeInsets.all(2),
-        child: Row(
+        child: 
+        Container(
+          decoration: BoxDecoration(
+            color: Pico.darkBlue,
+            //border: Border.all(color: Pico.yellow, width: 1),
+            //borderRadius: BorderRadius.circular(1),
+          ),
+          child:Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
@@ -117,12 +124,7 @@ class _MapOverlayState extends State<MapOverlay> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: 
-                Container(
-                  decoration: BoxDecoration(
-                    color: Pico.white,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child:Row(
+                Row(
                   children: [
                     for (final relic in run.relics)
                       GestureDetector(
@@ -147,12 +149,13 @@ class _MapOverlayState extends State<MapOverlay> {
                       ),
                   ],
                 ),
-                )
                 
               ),
             ),
           ],
         ),
+        ),
+        
       ),
       Expanded(
         child: LayoutBuilder(

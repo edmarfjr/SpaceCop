@@ -58,7 +58,7 @@ class Shop {
   bool buyRelic(RelicDef relic) {
     if (!relics.contains(relic) || !_pay(relicCost(relic))) return false;
     relics.remove(relic);
-    run.relics.add(relic);
+    run.addRelic(relic);
     return true;
   }
 

@@ -1,7 +1,9 @@
 import '../battle/battle_state.dart';
 import '../battle/enemies.dart';
 import '../chips/battle_chip.dart';
+import '../chips/chip_library.dart';
 import '../grid.dart';
+import 'run_state.dart';
 
 enum RelicKind {
   /// Works on the map, shop or energy.
@@ -29,6 +31,7 @@ class RelicDef {
     this.onHit,
     this.onChipUsed,
     this.maxHp = 0,
+    this.onPickup,
   });
 
   final String id;
@@ -41,6 +44,10 @@ class RelicDef {
 
   /// Max HP gained (or lost) when the relic is taken.
   final int maxHp;
+
+  /// What happens once, when the relic is taken: choices go to
+  /// [RunState.pending].
+  final void Function(RunState run)? onPickup;
 
   final void Function(BattleState battle)? onBattleStart;
 
@@ -149,6 +156,61 @@ double _phaseTuner(
 
 void _armorPlate(BattleState battle) =>
     battle.spawnObstacle(ObstacleKind.rock, null);
+
+bool _upgradeable(ChipDef def) => Chips.upgradeOf(def) != null;
+
+void _jumpPack(RunState run) => run.jumps += Relics.jumpCount;
+
+void _cloner(RunState run) => run.pending.add(
+  DeckPickStep(
+    'Clonador Quântico: escolha uma carta para duplicar',
+    (run, card) => run.deck.add(ChipCard(card.def)),
+  ),
+);
+
+void _dataBank(RunState run) => run.pending.addAll([
+  for (var i = 1; i <= Relics.dataBankRewards; i++)
+    CardRewardStep(
+      'Banco de Dados Tático ($i/${Relics.dataBankRewards})',
+      run.rollRewards(3),
+    ),
+]);
+
+void _dataForge(RunState run) => run.pending.addAll([
+  for (var i = 1; i <= 3; i++)
+    DeckPickStep(
+      'Forja de Dados: escolha uma carta para transformar ($i/3)',
+      (run, card) => run.replace(card, run.transformed(card.def)),
+    ),
+  for (var i = 1; i <= 3; i++)
+    DeckPickStep(
+      'Forja de Dados: escolha uma carta para melhorar ($i/3)',
+      (run, card) => run.upgrade(card),
+      pickable: _upgradeable,
+    ),
+]);
+
+void _incinerator(RunState run) => run.pending.addAll([
+  for (var i = 1; i <= 2; i++)
+    DeckPickStep(
+      'Incinerador: escolha uma carta para remover ($i/2)',
+      (run, card) => run.deck.remove(card),
+    ),
+]);
+
+void _supplyCrate(RunState run) {
+  run.gainCredits(Relics.crateCredits);
+  final upgradeable = run.upgradeable;
+  if (upgradeable.isNotEmpty) {
+    run.upgrade(upgradeable[run.random.nextInt(upgradeable.length)]);
+  }
+  run.pending.add(CardRewardStep('Caixa de Suprimentos', run.rollRewards(3)));
+}
+
+void _printer(BattleState battle) {
+  final pool = Chips.all;
+  battle.addTemporaryCard(pool[battle.random.nextInt(pool.length)]);
+}
 
 void _humidifier(BattleState battle) {
   for (final enemy in battle.enemies) {
@@ -360,6 +422,122 @@ abstract final class Relics {
     description: 'Cartas raras aparecem com o dobro da chance.',
     kind: RelicKind.global,
     rarity: Rarity.rare,
+  );
+
+  // Max HP.
+
+  static const fieldRation = RelicDef(
+    id: 'field_ration',
+    name: 'Ração de Campanha',
+    description: '+5 de HP máximo.',
+    kind: RelicKind.global,
+    maxHp: 5,
+  );
+
+  static const kevlarVest = RelicDef(
+    id: 'kevlar_vest',
+    name: 'Colete de Kevlar',
+    description: '+8 de HP máximo.',
+    kind: RelicKind.global,
+    maxHp: 8,
+  );
+
+  static const bionicHeart = RelicDef(
+    id: 'bionic_heart',
+    name: 'Coração Biônico',
+    description: '+12 de HP máximo.',
+    kind: RelicKind.global,
+    rarity: Rarity.uncommon,
+    maxHp: 12,
+  );
+
+  static const syntheticMarrow = RelicDef(
+    id: 'synthetic_marrow',
+    name: 'Medula Sintética',
+    description: '+16 de HP máximo.',
+    kind: RelicKind.global,
+    rarity: Rarity.rare,
+    maxHp: 16,
+  );
+
+  // Taken once: they act when picked up.
+
+  /// Read by the map through [RunState.jumps].
+  static const jumpPack = RelicDef(
+    id: 'jump_pack',
+    name: 'Propulsor de Salto',
+    description:
+        'Nos próximos 3 andares, escolha qualquer nó do andar, fora do '
+        'caminho.',
+    kind: RelicKind.global,
+    rarity: Rarity.rare,
+    onPickup: _jumpPack,
+  );
+
+  static const jumpCount = 3;
+
+  static const quantumCloner = RelicDef(
+    id: 'quantum_cloner',
+    name: 'Clonador Quântico',
+    description: 'Ao pegar, escolha uma carta do deck para duplicar.',
+    kind: RelicKind.global,
+    rarity: Rarity.uncommon,
+    onPickup: _cloner,
+  );
+
+  static const dataBank = RelicDef(
+    id: 'data_bank',
+    name: 'Banco de Dados Tático',
+    description: 'Ao pegar, ganhe 5 recompensas de carta.',
+    kind: RelicKind.global,
+    rarity: Rarity.rare,
+    onPickup: _dataBank,
+  );
+
+  static const dataBankRewards = 5;
+
+  static const dataForge = RelicDef(
+    id: 'data_forge',
+    name: 'Forja de Dados',
+    description:
+        'Ao pegar, transforme 3 cartas do deck em cartas aleatórias e '
+        'melhore outras 3.',
+    kind: RelicKind.global,
+    rarity: Rarity.rare,
+    onPickup: _dataForge,
+  );
+
+  static const incinerator = RelicDef(
+    id: 'incinerator',
+    name: 'Incinerador',
+    description: 'Ao pegar, remova 2 cartas do deck.',
+    kind: RelicKind.global,
+    rarity: Rarity.uncommon,
+    onPickup: _incinerator,
+  );
+
+  static const supplyCrate = RelicDef(
+    id: 'supply_crate',
+    name: 'Caixa de Suprimentos',
+    description:
+        'Ao pegar: +50 Créditos, +5 de HP máximo, uma recompensa de carta e '
+        'uma carta aleatória melhorada.',
+    kind: RelicKind.global,
+    maxHp: 5,
+    onPickup: _supplyCrate,
+  );
+
+  static const crateCredits = 50;
+
+  static const printer3d = RelicDef(
+    id: 'printer_3d',
+    name: 'Impressora 3D',
+    description:
+        'No início de cada luta, ganhe uma carta aleatória só para ela; '
+        'ela se exaure ao ser usada.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+    onBattleStart: _printer,
   );
 
   // Boss relics: offered only by a boss's spoils, a strong bonus with a
@@ -605,5 +783,16 @@ abstract final class Relics {
     elementalAmp,
     absorbPlate,
     thermalInsulator,
+    fieldRation,
+    kevlarVest,
+    bionicHeart,
+    syntheticMarrow,
+    jumpPack,
+    quantumCloner,
+    dataBank,
+    dataForge,
+    incinerator,
+    supplyCrate,
+    printer3d,
   ];
 }

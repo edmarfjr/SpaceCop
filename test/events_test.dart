@@ -203,7 +203,11 @@ void main() {
         final run = RunState(random: Random(seed))..credits = 60;
         expect(box.available(run), isTrue);
         expect(box.apply(run, null), isA<OfferChoice>());
-        expect(run.credits, 0);
+        // The Caixa de Suprimentos pays Créditos when taken.
+        expect(
+          run.credits,
+          run.hasRelic(Relics.supplyCrate) ? Relics.crateCredits : 0,
+        );
         if (run.relics.isNotEmpty) relics++;
         if (run.deck.last.def == Chips.bug) bugs++;
       }
