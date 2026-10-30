@@ -21,6 +21,7 @@ import 'sprites.dart';
 enum GamePhase {
   menu,
   compendium,
+  manual,
   map,
   battle,
   reward,
@@ -35,6 +36,7 @@ enum GamePhase {
 abstract final class Overlays {
   static const menu = 'menu';
   static const compendium = 'compendium';
+  static const manual = 'manual';
 
   /// Shown on top of any screen while a relic just taken asks for choices
   /// ([RunState.pending]).
@@ -55,6 +57,7 @@ abstract final class Overlays {
   static String forPhase(GamePhase phase) => switch (phase) {
     GamePhase.menu => menu,
     GamePhase.compendium => compendium,
+    GamePhase.manual => manual,
     GamePhase.map => map,
     GamePhase.battle => hud,
     GamePhase.reward => reward,
@@ -151,6 +154,8 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   }
 
   void openCompendium() => _goTo(GamePhase.compendium);
+
+  void openManual() => _goTo(GamePhase.manual);
 
   void backToMenu() => _goTo(GamePhase.menu);
 
@@ -385,7 +390,9 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     overlays.removeAll(overlays.activeOverlays.toList());
     overlays.add(Overlays.forPhase(next));
     phase.value = next;
-    if (next != GamePhase.menu && next != GamePhase.compendium) {
+    if (next != GamePhase.menu &&
+        next != GamePhase.compendium &&
+        next != GamePhase.manual) {
       checkPickups();
     }
     // A finished run can't be continued.
@@ -395,6 +402,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     GameAudio.instance.music(switch (next) {
       GamePhase.menu ||
       GamePhase.compendium ||
+      GamePhase.manual ||
       GamePhase.map ||
       GamePhase.reward => Music.map,
       GamePhase.battle =>

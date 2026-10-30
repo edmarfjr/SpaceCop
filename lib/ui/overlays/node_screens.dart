@@ -1012,6 +1012,11 @@ class MenuOverlay extends StatelessWidget {
         onPressed: withTap(game.openCompendium),
         child: const Text('Compêndio'),
       ),
+      const SizedBox(height: 6),
+      FilledButton(
+        onPressed: withTap(game.openManual),
+        child: const Text('Manual'),
+      ),
     ],
   );
 }

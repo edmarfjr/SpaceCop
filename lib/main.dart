@@ -6,6 +6,7 @@ import 'game/audio.dart';
 import 'game/star_cop_game.dart';
 import 'ui/overlays/battle_hud.dart';
 import 'ui/overlays/compendium.dart';
+import 'ui/overlays/manual.dart';
 import 'ui/overlays/map_overlay.dart';
 import 'ui/overlays/node_screens.dart';
 import 'ui/overlays/pause_screens.dart';
@@ -70,12 +71,14 @@ class _StarCopAppState extends State<StarCopApp> {
     Overlays.shop,
     Overlays.event,
     Overlays.compendium,
+    Overlays.manual,
     Overlays.pickup,
   };
 
   static final _overlays = <String, Widget Function(StarCopGame)>{
     Overlays.menu: (game) => MenuOverlay(game: game),
     Overlays.compendium: (game) => CompendiumOverlay(game: game),
+    Overlays.manual: (game) => ManualOverlay(game: game),
     Overlays.pickup: (game) => PickupOverlay(game: game),
     Overlays.map: (game) => MapOverlay(game: game),
     Overlays.hud: (game) => BattleHud(game: game),
