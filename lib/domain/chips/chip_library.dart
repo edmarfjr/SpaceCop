@@ -177,7 +177,7 @@ abstract final class Chips {
   static const grenade = ChipDef(
     id: 'grenade',
     name: 'Granada',
-    description: 'Lançada no 3º painel à frente: explode em cruz.',
+    description: 'Lançada no 3º painel à frente: explode em cruz. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
@@ -185,13 +185,15 @@ abstract final class Chips {
     damage: 25,
     effect: GrenadeEffect(),
     pose: ChipPose.toss,
+    exhaust: true,
   );
 
   static const incendiaryGrenade = ChipDef(
     id: 'incendiary_grenade',
     name: 'Granada Incendiária',
     description:
-        'Lançada no 3º painel à frente: explode em cruz e o centro vira Lava.',
+        'Lançada no 3º painel à frente: explode em cruz e o centro vira Lava. '
+        'Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -201,6 +203,7 @@ abstract final class Chips {
     element: Element.fire,
     effect: GrenadeEffect(panel: PanelState.lava),
     pose: ChipPose.toss,
+    exhaust: true,
   );
 
   static const smokeGrenade = ChipDef(
@@ -208,7 +211,7 @@ abstract final class Chips {
     name: 'Granada de Fumaça',
     description:
         'Lançada no 3º painel à frente: explode em cruz e deixa Fumaça por '
-        '10 s. Quem está na Fumaça não ataca.',
+        '10 s. Quem está na Fumaça não ataca. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
@@ -216,6 +219,7 @@ abstract final class Chips {
     damage: 10,
     effect: GrenadeEffect(smokeTicks: smokeDurationTicks),
     pose: ChipPose.toss,
+    exhaust: true,
   );
 
   static const stunGrenade = ChipDef(
@@ -223,7 +227,7 @@ abstract final class Chips {
     name: 'Granada Atordoante',
     description:
         'Lançada no 3º painel à frente: explode em cruz e atordoa quem for '
-        'atingido por 2 s.',
+        'atingido por 2 s. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -232,6 +236,7 @@ abstract final class Chips {
     element: Element.elec,
     effect: GrenadeEffect(stunTicks: 2 * ticksPerSecond),
     pose: ChipPose.toss,
+    exhaust: true,
   );
 
   static const recover = ChipDef(
@@ -469,7 +474,7 @@ abstract final class Chips {
     name: 'Criogranada',
     description:
         'Lançada no 3º painel à frente: explode em cruz, molha quem for '
-        'atingido e o centro vira Gelo.',
+        'atingido e o centro vira Gelo. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -479,6 +484,7 @@ abstract final class Chips {
     element: Element.aqua,
     effect: GrenadeEffect(panel: PanelState.ice, wetTicks: wetTicks),
     pose: ChipPose.toss,
+    exhaust: true,
   );
 
   static const emp = ChipDef(
@@ -655,7 +661,7 @@ abstract final class Chips {
         stunGrenade,
         description:
             'Lançada no 3º painel à frente: explode em cruz e atordoa quem '
-            'for atingido por 3 s.',
+            'for atingido por 3 s. Uso único.',
         effect: const GrenadeEffect(stunTicks: 3 * ticksPerSecond),
       ),
       _up(

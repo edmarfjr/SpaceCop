@@ -198,4 +198,18 @@ void main() {
     expect(battle.hand, isEmpty);
     expect(battle.deck.discardPile, isEmpty);
   });
+
+  test('every Granada is single-use, upgraded too', () {
+    for (final def in [
+      Chips.grenade,
+      Chips.incendiaryGrenade,
+      Chips.smokeGrenade,
+      Chips.stunGrenade,
+      Chips.cryoGrenade,
+    ]) {
+      expect(def.exhaust, isTrue, reason: def.name);
+      expect(Chips.upgradeOf(def)!.exhaust, isTrue, reason: def.name);
+      expect(def.description, endsWith('Uso único.'));
+    }
+  });
 }
