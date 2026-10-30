@@ -140,7 +140,7 @@ abstract final class SpriteFiles {
 
   static const obstacles = <ObstacleKind, String>{
     ObstacleKind.rock: 'chips/pedra.png',
-    ObstacleKind.barricade: 'chips/pedra.png',
+    ObstacleKind.barricade: 'chips/barricata.png',
     ObstacleKind.turret: 'obstacles/drone.png',
     ObstacleKind.reflector: 'chips/stasisGen.png',
     ObstacleKind.tesla: 'chips/teslaCoil.png',
@@ -173,7 +173,7 @@ abstract final class SpriteFiles {
     Chips.mirror.id: 'chips/stasisGen.png',
     Chips.seedGrass.id: 'chips/broto.png',
     Chips.areaSteal.id: 'chips/roubaColuna.png',
-    Chips.barricade.id: 'chips/pedra.png',
+    Chips.barricade.id: 'chips/barricata.png',
     Chips.mine.id: 'chips/mina.png',
     Chips.turret.id: 'chips/droneItn.png',
     Chips.hook.id: 'chips/hook.png',
