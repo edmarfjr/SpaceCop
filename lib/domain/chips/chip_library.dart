@@ -953,6 +953,49 @@ abstract final class Chips {
     effect: DrawEffect(2),
   );
 
+  static const resonance = ChipDef(
+    id: 'resonance',
+    name: 'Pulso Ressonante',
+    description:
+        'Acerta o primeiro inimigo da linha: dano × a posição na corrente '
+        '(1ª, 2ª ou 3ª carta).',
+    cost: 1,
+    family: ChipFamily.energy,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 5,
+    element: Element.elec,
+    effect: ChainScaleEffect(),
+  );
+
+  static const wildcard = ChipDef(
+    id: 'wildcard',
+    name: 'Coringa',
+    description:
+        'A próxima carta de Projétil, Explosivo, Energia ou Corpo-a-corpo '
+        'conta como da família da corrente atual.',
+    cost: 1,
+    family: ChipFamily.tactical,
+    rarity: Rarity.rare,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: WildcardEffect(),
+  );
+
+  static const adrenaline = ChipDef(
+    id: 'adrenaline',
+    name: 'Adrenalina',
+    description: 'Os 3 próximos ataques causam +5 de dano. Uso único.',
+    cost: 0,
+    family: ChipFamily.consumable,
+    rarity: Rarity.uncommon,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: AttackChargesEffect(3, 5),
+    exhaust: true,
+  );
+
   static const _square = [
     GridPos(-1, -1),
     GridPos(0, -1),
@@ -1230,6 +1273,13 @@ abstract final class Chips {
         effect: const SelfStatusEffect(Status.regen, 20 * ticksPerSecond),
       ),
       _up(tacticalReload, cost: 0),
+      _up(resonance, damage: 7),
+      _up(wildcard, cost: 0),
+      _up(
+        adrenaline,
+        description: 'Os 3 próximos ataques causam +8 de dano. Uso único.',
+        effect: const AttackChargesEffect(3, 8),
+      ),
     ])
       up.id: up,
   };
@@ -1302,6 +1352,9 @@ abstract final class Chips {
     repairKit,
     nanobots,
     tacticalReload,
+    resonance,
+    wildcard,
+    adrenaline,
   ];
 
   /// Every card, offered or not (Bug), by id: what a saved deck
@@ -1375,6 +1428,9 @@ abstract final class Chips {
       repairKit,
       nanobots,
       tacticalReload,
+      resonance,
+      wildcard,
+      adrenaline,
       bug,
     ])
       def.id: def,

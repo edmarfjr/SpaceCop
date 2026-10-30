@@ -643,6 +643,13 @@ class BattleState {
   /// Bonus added to the next projectile (cart: `dmg_bonus`).
   int damageBonus = 0;
 
+  /// Attacks left with [chargeBonus] more damage (Adrenalina).
+  int attackCharges = 0;
+  int chargeBonus = 0;
+
+  /// The next chaining card counts as [chainFamily] (Coringa).
+  bool wildcard = false;
+
   /// Added to every Projectile card until the battle ends (Munição
   /// Especial).
   int projectileBonus = 0;
@@ -1214,9 +1221,27 @@ class BattleState {
   void _activate(ChipDef def) {
     events.add(BattleEvent(BattleEventKind.chipUsed, chip: def));
     player.pose = def.pose;
-    final chain = _advanceChain(def.family);
+    var family = def.family;
+    if (wildcard && family.chains) {
+      wildcard = false;
+      if (chainCount > 0) family = chainFamily!;
+    }
+    // Place of this card in the chain, for Pulso Ressonante.
+    final link = min(
+      3,
+      (family.chains && chainFamily == family ? chainCount : 0) +
+          (chainSurge ? 2 : 1),
+    );
+    final chain = _advanceChain(family);
     final ammo = def.family == ChipFamily.projectile ? projectileBonus : 0;
-    var damage = boosted(player, def.damage + damageBonus + ammo, def.element);
+    final spends = _spendsBonus(def);
+    final bonus = spends
+        ? damageBonus + (attackCharges > 0 ? chargeBonus : 0)
+        : 0;
+    final base = def.effect is ChainScaleEffect
+        ? def.damage * link
+        : def.damage;
+    var damage = boosted(player, base + bonus + ammo, def.element);
     damage = (damage * chain).round();
     for (final relic in relics) {
       damage = relic.modifyDamage?.call(this, def, damage) ?? damage;
@@ -1235,7 +1260,6 @@ class BattleState {
           family: def.family,
           status: status,
         );
-        damageBonus = 0;
         _toss(shot.pos, () => _impact(shot, Team.enemy));
       case ProjectileEffect(:final pattern, :final farBonus):
         final far = _tossTarget();
@@ -1269,7 +1293,6 @@ class BattleState {
           family: def.family,
           status: status,
         );
-        damageBonus = 0;
         _toss(target, () {
           // Who is in the blast, before the hit can push or kill them.
           final caught = {
@@ -1304,16 +1327,19 @@ class BattleState {
           }
         });
       case CrackEffect() || PushEffect() || PullEffect() || StatusShotEffect():
-        // Damage-free shots (Gancho, Mira Laser) leave the Bala Oca bonus
-        // for the next attack.
-        final kept = damageBonus;
         _fire(
           def,
           def.damage == 0 ? 0 : damage,
           onHit: def.effect,
           status: status,
         );
-        if (def.damage == 0) damageBonus = kept;
+      case ChainScaleEffect():
+        _fire(def, damage, status: status);
+      case WildcardEffect():
+        wildcard = true;
+      case AttackChargesEffect(:final count, :final amount):
+        attackCharges = count;
+        chargeBonus = amount;
       case HealEffect(:final amount):
         heal(amount);
       case DamageBoostEffect(:final amount):
@@ -1357,7 +1383,6 @@ class BattleState {
             status: status,
           );
         }
-        damageBonus = 0;
       case BarrierEffect(:final ticks, :final charges):
         player
           ..barrierTicks = _lasting(ticks)
@@ -1426,7 +1451,30 @@ class BattleState {
       case RepeatNextEffect():
         overclocked = true;
     }
+    if (spends) {
+      damageBonus = 0;
+      if (attackCharges > 0) attackCharges--;
+    }
   }
+
+  /// Attacks that deal damage take Bala Oca and Adrenalina bonuses, and use
+  /// them up; damage-free shots (Gancho, Mira Laser) leave them.
+  bool _spendsBonus(ChipDef def) =>
+      def.damage > 0 &&
+      switch (def.effect) {
+        ProjectileEffect() ||
+        GrenadeEffect() ||
+        CrackEffect() ||
+        PushEffect() ||
+        PullEffect() ||
+        StatusShotEffect() ||
+        BurstEffect() ||
+        MeleeEffect() ||
+        DashEffect() ||
+        RowStrikeEffect() ||
+        ChainScaleEffect() => true,
+        _ => false,
+      };
 
   /// Player shot along the row, one cell per tick.
   void _fire(
@@ -1450,7 +1498,6 @@ class BattleState {
         status: status,
       ),
     );
-    damageBonus = 0;
   }
 
   /// Takes the first column with an enemy-owned panel. Enemies standing in
@@ -1652,7 +1699,6 @@ class BattleState {
         }
       }
     }
-    damageBonus = 0;
   }
 
   // ------------------------------------------------------------- movement

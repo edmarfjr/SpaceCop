@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:starcop/domain/battle/battle_state.dart';
+import 'package:starcop/domain/chips/battle_chip.dart';
 import 'package:starcop/domain/chips/chip_library.dart';
+import 'package:starcop/domain/element.dart';
 import 'package:starcop/domain/grid.dart';
 import 'package:starcop/game/sprites.dart';
 
@@ -95,6 +97,58 @@ void main() {
       expect(battle.hand, hasLength(maxHand));
       use(battle, Chips.tacticalReload);
       expect(battle.hand, hasLength(maxHand));
+    });
+  });
+
+  group('phase 2', () {
+    test('Pulso Ressonante scales with its place in the chain', () {
+      final battle = battleWith(
+        [Chips.resonance, Chips.resonance],
+        spawns: [dummyAt(3, 1)],
+      );
+      use(battle, Chips.resonance);
+      expect(battle.enemies.single.hp, 95);
+      use(battle, Chips.resonance);
+      expect(battle.enemies.single.hp, 95 - (10 * chain2Multiplier).round());
+    });
+
+    test('Coringa: the next card joins the chain in progress', () {
+      final battle = battleWith(
+        [Chips.shot, Chips.wildcard, Chips.vShot],
+        spawns: [dummyAt(3, 1)],
+      );
+      use(battle, Chips.shot);
+      use(battle, Chips.wildcard);
+      use(battle, Chips.vShot);
+      expect(battle.chainFamily, ChipFamily.projectile);
+      expect(battle.chainCount, 2);
+      expect(battle.wildcard, isFalse);
+    });
+
+    test('Adrenalina: +5 on the next 3 attacks only', () {
+      final shot = shotOf(Element.neutral);
+      final battle = battleWith(
+        [Chips.adrenaline, shot, shot, shot, shot],
+        spawns: [dummyAt(3, 1)],
+      );
+      use(battle, Chips.adrenaline);
+      for (var i = 0; i < 4; i++) {
+        use(battle, shot);
+      }
+      expect(battle.enemies.single.hp, 100 - 3 * 15 - 10);
+      expect(battle.attackCharges, 0);
+    });
+
+    test('Bala Oca is spent once by a whole SMG burst', () {
+      final battle = battleWith(
+        [Chips.atkBoost, Chips.smg],
+        spawns: [dummyAt(3, 1)],
+      );
+      use(battle, Chips.atkBoost);
+      use(battle, Chips.smg);
+      wait(battle, 30);
+      expect(battle.damageBonus, 0);
+      expect(battle.enemies.single.hp, 100 - 3 * 15);
     });
   });
 }

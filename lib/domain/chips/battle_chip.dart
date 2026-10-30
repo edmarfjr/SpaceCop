@@ -237,6 +237,26 @@ class TractorEffect extends ChipEffect {
   final int steps;
 }
 
+/// Projectile whose damage is multiplied by its place in the chain: 1st,
+/// 2nd or 3rd card (Pulso Ressonante).
+class ChainScaleEffect extends ChipEffect {
+  const ChainScaleEffect();
+}
+
+/// The next chaining card counts as the family of the chain in progress
+/// (Coringa).
+class WildcardEffect extends ChipEffect {
+  const WildcardEffect();
+}
+
+/// The next [count] attacks deal [amount] more (Adrenalina).
+class AttackChargesEffect extends ChipEffect {
+  const AttackChargesEffect(this.count, this.amount);
+
+  final int count;
+  final int amount;
+}
+
 /// The next chip used counts twice in the chain (Sobrecarga).
 class ChainSurgeEffect extends ChipEffect {
   const ChainSurgeEffect();
