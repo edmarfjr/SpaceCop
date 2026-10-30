@@ -85,7 +85,7 @@ const int pullStunTicks = ticksPerSecond;
 
 const int rockHp = 40;
 const int mineDamage = 40;
-const int turretHp = 20;
+const int turretHp = 30;
 const int turretTicks = 10 * ticksPerSecond;
 const int turretShotDamage = 5;
 
@@ -1253,7 +1253,16 @@ class BattleState {
           }
         });
       case CrackEffect() || PushEffect() || PullEffect() || StatusShotEffect():
-        _fire(def, damage, onHit: def.effect, status: status);
+        // Damage-free shots (Gancho, Mira Laser) leave the Bala Oca bonus
+        // for the next attack.
+        final kept = damageBonus;
+        _fire(
+          def,
+          def.damage == 0 ? 0 : damage,
+          onHit: def.effect,
+          status: status,
+        );
+        if (def.damage == 0) damageBonus = kept;
       case HealEffect(:final amount):
         heal(amount);
       case DamageBoostEffect(:final amount):

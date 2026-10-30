@@ -114,7 +114,7 @@ class _TextButton extends StatelessWidget {
     onTap: onTap,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      child: Text(text, style: GbText.body.copyWith(color: Pico.yellow)),
+      child: Text(text, style: GbText.title.copyWith(color: Pico.yellow,fontSize: 14)),
     ),
   );
 }

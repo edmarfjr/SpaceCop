@@ -58,7 +58,7 @@ class _ChipCardViewState extends State<ChipCardView> {
   /// between them, and the description box.
   static const _name = Rect.fromLTWH(3, 3, 26, 3);
   static const _nameOutline = Rect.fromLTWH(2, 2, 28, 5);
-  static const _art = Rect.fromLTWH(5, 14, 22, 13);
+  static const _art = Rect.fromLTWH(5, 10, 22, 16);
   static const _left = Rect.fromLTWH(1, 8, 6, 6);
   static const _right = Rect.fromLTWH(25, 8, 6, 6);
   static const _element = Rect.fromLTWH(13, 8, 6, 6);

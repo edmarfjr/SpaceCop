@@ -233,6 +233,7 @@ abstract final class Chips {
     rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.self,
+    damage: 5,
     element: Element.elec,
     effect: GrenadeEffect(stunTicks: 2 * ticksPerSecond),
     pose: ChipPose.toss,
@@ -242,13 +243,13 @@ abstract final class Chips {
   static const recover = ChipDef(
     id: 'recover',
     name: 'Primeiros Socorros',
-    description: 'Recupera 5 de vida. Uso único.',
+    description: 'Recupera 10 de vida. Uso único.',
     cost: 2,
     family: ChipFamily.consumable,
     rarity: Rarity.uncommon,
     type: ChipType.recovery,
     target: ChipTarget.self,
-    effect: HealEffect(5),
+    effect: HealEffect(10),
     exhaust: true,
   );
 
@@ -449,7 +450,7 @@ abstract final class Chips {
   static const turret = ChipDef(
     id: 'turret',
     name: 'Drone',
-    description: 'Drone que atira 5 Elétrico por segundo por 10 s.',
+    description: 'Drone de 30 HP que atira 5 Elétrico por segundo por 10 s.',
     cost: 2,
     family: ChipFamily.equipment,
     rarity: Rarity.rare,
@@ -465,7 +466,7 @@ abstract final class Chips {
     description:
         'Puxa o primeiro alvo da linha para a frente e o atordoa por 2 s.',
     cost: 1,
-    family: ChipFamily.melee,
+    family: ChipFamily.tactical,
     type: ChipType.support,
     target: ChipTarget.row,
     effect: PullEffect(stunTicks: 2 * ticksPerSecond),
@@ -495,7 +496,7 @@ abstract final class Chips {
     name: 'Pulso EMP',
     description:
         'Lançado no 3º painel à frente: pulso em cruz que derruba escudos '
-        'frontais por 3 s.',
+        'frontais por 3 s. Uso único.',
     cost: 2,
     family: ChipFamily.energy,
     rarity: Rarity.uncommon,
@@ -505,6 +506,7 @@ abstract final class Chips {
     element: Element.elec,
     effect: GrenadeEffect(shieldTicks: 3 * ticksPerSecond),
     pose: ChipPose.toss,
+    exhaust: true,
   );
 
   static const neuralVine = ChipDef(
@@ -655,7 +657,7 @@ abstract final class Chips {
         effect: const MeleeEffect(stunTicks: 3 * ticksPerSecond),
       ),
       _up(sword, damage: 30),
-      _up(shoulderBash, damage: 15),
+      _up(shoulderBash, damage: 20),
       _up(energyWhip, damage: 20),
       _up(seismicHammer, damage: 40),
       _up(grenade, damage: 35),
@@ -671,13 +673,13 @@ abstract final class Chips {
         smokeGrenade,
         description:
             'Lançada no 3º painel à frente: explode em cruz e deixa Fumaça '
-            'por 15 s. Quem está na Fumaça não ataca.',
+            'por 15 s. Quem está na Fumaça não ataca. Uso único.',
         effect: const GrenadeEffect(smokeTicks: 15 * ticksPerSecond),
       ),
       _up(
         recover,
-        description: 'Recupera 10 de vida. Uso único.',
-        effect: const HealEffect(10),
+        description: 'Recupera 15 de vida. Uso único.',
+        effect: const HealEffect(15),
       ),
       _up(
         atkBoost,
@@ -738,7 +740,8 @@ abstract final class Chips {
       ),
       _up(
         turret,
-        description: 'Drone que atira 5 Elétrico por segundo por 15 s.',
+        description:
+            'Drone de 30 HP que atira 5 Elétrico por segundo por 15 s.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.turret,
           amount: 15 * ticksPerSecond,

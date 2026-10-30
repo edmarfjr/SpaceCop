@@ -297,6 +297,7 @@ abstract final class SpriteFiles {
     Events.hangar.title: 'events/contrabando.png',
     Events.clinic.title: 'events/enfermaria.png',
     Events.hangar.title: 'events/contrabando.png',
+    Events.shredder.title: 'events/trituradorEvidencias.png',
   };
 
   static const nodes = <NodeType, String>{

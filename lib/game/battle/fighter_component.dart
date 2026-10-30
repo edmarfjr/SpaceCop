@@ -277,11 +277,13 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
       }
     }
     // Active statuses, in a row above the head.
-    var x = 0.0;
+    final count = fighter.statuses.length;
+    // 8 px per icon, 1 px gap between them.
+    var x = (size.x - (count * 9 - 1)) / 2;
     for (final status in fighter.statuses.keys) {
       sprites
           .status(status)
-          .render(canvas, position: Vector2(x, -10), size: Vector2.all(8));
+          .render(canvas, position: Vector2(x, 6), size: Vector2.all(8));
       x += 9;
     }
   }

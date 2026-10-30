@@ -62,11 +62,11 @@ void main() {
     );
   });
 
-  test('Primeiros Socorros+ heals 10', () {
+  test('Primeiros Socorros+ heals 15', () {
     final battle = battleWith([up(Chips.recover)]);
     battle.player.hp = 50;
     use(battle, up(Chips.recover));
-    expect(battle.player.hp, 60);
+    expect(battle.player.hp, 65);
   });
 
   test('Bala Oca+ adds 20', () {

@@ -134,7 +134,7 @@ void main() {
         hit.statuses[Status.stunned],
         greaterThan(2 * ticksPerSecond - playerAttackCooldown),
       );
-      expect(hit.hp, 100, reason: 'no damage');
+      expect(hit.hp, 100 - boom(Chips.stunGrenade.damage));
     }
     expect(outside.has(Status.stunned), isFalse);
     expect(battle.energy, baseEnergy - 2);
@@ -181,11 +181,25 @@ void main() {
     });
   });
 
-  test('Primeiros Socorros heals 5 for 2 energy, single use', () {
+  test('Gancho and Mira Laser leave the Bala Oca bonus for the next attack',
+      () {
+    final battle = battleWith(
+      [Chips.atkBoost, Chips.hook, Chips.laserSight, Chips.shot],
+      spawns: [dummyAt(5, 1)],
+    );
+    use(battle, Chips.atkBoost);
+    use(battle, Chips.hook);
+    use(battle, Chips.laserSight);
+    final enemy = battle.enemies.single;
+    expect(enemy.hp, 100);
+    expect(battle.damageBonus, 10);
+  });
+
+  test('Primeiros Socorros heals 10 for 2 energy, single use', () {
     final battle = battleWith([Chips.recover]);
     battle.player.hp = 50;
     use(battle, Chips.recover);
-    expect(battle.player.hp, 55);
+    expect(battle.player.hp, 60);
     expect(battle.energy, baseEnergy - 2);
     expect(battle.deck.discardPile, isEmpty);
   });
