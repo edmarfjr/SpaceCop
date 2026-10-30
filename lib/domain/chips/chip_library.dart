@@ -595,6 +595,302 @@ abstract final class Chips {
     exhaust: true,
   );
 
+  static const sniper = ChipDef(
+    id: 'sniper',
+    name: 'Rifle de Precisão',
+    description:
+        'Acerta o primeiro inimigo da linha; +15 se ele estiver na coluna do '
+        'fundo.',
+    cost: 2,
+    family: ChipFamily.projectile,
+    rarity: Rarity.rare,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 30,
+    effect: ProjectileEffect(farBonus: 15),
+  );
+
+  static const incendiaryRound = ChipDef(
+    id: 'incendiary_round',
+    name: 'Bala Incendiária',
+    description: 'Acerta o primeiro inimigo da linha e o deixa Queimando.',
+    cost: 1,
+    family: ChipFamily.projectile,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 10,
+    element: Element.fire,
+    effect: StatusShotEffect(Status.burning, burnTicks),
+  );
+
+  static const piercingShot = ChipDef(
+    id: 'piercing_shot',
+    name: 'Tiro Perfurante',
+    description: 'Atravessa a linha: acerta as 3 colunas inimigas.',
+    cost: 1,
+    family: ChipFamily.projectile,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 12,
+    effect: RowStrikeEffect(),
+  );
+
+  static const tranqDart = ChipDef(
+    id: 'tranq_dart',
+    name: 'Dardo Tranquilizante',
+    description: 'Acerta o primeiro inimigo da linha e o atordoa por 1 s.',
+    cost: 1,
+    family: ChipFamily.projectile,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 5,
+    effect: StatusShotEffect(Status.stunned, ticksPerSecond),
+  );
+
+  static const fragGrenade = ChipDef(
+    id: 'frag_grenade',
+    name: 'Granada de Fragmentação',
+    description:
+        'Lançada no 3º painel à frente: explode num quadrado 3x3. Uso único.',
+    cost: 2,
+    family: ChipFamily.explosive,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    effect: GrenadeEffect(pattern: _square),
+    pose: ChipPose.toss,
+    exhaust: true,
+  );
+
+  static const mortar = ChipDef(
+    id: 'mortar',
+    name: 'Morteiro',
+    description: 'Lançado no 4º painel à frente: explode em cruz. Uso único.',
+    cost: 2,
+    family: ChipFamily.explosive,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 20,
+    effect: GrenadeEffect(distance: 4),
+    pose: ChipPose.toss,
+    exhaust: true,
+  );
+
+  static const fissureBomb = ChipDef(
+    id: 'fissure_bomb',
+    name: 'Bomba de Fissura',
+    description:
+        'Lançada no 3º painel à frente: explode na coluna e racha os 3 '
+        'painéis. Uso único.',
+    cost: 1,
+    family: ChipFamily.explosive,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 10,
+    effect: GrenadeEffect(pattern: _column, crack: true),
+    pose: ChipPose.toss,
+    exhaust: true,
+  );
+
+  static const fusionLaser = ChipDef(
+    id: 'fusion_laser',
+    name: 'Laser de Fusão',
+    description:
+        'Acerta as 3 colunas inimigas da sua linha; o painel do primeiro '
+        'inimigo vira Lava.',
+    cost: 2,
+    family: ChipFamily.energy,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 15,
+    element: Element.fire,
+    effect: RowStrikeEffect(panel: PanelState.lava),
+  );
+
+  static const freezeRay = ChipDef(
+    id: 'freeze_ray',
+    name: 'Raio Congelante',
+    description:
+        'Acerta o primeiro inimigo da linha, o Molha e o painel dele vira '
+        'Gelo.',
+    cost: 1,
+    family: ChipFamily.energy,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 10,
+    element: Element.aqua,
+    effect: StatusShotEffect(Status.wet, wetTicks, panel: PanelState.ice),
+  );
+
+  static const steadyBeam = ChipDef(
+    id: 'steady_beam',
+    name: 'Feixe Contínuo',
+    description: 'Rajada de 4 disparos Elétricos na linha.',
+    cost: 2,
+    family: ChipFamily.energy,
+    rarity: Rarity.rare,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 5,
+    element: Element.elec,
+    effect: BurstEffect(4),
+  );
+
+  static const dagger = ChipDef(
+    id: 'dagger',
+    name: 'Adaga',
+    description: 'Golpeia o painel à frente.',
+    cost: 0,
+    family: ChipFamily.melee,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 6,
+    effect: MeleeEffect(pattern: [GridPos(1, 0)]),
+    pose: ChipPose.melee,
+  );
+
+  static const thermalBlade = ChipDef(
+    id: 'thermal_blade',
+    name: 'Lâmina Térmica',
+    description: 'Golpeia os 3 painéis à frente e deixa os alvos Queimando.',
+    cost: 1,
+    family: ChipFamily.melee,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    element: Element.fire,
+    effect: MeleeEffect(slash: true, inflict: Status.burning),
+    pose: ChipPose.melee,
+  );
+
+  static const scythe = ChipDef(
+    id: 'scythe',
+    name: 'Foice',
+    description: 'Golpeia os 2 painéis diagonais à frente.',
+    cost: 1,
+    family: ChipFamily.melee,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    effect: MeleeEffect(pattern: [GridPos(1, -1), GridPos(1, 1)]),
+    pose: ChipPose.melee,
+  );
+
+  static const hydraulicFist = ChipDef(
+    id: 'hydraulic_fist',
+    name: 'Punho Hidráulico',
+    description: 'Golpeia o painel à frente e empurra o alvo 3 painéis.',
+    cost: 2,
+    family: ChipFamily.melee,
+    rarity: Rarity.rare,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 25,
+    effect: MeleeEffect(pattern: [GridPos(1, 0)], push: 3),
+    pose: ChipPose.melee,
+  );
+
+  static const fireTurret = ChipDef(
+    id: 'fire_turret',
+    name: 'Torre Incendiária',
+    description:
+        'Torre de 30 HP que atira 5 de Fogo a cada 2 s por 10 s; quem é '
+        'atingido fica Queimando.',
+    cost: 2,
+    family: ChipFamily.equipment,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    element: Element.fire,
+    effect: SpawnObstacleEffect(ObstacleKind.turret),
+  );
+
+  static const minefield = ChipDef(
+    id: 'minefield',
+    name: 'Campo Minado',
+    description: '2 minas escondidas no lado inimigo: 25 de dano cada.',
+    cost: 2,
+    family: ChipFamily.equipment,
+    rarity: Rarity.rare,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    effect: SpawnObstacleEffect(ObstacleKind.mine, amount: 25, count: 2),
+    pose: ChipPose.toss,
+  );
+
+  static const stimulant = ChipDef(
+    id: 'stimulant',
+    name: 'Estimulante',
+    description: '+3 de Energia nesta mão. Uso único.',
+    cost: 1,
+    family: ChipFamily.consumable,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: EnergyBurstEffect(3),
+    exhaust: true,
+  );
+
+  static const specialAmmo = ChipDef(
+    id: 'special_ammo',
+    name: 'Munição Especial',
+    description:
+        'Suas cartas de Projétil causam +3 de dano até o fim da luta. Uso '
+        'único.',
+    cost: 1,
+    family: ChipFamily.consumable,
+    rarity: Rarity.rare,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: ProjectileBonusEffect(3),
+    exhaust: true,
+  );
+
+  static const combatScan = ChipDef(
+    id: 'combat_scan',
+    name: 'Análise de Combate',
+    description: 'Marca todos os inimigos por 3 s: cada acerto causa +5.',
+    cost: 1,
+    family: ChipFamily.tactical,
+    rarity: Rarity.uncommon,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: StatusAllEffect(Status.marked, 3 * ticksPerSecond),
+  );
+
+  static const jammer = ChipDef(
+    id: 'jammer',
+    name: 'Interferência',
+    description: 'Atordoa todos os inimigos por 1 s.',
+    cost: 1,
+    family: ChipFamily.tactical,
+    rarity: Rarity.uncommon,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    element: Element.elec,
+    effect: StatusAllEffect(Status.stunned, ticksPerSecond),
+  );
+
+  static const _square = [
+    GridPos(-1, -1),
+    GridPos(0, -1),
+    GridPos(1, -1),
+    GridPos(-1, 0),
+    GridPos(0, 0),
+    GridPos(1, 0),
+    GridPos(-1, 1),
+    GridPos(0, 1),
+    GridPos(1, 1),
+  ];
+
+  static const _column = [GridPos(0, -1), GridPos(0, 0), GridPos(0, 1)];
+
   /// Junk from events (Enfermaria Clandestina, Hangar de Contrabando).
   /// Never offered as a reward.
   static const bug = ChipDef(
@@ -777,6 +1073,61 @@ abstract final class Chips {
         ),
       ),
       _up(overclock, cost: 0),
+      _up(sniper, damage: 40),
+      _up(incendiaryRound, damage: 15),
+      _up(piercingShot, damage: 18),
+      _up(
+        tranqDart,
+        description: 'Acerta o primeiro inimigo da linha e o atordoa por 2 s.',
+        effect: const StatusShotEffect(Status.stunned, 2 * ticksPerSecond),
+      ),
+      _up(fragGrenade, damage: 20),
+      _up(mortar, damage: 30),
+      _up(fissureBomb, damage: 15),
+      _up(fusionLaser, damage: 20),
+      _up(freezeRay, damage: 15),
+      _up(steadyBeam, damage: 7),
+      _up(dagger, damage: 10),
+      _up(thermalBlade, damage: 20),
+      _up(scythe, damage: 20),
+      _up(hydraulicFist, damage: 35),
+      _up(
+        fireTurret,
+        description:
+            'Torre de 30 HP que atira 5 de Fogo a cada 2 s por 15 s; quem é '
+            'atingido fica Queimando.',
+        effect: const SpawnObstacleEffect(
+          ObstacleKind.turret,
+          amount: 15 * ticksPerSecond,
+        ),
+      ),
+      _up(
+        minefield,
+        description: '3 minas escondidas no lado inimigo: 25 de dano cada.',
+        effect: const SpawnObstacleEffect(
+          ObstacleKind.mine,
+          amount: 25,
+          count: 3,
+        ),
+      ),
+      _up(
+        stimulant,
+        description: '+4 de Energia nesta mão. Uso único.',
+        effect: const EnergyBurstEffect(4),
+      ),
+      _up(
+        specialAmmo,
+        description:
+            'Suas cartas de Projétil causam +5 de dano até o fim da luta. Uso '
+            'único.',
+        effect: const ProjectileBonusEffect(5),
+      ),
+      _up(
+        combatScan,
+        description: 'Marca todos os inimigos por 5 s: cada acerto causa +5.',
+        effect: const StatusAllEffect(Status.marked, 5 * ticksPerSecond),
+      ),
+      _up(jammer, cost: 0),
     ])
       up.id: up,
   };
@@ -823,6 +1174,26 @@ abstract final class Chips {
     tractorBeam,
     teslaCoil,
     overclock,
+    sniper,
+    incendiaryRound,
+    piercingShot,
+    tranqDart,
+    fragGrenade,
+    mortar,
+    fissureBomb,
+    fusionLaser,
+    freezeRay,
+    steadyBeam,
+    dagger,
+    thermalBlade,
+    scythe,
+    hydraulicFist,
+    fireTurret,
+    minefield,
+    stimulant,
+    specialAmmo,
+    combatScan,
+    jammer,
   ];
 
   /// Every card, offered or not (Bug), by id: what a saved deck
@@ -870,6 +1241,26 @@ abstract final class Chips {
       tractorBeam,
       teslaCoil,
       overclock,
+      sniper,
+      incendiaryRound,
+      piercingShot,
+      tranqDart,
+      fragGrenade,
+      mortar,
+      fissureBomb,
+      fusionLaser,
+      freezeRay,
+      steadyBeam,
+      dagger,
+      thermalBlade,
+      scythe,
+      hydraulicFist,
+      fireTurret,
+      minefield,
+      stimulant,
+      specialAmmo,
+      combatScan,
+      jammer,
       bug,
     ])
       def.id: def,

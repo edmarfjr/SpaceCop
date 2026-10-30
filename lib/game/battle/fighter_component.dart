@@ -200,11 +200,12 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     if (fighter case Obstacle(
       kind: ObstacleKind.turret,
       :final fireTimer,
+      :final fireEvery,
       :final ticksLeft,
       :final lifetime,
     )) {
       // Flash at the barrel right after each shot.
-      if (fireTimer > ticksPerSecond - _turretFlashTicks) {
+      if (fireTimer > fireEvery - _turretFlashTicks) {
         sprites.muzzle.render(
           canvas,
           position: Vector2(size.x, size.y * 0.25),

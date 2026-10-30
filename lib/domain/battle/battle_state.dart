@@ -89,6 +89,9 @@ const int turretHp = 30;
 const int turretTicks = 10 * ticksPerSecond;
 const int turretShotDamage = 5;
 
+/// Torre Incendiária: one Fire shot (that burns) every 2 s.
+const int fireTurretEvery = 2 * ticksPerSecond;
+
 /// How long the Escudo Refletor stands in front of the player.
 const int reflectorTicks = 5 * ticksPerSecond;
 
@@ -447,11 +450,16 @@ class Obstacle extends Fighter {
     required super.pos,
     required super.hp,
     super.team,
+    super.element,
     this.ticksLeft = 0,
   }) : lifetime = ticksLeft,
        super(maxHp: hp);
 
   final ObstacleKind kind;
+
+  /// Ticks between a turret's shots: Fire turrets fire slower, but burn.
+  int get fireEvery =>
+      element == Element.fire ? fireTurretEvery : ticksPerSecond;
 
   /// Removed when this reaches 0; 0 from the start means it never expires.
   int ticksLeft;
@@ -616,6 +624,10 @@ class BattleState {
 
   /// Bonus added to the next projectile (cart: `dmg_bonus`).
   int damageBonus = 0;
+
+  /// Added to every Projectile card until the battle ends (Munição
+  /// Especial).
+  int projectileBonus = 0;
 
   /// Energy restored on every refill. Grows with [EnergyMaxEffect].
   int energyMax;
@@ -1182,7 +1194,8 @@ class BattleState {
     events.add(BattleEvent(BattleEventKind.chipUsed, chip: def));
     player.pose = def.pose;
     final chain = _advanceChain(def.family);
-    var damage = boosted(player, def.damage + damageBonus, def.element);
+    final ammo = def.family == ChipFamily.projectile ? projectileBonus : 0;
+    var damage = boosted(player, def.damage + damageBonus + ammo, def.element);
     damage = (damage * chain).round();
     for (final relic in relics) {
       damage = relic.modifyDamage?.call(this, def, damage) ?? damage;
@@ -1203,8 +1216,16 @@ class BattleState {
         );
         damageBonus = 0;
         _toss(shot.pos, () => _impact(shot, Team.enemy));
-      case ProjectileEffect(:final pattern):
-        _fire(def, damage, pattern: pattern, status: status);
+      case ProjectileEffect(:final pattern, :final farBonus):
+        final far = _tossTarget();
+        final back =
+            far.x == gridColumns - 1 && _targetAt(far, Team.enemy) != null;
+        _fire(
+          def,
+          back ? damage + farBonus : damage,
+          pattern: pattern,
+          status: status,
+        );
       case GrenadeEffect(
         :final distance,
         :final pattern,
@@ -1213,6 +1234,7 @@ class BattleState {
         :final stunTicks,
         :final wetTicks,
         :final shieldTicks,
+        :final crack,
       ):
         final target = player.pos + GridPos(distance, 0);
         final shot = Projectile(
@@ -1250,6 +1272,14 @@ class BattleState {
           }
           if (smokeTicks > 0 && target.inBounds) {
             panelAt(target).smokeTicks = smokeTicks;
+          }
+          if (crack) {
+            for (final offset in pattern) {
+              final cell = target + offset;
+              if (cell.inBounds && panelAt(cell).state == PanelState.normal) {
+                setPanel(cell, PanelState.cracked);
+              }
+            }
           }
         });
       case CrackEffect() || PushEffect() || PullEffect() || StatusShotEffect():
@@ -1291,6 +1321,7 @@ class BattleState {
         :final push,
         :final crack,
         :final slash,
+        :final inflict,
       ):
         final struck = <Fighter>{};
         final front = player.pos + const GridPos(1, 0);
@@ -1313,6 +1344,7 @@ class BattleState {
         for (final unit in struck) {
           if (_passesThrough(unit, def.family)) continue;
           if (stunTicks > 0) unit.applyStatus(Status.stunned, stunTicks);
+          if (inflict != null) unit.applyStatus(inflict, statusTicks(inflict));
           if (steps > 0 && !unit.isDead) {
             displace(unit, 1, 0, steps, byPlayer: true);
           }
@@ -1326,7 +1358,15 @@ class BattleState {
           }
         }
         damageBonus = 0;
-      case RowStrikeEffect(:final fromColumn):
+      case RowStrikeEffect(:final fromColumn, :final panel):
+        if (panel != null) {
+          for (var x = fromColumn; x < gridColumns; x++) {
+            final cell = GridPos(x, player.pos.y);
+            if (_targetAt(cell, Team.enemy) == null) continue;
+            if (panelAt(cell).walkable) setPanel(cell, panel);
+            break;
+          }
+        }
         for (var x = fromColumn; x < gridColumns; x++) {
           strike(
             GridPos(x, player.pos.y),
@@ -1351,8 +1391,20 @@ class BattleState {
         }
       case AreaStealEffect(:final ticks, :final hitDamage):
         _stealArea(ticks, hitDamage);
-      case SpawnObstacleEffect(:final kind, :final amount):
-        spawnObstacle(kind, amount, tossed: def.pose == ChipPose.toss);
+      case SpawnObstacleEffect(:final kind, :final amount, :final count):
+        spawnObstacle(
+          kind,
+          amount,
+          tossed: def.pose == ChipPose.toss,
+          count: count,
+          element: def.element,
+        );
+      case StatusAllEffect(:final status, :final ticks):
+        for (final enemy in enemies) {
+          if (!enemy.isDead && !enemy.hidden) enemy.applyStatus(status, ticks);
+        }
+      case ProjectileBonusEffect(:final amount):
+        projectileBonus += amount;
       // An empty case would fall through to the next one.
       case NoEffect():
         break;
@@ -1442,7 +1494,13 @@ class BattleState {
       ? (ticks * engineeringKitBonus).round()
       : ticks;
 
-  void spawnObstacle(ObstacleKind kind, int? amount, {bool tossed = false}) {
+  void spawnObstacle(
+    ObstacleKind kind,
+    int? amount, {
+    bool tossed = false,
+    int count = 1,
+    Element element = Element.elec,
+  }) {
     void place(GridPos pos, void Function() put) =>
         tossed ? _toss(pos, put) : put();
     bool free(GridPos pos) =>
@@ -1494,6 +1552,7 @@ class BattleState {
             pos: pos,
             hp: turretHp,
             team: Team.player,
+            element: element,
             ticksLeft: _lasting(amount ?? turretTicks),
           ),
         );
@@ -1525,13 +1584,14 @@ class BattleState {
                       unitAt(pos) == null)
                 pos,
         ];
-        if (spots.isEmpty) return;
-        final pos = spots[random.nextInt(spots.length)];
-        place(pos, () {
-          if (panelAt(pos).walkable) {
-            panelAt(pos).mineDamage = amount ?? mineDamage;
-          }
-        });
+        spots.shuffle(random);
+        for (final pos in spots.take(count)) {
+          place(pos, () {
+            if (panelAt(pos).walkable) {
+              panelAt(pos).mineDamage = amount ?? mineDamage;
+            }
+          });
+        }
     }
   }
 
@@ -2057,7 +2117,7 @@ class BattleState {
           obstacle.kind == ObstacleKind.tesla;
       if (!shooter || obstacle.isDead || inSmoke(obstacle)) continue;
       if (--obstacle.fireTimer > 0) continue;
-      obstacle.fireTimer = ticksPerSecond;
+      obstacle.fireTimer = obstacle.fireEvery;
       if (obstacle.kind == ObstacleKind.tesla) {
         _zap(obstacle);
         continue;
@@ -2070,7 +2130,8 @@ class BattleState {
           stepTicks: 0,
           damage: turretShotDamage,
           pattern: const [GridPos(0, 0)],
-          element: Element.elec,
+          element: obstacle.element,
+          status: obstacle.element == Element.fire ? Status.burning : null,
         ),
       );
     }
@@ -2180,8 +2241,11 @@ class BattleState {
       case PullEffect(:final stunTicks):
         _pull(target);
         if (stunTicks > 0) target.applyStatus(Status.stunned, stunTicks);
-      case StatusShotEffect(:final status, :final ticks):
+      case StatusShotEffect(:final status, :final ticks, :final panel):
         target.applyStatus(status, ticks);
+        if (panel != null && panelAt(target.pos).walkable) {
+          setPanel(target.pos, panel);
+        }
       default:
     }
   }

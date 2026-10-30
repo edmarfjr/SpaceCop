@@ -60,9 +60,16 @@ sealed class ChipEffect {
 /// takes damage. Offsets are relative to the impact cell, written from the
 /// player's point of view (+x = away from the shooter).
 class ProjectileEffect extends ChipEffect {
-  const ProjectileEffect({this.pattern = const [GridPos(0, 0)]});
+  const ProjectileEffect({
+    this.pattern = const [GridPos(0, 0)],
+    this.farBonus = 0,
+  });
 
   final List<GridPos> pattern;
+
+  /// Extra damage when the first target stands in the back column (Rifle
+  /// de Precisão).
+  final int farBonus;
 }
 
 class HealEffect extends ChipEffect {
@@ -117,12 +124,16 @@ class MeleeEffect extends ChipEffect {
     this.push = 0,
     this.crack = false,
     this.slash = false,
+    this.inflict,
   });
 
   final List<GridPos> pattern;
   final int stunTicks;
   final int push;
   final bool crack;
+
+  /// Given to whoever is hit, for its default time (Lâmina Térmica burns).
+  final Status? inflict;
 
   /// Shown as one vertical slash on the panel in front instead of an
   /// explosion on each panel hit (Espada).
@@ -149,6 +160,7 @@ class GrenadeEffect extends ChipEffect {
     this.stunTicks = 0,
     this.wetTicks = 0,
     this.shieldTicks = 0,
+    this.crack = false,
   });
 
   final int distance;
@@ -160,6 +172,9 @@ class GrenadeEffect extends ChipEffect {
 
   /// Front shields in the blast stay down this long (Pulso EMP).
   final int shieldTicks;
+
+  /// Every panel of the blast cracks (Bomba de Fissura).
+  final bool crack;
 }
 
 /// Projectile that cracks the panel under the first target it hits.
@@ -188,10 +203,30 @@ class PullEffect extends ChipEffect {
 /// Projectile that gives the first target hit [status] for [ticks]
 /// (Vinha Neural roots, Mira Laser marks).
 class StatusShotEffect extends ChipEffect {
-  const StatusShotEffect(this.status, this.ticks);
+  const StatusShotEffect(this.status, this.ticks, {this.panel});
 
   final Status status;
   final int ticks;
+
+  /// The target's panel turns into this (Raio Congelante: Gelo).
+  final PanelState? panel;
+}
+
+/// Every enemy on the field gets [status] for [ticks] (Análise de Combate,
+/// Interferência).
+class StatusAllEffect extends ChipEffect {
+  const StatusAllEffect(this.status, this.ticks);
+
+  final Status status;
+  final int ticks;
+}
+
+/// Projectile cards deal [amount] more until the battle ends (Munição
+/// Especial).
+class ProjectileBonusEffect extends ChipEffect {
+  const ProjectileBonusEffect(this.amount);
+
+  final int amount;
 }
 
 /// Pulls every enemy of the user's row [steps] panels forward, front one
@@ -214,9 +249,12 @@ class RepeatNextEffect extends ChipEffect {
 
 /// Instant hit on every cell of the user's row from column [fromColumn] on.
 class RowStrikeEffect extends ChipEffect {
-  const RowStrikeEffect({this.fromColumn = 3});
+  const RowStrikeEffect({this.fromColumn = 3, this.panel});
 
   final int fromColumn;
+
+  /// The first enemy's panel turns into this (Laser de Fusão: Lava).
+  final PanelState? panel;
 }
 
 /// For at most [ticks], cancels the next damage the user would take.
@@ -246,9 +284,12 @@ class AreaStealEffect extends ChipEffect {
 /// Places a rock, mine, turret, reflector or tesla coil. Where depends on
 /// the kind.
 class SpawnObstacleEffect extends ChipEffect {
-  const SpawnObstacleEffect(this.kind, {this.amount});
+  const SpawnObstacleEffect(this.kind, {this.amount, this.count = 1});
 
   final ObstacleKind kind;
+
+  /// How many mines (Campo Minado).
+  final int count;
 
   /// Overrides the kind's default: rock HP, mine damage, or how many ticks
   /// a turret, reflector or tesla coil lasts.
