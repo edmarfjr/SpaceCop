@@ -250,6 +250,18 @@ abstract final class SpriteFiles {
     Relics.phaseTuner.id: 'relics/antena.png',
     Relics.decoder.id: 'relics/criptografia.png',
     Relics.luckyChip.id: 'relics/chipSorte.png',
+    Relics.fieldRation.id: 'relics/racao.png',
+    Relics.kevlarVest.id: 'relics/colete.png',
+    Relics.bionicHeart.id: 'relics/coracao.png',
+    Relics.syntheticMarrow.id: 'relics/medula.png',
+    Relics.jumpPack.id: 'relics/mochilaJato.png',
+    Relics.quantumCloner.id: 'relics/cloneCarta.png',
+    Relics.dataBank.id: 'relics/hardDisc.png',
+    Relics.dataForge.id: 'relics/bigorna.png',
+    Relics.incinerator.id: 'relics/incinerador.png',
+    Relics.supplyCrate.id: 'relics/caixoteMilitar.png',
+    Relics.printer3d.id: 'relics/impressora3D.png',
+    Relics.etCrown.id: 'relics/coroa.png',
   };
 
   /// Event art, 80x80, by event title. Events without one show a
