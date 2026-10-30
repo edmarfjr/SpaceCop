@@ -259,9 +259,42 @@ class RowStrikeEffect extends ChipEffect {
 
 /// For at most [ticks], cancels the next damage the user would take.
 class BarrierEffect extends ChipEffect {
-  const BarrierEffect(this.ticks);
+  const BarrierEffect(this.ticks, {this.charges = 1});
 
   final int ticks;
+
+  /// How many hits it cancels before it goes down (Gerador de Domo).
+  final int charges;
+}
+
+/// The user dashes to the front of their side, then hits like [melee]
+/// (Investida).
+class DashEffect extends ChipEffect {
+  const DashEffect(this.melee);
+
+  final MeleeEffect melee;
+}
+
+/// Heals [heal] and clears every harmful status (Kit de Reparos).
+class CleanseEffect extends ChipEffect {
+  const CleanseEffect(this.heal);
+
+  final int heal;
+}
+
+/// The user gets [status] for [ticks] (Nanobots: Regenerando).
+class SelfStatusEffect extends ChipEffect {
+  const SelfStatusEffect(this.status, this.ticks);
+
+  final Status status;
+  final int ticks;
+}
+
+/// Draws [count] cards into the hand, up to [maxHand] (Recarga Tática).
+class DrawEffect extends ChipEffect {
+  const DrawEffect(this.count);
+
+  final int count;
 }
 
 /// Turns every panel on the user's side into [state] (holes excluded).

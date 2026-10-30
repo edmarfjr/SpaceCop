@@ -877,6 +877,82 @@ abstract final class Chips {
     effect: StatusAllEffect(Status.stunned, ticksPerSecond),
   );
 
+  static const dash = ChipDef(
+    id: 'dash',
+    name: 'Investida',
+    description:
+        'Avança até a frente do seu lado e golpeia o painel à frente.',
+    cost: 1,
+    family: ChipFamily.melee,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 20,
+    effect: DashEffect(MeleeEffect(pattern: [GridPos(1, 0)])),
+    pose: ChipPose.melee,
+  );
+
+  static const medicDrone = ChipDef(
+    id: 'medic_drone',
+    name: 'Drone Médico',
+    description: 'Drone de 20 HP que cura 2 de vida por segundo por 8 s.',
+    cost: 2,
+    family: ChipFamily.equipment,
+    rarity: Rarity.uncommon,
+    type: ChipType.recovery,
+    target: ChipTarget.self,
+    effect: SpawnObstacleEffect(ObstacleKind.medic),
+  );
+
+  static const domeGenerator = ChipDef(
+    id: 'dome_generator',
+    name: 'Gerador de Domo',
+    description: 'Anula os 3 próximos danos. Dura até 10 s.',
+    cost: 2,
+    family: ChipFamily.equipment,
+    rarity: Rarity.rare,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: BarrierEffect(10 * ticksPerSecond, charges: 3),
+  );
+
+  static const repairKit = ChipDef(
+    id: 'repair_kit',
+    name: 'Kit de Reparos',
+    description: 'Recupera 5 de vida e remove os status negativos. Uso único.',
+    cost: 1,
+    family: ChipFamily.consumable,
+    rarity: Rarity.uncommon,
+    type: ChipType.recovery,
+    target: ChipTarget.self,
+    effect: CleanseEffect(5),
+    exhaust: true,
+  );
+
+  static const nanobots = ChipDef(
+    id: 'nanobots',
+    name: 'Nanobots',
+    description: 'Regenera 1 de vida por segundo por 15 s. Uso único.',
+    cost: 2,
+    family: ChipFamily.consumable,
+    rarity: Rarity.rare,
+    type: ChipType.recovery,
+    target: ChipTarget.self,
+    effect: SelfStatusEffect(Status.regen, regenTicks),
+    exhaust: true,
+  );
+
+  static const tacticalReload = ChipDef(
+    id: 'tactical_reload',
+    name: 'Recarga Tática',
+    description: 'Compra 2 cartas (até 7 na mão).',
+    cost: 1,
+    family: ChipFamily.tactical,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: DrawEffect(2),
+  );
+
   static const _square = [
     GridPos(-1, -1),
     GridPos(0, -1),
@@ -1128,6 +1204,32 @@ abstract final class Chips {
         effect: const StatusAllEffect(Status.marked, 5 * ticksPerSecond),
       ),
       _up(jammer, cost: 0),
+      _up(dash, damage: 25),
+      _up(
+        medicDrone,
+        description: 'Drone de 20 HP que cura 2 de vida por segundo por 12 s.',
+        effect: const SpawnObstacleEffect(
+          ObstacleKind.medic,
+          amount: 12 * ticksPerSecond,
+        ),
+      ),
+      _up(
+        domeGenerator,
+        description: 'Anula os 4 próximos danos. Dura até 10 s.',
+        effect: const BarrierEffect(10 * ticksPerSecond, charges: 4),
+      ),
+      _up(
+        repairKit,
+        description:
+            'Recupera 10 de vida e remove os status negativos. Uso único.',
+        effect: const CleanseEffect(10),
+      ),
+      _up(
+        nanobots,
+        description: 'Regenera 1 de vida por segundo por 20 s. Uso único.',
+        effect: const SelfStatusEffect(Status.regen, 20 * ticksPerSecond),
+      ),
+      _up(tacticalReload, cost: 0),
     ])
       up.id: up,
   };
@@ -1194,6 +1296,12 @@ abstract final class Chips {
     specialAmmo,
     combatScan,
     jammer,
+    dash,
+    medicDrone,
+    domeGenerator,
+    repairKit,
+    nanobots,
+    tacticalReload,
   ];
 
   /// Every card, offered or not (Bug), by id: what a saved deck
@@ -1261,6 +1369,12 @@ abstract final class Chips {
       specialAmmo,
       combatScan,
       jammer,
+      dash,
+      medicDrone,
+      domeGenerator,
+      repairKit,
+      nanobots,
+      tacticalReload,
       bug,
     ])
       def.id: def,

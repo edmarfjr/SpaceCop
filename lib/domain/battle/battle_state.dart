@@ -99,6 +99,9 @@ const int reflectorTicks = 5 * ticksPerSecond;
 const int teslaHp = 30;
 const int teslaTicks = 8 * ticksPerSecond;
 const int teslaZapDamage = 5;
+const int medicHp = 20;
+const int medicTicks = 8 * ticksPerSecond;
+const int medicHeal = 2;
 
 /// Mira Laser: a marked unit takes this much more from each hit.
 const int markBonus = 5;
@@ -140,7 +143,19 @@ enum Status {
 
   /// Takes [markBonus] more from each hit (Mira Laser).
   marked,
+
+  /// Heals [regenHeal] every second (Nanobots).
+  regen;
+
+  /// Whether it hurts: Kit de Reparos clears these.
+  bool get harmful => this != regen;
 }
+
+const int regenHeal = 1;
+const int regenTicks = 15 * ticksPerSecond;
+
+/// Most cards in hand: Recarga Tática draws no further.
+const int maxHand = 7;
 
 const int burnTicks = 3 * ticksPerSecond;
 const int burnDamage = 3;
@@ -160,7 +175,7 @@ enum HitKind {
   area,
 }
 
-enum ObstacleKind { rock, barricade, mine, turret, reflector, tesla }
+enum ObstacleKind { rock, barricade, mine, turret, reflector, tesla, medic }
 
 /// Red outlines warn of damage, blue ones of terrain changes.
 enum TelegraphKind { damage, terrain }
@@ -340,6 +355,9 @@ class PlayerFighter extends Fighter {
 
   /// While positive, the next damage is cancelled.
   int barrierTicks = 0;
+
+  /// Hits the barrier still cancels before it goes down.
+  int barrierCharges = 0;
 }
 
 enum EnemyState { idle, moving, attacking }
@@ -1028,6 +1046,9 @@ class BattleState {
       if (status == Status.burning && left % ticksPerSecond == 0) {
         damage(fighter, burnDamage);
       }
+      if (status == Status.regen && left % ticksPerSecond == 0) {
+        fighter.hp = min(fighter.maxHp, fighter.hp + regenHeal);
+      }
       if (left <= 0) {
         fighter.statuses.remove(status);
       } else {
@@ -1315,49 +1336,8 @@ class BattleState {
             telegraph: false,
           );
         }
-      case MeleeEffect(
-        :final pattern,
-        :final stunTicks,
-        :final push,
-        :final crack,
-        :final slash,
-        :final inflict,
-      ):
-        final struck = <Fighter>{};
-        final front = player.pos + const GridPos(1, 0);
-        if (slash && front.inBounds) {
-          flashes.add(HitFlash(front, FlashKind.slash));
-        }
-        for (final offset in pattern) {
-          strike(
-            player.pos + offset,
-            damage,
-            Team.enemy,
-            def.element,
-            family: def.family,
-            status: status,
-            struck: struck,
-            flash: !slash,
-          );
-        }
-        final steps = push + (hasRelic(Relics.servoArm) ? 1 : 0);
-        for (final unit in struck) {
-          if (_passesThrough(unit, def.family)) continue;
-          if (stunTicks > 0) unit.applyStatus(Status.stunned, stunTicks);
-          if (inflict != null) unit.applyStatus(inflict, statusTicks(inflict));
-          if (steps > 0 && !unit.isDead) {
-            displace(unit, 1, 0, steps, byPlayer: true);
-          }
-        }
-        if (crack) {
-          for (final offset in pattern) {
-            final cell = player.pos + offset;
-            if (cell.inBounds && panelAt(cell).state == PanelState.normal) {
-              setPanel(cell, PanelState.cracked);
-            }
-          }
-        }
-        damageBonus = 0;
+      case final MeleeEffect melee:
+        _melee(def, melee, damage, status);
       case RowStrikeEffect(:final fromColumn, :final panel):
         if (panel != null) {
           for (var x = fromColumn; x < gridColumns; x++) {
@@ -1378,8 +1358,29 @@ class BattleState {
           );
         }
         damageBonus = 0;
-      case BarrierEffect(:final ticks):
-        player.barrierTicks = _lasting(ticks);
+      case BarrierEffect(:final ticks, :final charges):
+        player
+          ..barrierTicks = _lasting(ticks)
+          ..barrierCharges = charges;
+      case DashEffect(:final melee):
+        if (!player.has(Status.rooted)) {
+          var to = player.pos;
+          while (true) {
+            final next = to + const GridPos(1, 0);
+            if (ownerAt(next) != Team.player || !canEnter(player, next)) break;
+            to = next;
+          }
+          if (to != player.pos) _moveUnit(player, to, const GridPos(1, 0));
+        }
+        _melee(def, melee, damage, status);
+      case CleanseEffect(:final heal):
+        player.statuses.removeWhere((s, _) => s.harmful);
+        this.heal(heal);
+      case SelfStatusEffect(:final status, :final ticks):
+        player.applyStatus(status, ticks);
+      case DrawEffect(:final count):
+        // The card used still counts in the hand until it is discarded.
+        deck.draw(min(count, maxHand + 1 - hand.length));
       case PanelChangeEffect(:final state):
         for (var x = 0; x < gridColumns; x++) {
           for (var y = 0; y < gridRows; y++) {
@@ -1556,6 +1557,24 @@ class BattleState {
             ticksLeft: _lasting(amount ?? turretTicks),
           ),
         );
+      case ObstacleKind.medic:
+        // Back of the player's row, like the Drone.
+        GridPos? pos;
+        for (var x = 0; x < gridColumns && pos == null; x++) {
+          if (canEnter(player, GridPos(x, player.pos.y))) {
+            pos = GridPos(x, player.pos.y);
+          }
+        }
+        if (pos == null) return;
+        obstacles.add(
+          Obstacle(
+            kind,
+            pos: pos,
+            hp: medicHp,
+            team: Team.player,
+            ticksLeft: _lasting(amount ?? medicTicks),
+          ),
+        );
       case ObstacleKind.tesla:
         // The frontmost free panel of the player's side in their row; behind
         // them if they stand at the front.
@@ -1593,6 +1612,47 @@ class BattleState {
           });
         }
     }
+  }
+
+  /// Melee hit of [def] with [effect]'s shape, for [damage].
+  void _melee(ChipDef def, MeleeEffect effect, int damage, Status? status) {
+    final MeleeEffect(:pattern, :stunTicks, :push, :crack, :slash, :inflict) =
+        effect;
+    final struck = <Fighter>{};
+    final front = player.pos + const GridPos(1, 0);
+    if (slash && front.inBounds) {
+      flashes.add(HitFlash(front, FlashKind.slash));
+    }
+    for (final offset in pattern) {
+      strike(
+        player.pos + offset,
+        damage,
+        Team.enemy,
+        def.element,
+        family: def.family,
+        status: status,
+        struck: struck,
+        flash: !slash,
+      );
+    }
+    final steps = push + (hasRelic(Relics.servoArm) ? 1 : 0);
+    for (final unit in struck) {
+      if (_passesThrough(unit, def.family)) continue;
+      if (stunTicks > 0) unit.applyStatus(Status.stunned, stunTicks);
+      if (inflict != null) unit.applyStatus(inflict, statusTicks(inflict));
+      if (steps > 0 && !unit.isDead) {
+        displace(unit, 1, 0, steps, byPlayer: true);
+      }
+    }
+    if (crack) {
+      for (final offset in pattern) {
+        final cell = player.pos + offset;
+        if (cell.inBounds && panelAt(cell).state == PanelState.normal) {
+          setPanel(cell, PanelState.cracked);
+        }
+      }
+    }
+    damageBonus = 0;
   }
 
   // ------------------------------------------------------------- movement
@@ -1936,7 +1996,7 @@ class BattleState {
     }
     if (element == Element.fire && panel == PanelState.grass) total *= 2;
     if (target is PlayerFighter && target.barrierTicks > 0) {
-      target.barrierTicks = 0;
+      if (--target.barrierCharges <= 0) target.barrierTicks = 0;
       events.add(BattleEvent(BattleEventKind.blocked, unit: target));
       return;
     }
@@ -2114,12 +2174,17 @@ class BattleState {
       }
       final shooter =
           obstacle.kind == ObstacleKind.turret ||
-          obstacle.kind == ObstacleKind.tesla;
+          obstacle.kind == ObstacleKind.tesla ||
+          obstacle.kind == ObstacleKind.medic;
       if (!shooter || obstacle.isDead || inSmoke(obstacle)) continue;
       if (--obstacle.fireTimer > 0) continue;
       obstacle.fireTimer = obstacle.fireEvery;
       if (obstacle.kind == ObstacleKind.tesla) {
         _zap(obstacle);
+        continue;
+      }
+      if (obstacle.kind == ObstacleKind.medic) {
+        heal(medicHeal);
         continue;
       }
       projectiles.add(
@@ -2268,4 +2333,5 @@ int statusTicks(Status status) => switch (status) {
   Status.stunned => ticksPerSecond,
   Status.rooted => rootTicks,
   Status.marked => markTicks,
+  Status.regen => regenTicks,
 };

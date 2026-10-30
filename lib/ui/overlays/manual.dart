@@ -660,6 +660,7 @@ List<_Chapter> _book() => [
           (Status.stunned, '*Atordoado*: não anda, não ataca.'),
           (Status.rooted, '*Enraizado*: não anda, mas ataca.'),
           (Status.marked, '*Marcado*: +5 de dano em cada acerto.'),
+          (Status.regen, '*Regenerando*: recupera 1 de vida por segundo.'),
         ])
           _item(SheetSprite(sprite: s.status(status)), text),
       ],

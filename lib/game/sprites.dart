@@ -144,6 +144,7 @@ abstract final class SpriteFiles {
     ObstacleKind.turret: 'obstacles/drone.png',
     ObstacleKind.reflector: 'chips/stasisGen.png',
     ObstacleKind.tesla: 'chips/teslaCoil.png',
+    ObstacleKind.medic: 'obstacles/drone.png',
   };
 
   static final chips = <String, String>{
@@ -219,6 +220,7 @@ abstract final class SpriteFiles {
     Status.stunned: 'icons/stun.png',
     Status.rooted: 'icons/raiz.png',
     Status.marked: 'icons/target.png',
+    Status.regen: 'icons/folha.png',
   };
 
   static const credits = 'chips/cred.png';
