@@ -93,10 +93,10 @@ void main() {
     expect(battle.player.barrierTicks, greaterThan(7 * ticksPerSecond));
   });
 
-  test('Rocha+, Mina+, Drone+ and Escudo Refletor+ obstacles', () {
-    final rock = battleWith([up(Chips.rock)]);
-    use(rock, up(Chips.rock));
-    expect(rock.obstacles.single.hp, 60);
+  test('Barricada+, Mina+, Drone+ and Escudo Refletor+ obstacles', () {
+    final rock = battleWith([up(Chips.barricade)]);
+    use(rock, up(Chips.barricade));
+    expect(rock.barricades.single.hp, 60);
 
     final drone = battleWith([up(Chips.turret)]);
     use(drone, up(Chips.turret));

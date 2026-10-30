@@ -418,15 +418,18 @@ abstract final class Chips {
     effect: AreaStealEffect(10 * ticksPerSecond, hitDamage: 5),
   );
 
-  static const rock = ChipDef(
+  // Keeps the old id, so saved runs still load it.
+  static const barricade = ChipDef(
     id: 'rock',
-    name: 'Barreira',
-    description: 'Barreira de 40 HP à sua frente. Bloqueia tiros.',
+    name: 'Barricada',
+    description:
+        'Barricada de 40 HP à sua frente. Bloqueia tiros inimigos; '
+        'dá para andar por ela.',
     cost: 1,
     family: ChipFamily.equipment,
     type: ChipType.support,
     target: ChipTarget.self,
-    effect: SpawnObstacleEffect(ObstacleKind.rock),
+    effect: SpawnObstacleEffect(ObstacleKind.barricade),
     pose: ChipPose.toss,
   );
 
@@ -722,9 +725,11 @@ abstract final class Chips {
         effect: const AreaStealEffect(15 * ticksPerSecond, hitDamage: 10),
       ),
       _up(
-        rock,
-        description: 'Barreira de 60 HP à sua frente. Bloqueia tiros.',
-        effect: const SpawnObstacleEffect(ObstacleKind.rock, amount: 60),
+        barricade,
+        description:
+            'Barricada de 60 HP à sua frente. Bloqueia tiros inimigos; '
+            'dá para andar por ela.',
+        effect: const SpawnObstacleEffect(ObstacleKind.barricade, amount: 60),
       ),
       _up(
         mine,
@@ -803,7 +808,7 @@ abstract final class Chips {
     mirror,
     //seedGrass,
     areaSteal,
-    rock,
+    barricade,
     mine,
     turret,
     hook,
@@ -850,7 +855,7 @@ abstract final class Chips {
       mirror,
       seedGrass,
       areaSteal,
-      rock,
+      barricade,
       mine,
       turret,
       hook,
@@ -873,9 +878,10 @@ abstract final class Chips {
       upgraded ? _upgrades[id] : _byId[id];
 
   static List<ChipCard> starterDeck() => [
-    for (var i = 0; i < 4; i++) ChipCard(shot), //ChipCard(shot),
+    for (var i = 0; i < 3; i++) ChipCard(shot), //ChipCard(shot),
     for (var i = 0; i < 2; i++) ChipCard(vShot), //ChipCard(vShot),
     for (var i = 0; i < 2; i++) ChipCard(shotgun), //ChipCard(shotgun),
     for (var i = 0; i < 2; i++) ChipCard(cannon), //ChipCard(cannon),
+    ChipCard(smokeGrenade),
   ];
 }

@@ -162,12 +162,7 @@ class BattleWorld extends World
       }
       final from = battle.player.pos;
       battle.tick(
-        PlayerInput(
-          dx: dx,
-          dy: dy,
-          useChip: useChip,
-          cycleChip: _cyclePressed,
-        ),
+        PlayerInput(dx: dx, dy: dy, useChip: useChip, cycleChip: _cyclePressed),
       );
       for (final hit in battle.hits) {
         _showHit(hit.target, hit.amount);
@@ -187,7 +182,7 @@ class BattleWorld extends World
   }
 
   void _syncViews() {
-    final alive = battle.units.toSet();
+    final alive = {...battle.units, ...battle.barricades};
     for (final fighter in alive) {
       _views.putIfAbsent(fighter, () {
         final view = FighterComponent(fighter, game.sprites);

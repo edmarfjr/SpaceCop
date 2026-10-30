@@ -173,19 +173,33 @@ void main() {
     expect(battle.ownerAt(const GridPos(3, 1)), Team.player);
   });
 
-  test('Rocha blocks shots and hits hard when pushed', () {
+  test('Barricada stops enemy shots only and anyone walks over it', () {
     final battle = battleWith(
-      [Chips.rock, Chips.shot, Chips.bubblePush],
+      [Chips.barricade, Chips.shot],
       spawns: [dummyAt(3, 1)],
     );
-    use(battle, Chips.rock);
-    final rock = battle.obstacles.single;
-    expect(rock.pos, const GridPos(2, 1));
+    use(battle, Chips.barricade);
+    final barricade = battle.barricades.single;
+    expect(barricade.pos, const GridPos(2, 1));
+    expect(battle.unitAt(barricade.pos), isNull);
     use(battle, Chips.shot);
-    expect(rock.hp, rockHp - Chips.shot.damage);
-    expect(battle.enemies.single.hp, 100);
-    use(battle, Chips.bubblePush);
-    expect(battle.enemies.single.hp, 100 - rockCollisionDamage);
+    expect(barricade.hp, rockHp);
+    expect(battle.enemies.single.hp, 100 - Chips.shot.damage);
+    battle.projectiles.add(
+      Projectile(
+        team: Team.enemy,
+        pos: const GridPos(3, 1),
+        dir: -1,
+        stepTicks: 2,
+        damage: 10,
+        pattern: const [GridPos(0, 0)],
+      ),
+    );
+    wait(battle, 10);
+    expect(battle.player.hp, 100);
+    expect(barricade.hp, rockHp - 10);
+    battle.player.pos = const GridPos(1, 1);
+    expect(battle.canEnter(battle.player, barricade.pos), isTrue);
   });
 
   test('Mina hides on a free enemy panel and blows up whoever steps on it', () {

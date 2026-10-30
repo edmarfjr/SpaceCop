@@ -130,10 +130,10 @@ void main() {
       expect(battle.player.barrierTicks, greaterThan(5 * ticksPerSecond));
     });
 
-    test('Placa Blindada: a rock in front of the player at the start', () {
+    test('Placa Blindada: a barricade in front of the player at the start', () {
       final battle = withRelics([Relics.armorPlate], []);
       expect(
-        battle.obstacles.single.pos,
+        battle.barricades.single.pos,
         battle.player.pos + const GridPos(1, 0),
       );
     });

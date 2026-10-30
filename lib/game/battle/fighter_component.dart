@@ -109,7 +109,9 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     final row = f is EnemyFighter
         ? f.cells.map((c) => c.y).reduce(max)
         : f.pos.y;
-    return ProjectileLayer.priorityOf(row);
+    // Under whoever walks over it.
+    final barricade = f is Obstacle && f.kind == ObstacleKind.barricade;
+    return ProjectileLayer.priorityOf(row) - (barricade ? 1 : 0);
   }
 
   @override

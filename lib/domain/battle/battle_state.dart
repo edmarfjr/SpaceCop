@@ -157,7 +157,7 @@ enum HitKind {
   area,
 }
 
-enum ObstacleKind { rock, mine, turret, reflector, tesla }
+enum ObstacleKind { rock, barricade, mine, turret, reflector, tesla }
 
 /// Red outlines warn of damage, blue ones of terrain changes.
 enum TelegraphKind { damage, terrain }
@@ -439,7 +439,8 @@ class EnemyFighter extends Fighter {
 }
 
 /// Rock or turret placed by a chip. Mines live on [Panel.mine] instead,
-/// since nothing stands on them.
+/// since nothing stands on them; barricades on [BattleState.barricades],
+/// since anyone walks over them.
 class Obstacle extends Fighter {
   Obstacle(
     this.kind, {
@@ -566,6 +567,13 @@ class BattleState {
   final PlayerFighter player;
   final List<EnemyFighter> enemies = [];
   final List<Obstacle> obstacles = [];
+
+  /// Stop enemy shots only; anyone walks over them. Not [units].
+  final List<Obstacle> barricades = [];
+
+  /// Living barricade on [pos].
+  Obstacle? barricadeAt(GridPos pos) =>
+      barricades.where((b) => !b.isDead && b.pos == pos).firstOrNull;
 
   /// Lit runes on the player's side (Sumo-Sacerdote): stepping on one puts
   /// it out.
@@ -870,6 +878,7 @@ class BattleState {
     }
     enemies.removeWhere((e) => e.isDead);
     obstacles.removeWhere((o) => o.isDead);
+    barricades.removeWhere((b) => b.isDead);
 
     if (player.isDead && hasRelic(Relics.phoenixCore) && !phoenixUsed) {
       phoenixUsed = true;
@@ -1436,6 +1445,16 @@ class BattleState {
         place(pos, () {
           if (free(pos)) {
             obstacles.add(Obstacle(kind, pos: pos, hp: amount ?? rockHp));
+          }
+        });
+      case ObstacleKind.barricade:
+        final pos = player.pos + const GridPos(1, 0);
+        bool open() =>
+            pos.inBounds && panelAt(pos).walkable && barricadeAt(pos) == null;
+        if (!open()) return;
+        place(pos, () {
+          if (open()) {
+            barricades.add(Obstacle(kind, pos: pos, hp: amount ?? rockHp));
           }
         });
       case ObstacleKind.reflector:
@@ -2063,6 +2082,15 @@ class BattleState {
   void _updateProjectiles() {
     for (final shot in List.of(projectiles)) {
       final opponent = shot.team == Team.player ? Team.enemy : Team.player;
+      if (shot.team == Team.enemy) {
+        if (barricadeAt(shot.pos) case final barricade?) {
+          shot.spent = true;
+          flashes.add(HitFlash(shot.pos));
+          damage(barricade, shot.damage, element: shot.element);
+          events.add(BattleEvent(BattleEventKind.blocked, unit: barricade));
+          continue;
+        }
+      }
       // A phased Etéreo lets the shot fly on through it.
       if (_targetAt(shot.pos, opponent) case final target?
           when !_passesThrough(target, shot.family)) {

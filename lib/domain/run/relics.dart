@@ -155,7 +155,7 @@ double _phaseTuner(
 ) => family == ChipFamily.projectile && target.phased ? 0.5 : multiplier;
 
 void _armorPlate(BattleState battle) =>
-    battle.spawnObstacle(ObstacleKind.rock, null);
+    battle.spawnObstacle(ObstacleKind.barricade, null);
 
 bool _upgradeable(ChipDef def) => Chips.upgradeOf(def) != null;
 
@@ -364,7 +364,7 @@ abstract final class Relics {
   static const armorPlate = RelicDef(
     id: 'armor_plate',
     name: 'Placa Blindada',
-    description: 'Começa cada luta com uma Rocha à sua frente.',
+    description: 'Começa cada luta com uma Barricada à sua frente.',
     kind: RelicKind.combat,
     onBattleStart: _armorPlate,
   );
