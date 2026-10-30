@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:flame/components.dart' show Sprite;
 import 'package:flutter/material.dart';
 
 import '../../domain/map/run_map.dart';
@@ -208,7 +209,9 @@ class _MapOverlayState extends State<MapOverlay> {
                             top: center(node).dy - MapOverlay._nodeSize / 2,
                             child: _NodeButton(
                               node: node,
-                              sprites: game.sprites,
+                              sprite: node.type == NodeType.boss
+                                  ? game.sprites.bossNode(run.boss)
+                                  : game.sprites.node(node.type!),
                               isCurrent: node == run.current,
                               focusNode: available.contains(node)
                                   ? _focus[available.indexOf(node)]
@@ -270,7 +273,7 @@ class _RelicInfo extends StatelessWidget {
 class _NodeButton extends StatefulWidget {
   const _NodeButton({
     required this.node,
-    required this.sprites,
+    required this.sprite,
     required this.isCurrent,
     this.focusNode,
     this.autofocus = false,
@@ -278,7 +281,7 @@ class _NodeButton extends StatefulWidget {
   });
 
   final MapNode node;
-  final GameSprites sprites;
+  final Sprite sprite;
   final bool isCurrent;
   final FocusNode? focusNode;
   final bool autofocus;
@@ -338,10 +341,7 @@ class _NodeButtonState extends State<_NodeButton>
           ),
         ),
         alignment: Alignment.center,
-        child: SheetSprite(
-          sprite: widget.sprites.node(widget.node.type!),
-          scale: 2,
-        ),
+        child: SheetSprite(sprite: widget.sprite, scale: 2),
       ),
     );
     if (onTap == null) return button;
@@ -376,8 +376,9 @@ class _EdgePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Pico.lavender
-      ..strokeWidth = 1;
+      ..color = Pico.white
+      ..strokeWidth = 1
+      ..isAntiAlias = false;
     for (final node in map.usedNodes) {
       for (final next in map.nextOf(node)) {
         final from = center(node);
