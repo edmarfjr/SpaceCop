@@ -67,18 +67,19 @@ void main() {
     return battle;
   }
 
-  test('Cacetete hits the 3 panels in front and stuns for 2 s', () {
+  test('Cacetete hits the panel in front and stuns for 2 s', () {
     final battle = atFront(
-      const [GridPos(3, 0), GridPos(3, 2), GridPos(4, 1)],
+      const [GridPos(3, 1), GridPos(3, 0), GridPos(4, 1)],
       [Chips.baton],
     );
     use(battle, Chips.baton);
-    final [top, bottom, behind] = battle.enemies;
-    expect([top.hp, bottom.hp, behind.hp], [90, 90, 100]);
+    final [front, top, behind] = battle.enemies;
+    expect([front.hp, top.hp, behind.hp], [90, 100, 100]);
     expect(
-      top.statuses[Status.stunned],
+      front.statuses[Status.stunned],
       greaterThan(2 * ticksPerSecond - playerAttackCooldown - 2),
     );
+    expect(top.has(Status.stunned), isFalse);
     expect(behind.has(Status.stunned), isFalse);
   });
 
