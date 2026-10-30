@@ -1076,7 +1076,7 @@ abstract final class Chips {
     id: 'hologram',
     name: 'Holograma',
     description:
-        'Isca de 20 HP à sua frente por 5 s: os inimigos miram nela.',
+        'Isca de 40 HP à sua frente por 5 s: os inimigos miram nela.',
     cost: 1,
     family: ChipFamily.equipment,
     rarity: Rarity.uncommon,
@@ -1371,7 +1371,7 @@ abstract final class Chips {
       _up(
         hologram,
         description:
-            'Isca de 20 HP à sua frente por 8 s: os inimigos miram nela.',
+            'Isca de 40 HP à sua frente por 8 s: os inimigos miram nela.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.decoy,
           amount: 8 * ticksPerSecond,

@@ -102,7 +102,7 @@ const int teslaZapDamage = 5;
 const int medicHp = 20;
 const int medicTicks = 8 * ticksPerSecond;
 const int medicHeal = 2;
-const int decoyHp = 20;
+const int decoyHp = 40;
 const int decoyTicks = 5 * ticksPerSecond;
 
 /// Mira Laser: a marked unit takes this much more from each hit.
