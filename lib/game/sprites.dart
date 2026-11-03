@@ -480,11 +480,31 @@ class GameSprites {
     return _frame(path, attacking && frames > 1 ? 1 : 0, frame);
   }
 
-  /// A Fire turret (Torre Incendiária) is drawn with its card's art.
+  /// Frames of an obstacle, looped: a sheet of square frames as tall as
+  /// the file (the Drone flies in 2). A Fire turret (Torre Incendiária) is
+  /// drawn with its card's art and a Holograma as the idle player.
+  List<Sprite> obstacleFrames(ObstacleKind kind, {el.Element? element}) =>
+      switch (kind) {
+        ObstacleKind.decoy => [playerIdle],
+        ObstacleKind.turret when element == el.Element.fire => [
+          chip(Chips.fireTurret),
+        ],
+        _ => _sheet(SpriteFiles.obstacles[kind]!),
+      };
+
   Sprite obstacle(ObstacleKind kind, {el.Element? element}) =>
-      kind == ObstacleKind.turret && element == el.Element.fire
-      ? chip(Chips.fireTurret)
-      : _file(SpriteFiles.obstacles[kind]!);
+      obstacleFrames(kind, element: element).first;
+
+  final _sheets = <String, List<Sprite>>{};
+
+  List<Sprite> _sheet(String path) => _sheets.putIfAbsent(path, () {
+    final image = _images[path]!;
+    final size = image.height.toDouble();
+    return [
+      for (var i = 0; i < image.width ~/ image.height; i++)
+        _frame(path, i, size),
+    ];
+  });
 
   Sprite chip(ChipDef def) =>
       _file(SpriteFiles.chips[def.id] ?? SpriteFiles.chips[Chips.shot.id]!);

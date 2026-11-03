@@ -35,10 +35,13 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
         stage: stage,
         pose: pose,
       ),
-      Obstacle(:final kind, :final element) => sprites.obstacle(
+      Obstacle(:final kind, :final element) => switch (sprites.obstacleFrames(
         kind,
         element: element,
-      ),
+      )) {
+        final frames =>
+          frames[(_clock / _obstacleFrameTime).floor() % frames.length],
+      },
       _ => sprites.playerIdle,
     };
   }
@@ -77,6 +80,9 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   double _clock = 0;
 
   static const _turretFlashTicks = 4;
+
+  /// Seconds each frame of an animated obstacle (the Drone) shows.
+  static const _obstacleFrameTime = 0.15;
   static final _lifeBack = Paint()..color = Pico.darkBlue;
   static final _lifeFill = Paint()..color = Pico.blue;
 
