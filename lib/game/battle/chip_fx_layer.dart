@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 
 import '../../domain/battle/battle_state.dart';
 import '../../domain/chips/battle_chip.dart' show ChipFx;
+import '../../domain/element.dart';
 import '../../domain/grid.dart';
 import '../../ui/theme.dart';
 import 'fighter_component.dart';
@@ -26,9 +27,26 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
   static const double _beamGlow = 8;
   static const double _beamCore = 5;
 
-  static final _beamOuter = Paint()..color = Pico.royal;
-  static final _beamMid = Paint()..color = Pico.blue;
-  static final _beamInner = Paint()..color = Pico.white;
+  /// Outer, middle and inner colors of a beam of each element.
+  static final _beamColors = {
+    for (final MapEntry(:key, :value) in {
+      Element.elec: (Pico.royal, Pico.blue, Pico.white),
+      Element.fire: (Pico.red, Pico.orange, Pico.yellow),
+      Element.aqua: (Pico.royal, Pico.blue, Pico.white),
+      Element.wood: (Pico.darkGreen, Pico.green, Pico.lime),
+      Element.neutral: (Pico.lavender, Pico.lightGray, Pico.white),
+    }.entries)
+      key: (
+        Paint()..color = value.$1,
+        Paint()..color = value.$2,
+        Paint()..color = value.$3,
+      ),
+  };
+
+  static final _tracer = Paint()
+    ..color = Pico.white
+    ..strokeWidth = 2
+    ..style = PaintingStyle.stroke;
 
   final _random = Random();
   double _clock = 0;
@@ -57,7 +75,12 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
         final GridPos pos => _body(pos),
         null => hand,
       };
-      ShieldLinkLayer.drawBolt(canvas, from, _body(zap.to), shape);
+      if (zap.tracer) {
+        final to = _body(zap.to);
+        canvas.drawLine(Offset(from.x, from.y), Offset(to.x, to.y), _tracer);
+      } else {
+        ShieldLinkLayer.drawBolt(canvas, from, _body(zap.to), shape);
+      }
     }
     for (final beam in battle.beams) {
       _beam(canvas, hand, beam, shape);
@@ -68,8 +91,14 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
   /// it swells in, flickers, and thins out at the end.
   void _beam(Canvas canvas, Vector2 hand, Beam beam, Random shape) {
     final row = battle.player.pos.y;
+    // Level with the shots and the explosions, not the raised gun.
+    final y = parent.cellCenter(battle.player.pos).y;
     var end = parent.size.x;
-    for (var x = battle.player.pos.x + 1; x < gridColumns; x++) {
+    for (
+      var x = battle.player.pos.x + 1;
+      !beam.pierce && x < gridColumns;
+      x++
+    ) {
       final unit = battle.unitAt(GridPos(x, row));
       if (unit != null && unit.team == Team.enemy) {
         end = parent.cellCenter(GridPos(x, row)).x;
@@ -77,31 +106,32 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
       }
     }
     final age = beam.lifetime - beam.ticksLeft;
-    final swell = min(1.0, min(age, beam.ticksLeft) / 3);
+    final swell = min(1.0, (min(age, beam.ticksLeft) + 1) / 3);
     final flicker = shape.nextBool() ? 2.0 : 0.0;
     double snap(double v) => (v / 2).roundToDouble() * 2;
     void band(double half, Paint paint) {
       final h = snap(half * swell);
       if (h <= 0) return;
       canvas.drawRect(
-        Rect.fromLTRB(hand.x, snap(hand.y) - h, end, snap(hand.y) + h),
+        Rect.fromLTRB(hand.x, snap(y) - h, end, snap(y) + h),
         paint,
       );
     }
 
-    band(_beamGlow + flicker, _beamOuter);
-    band(_beamCore + flicker / 2, _beamMid);
-    band(2, _beamInner);
+    final (outer, middle, inner) = _beamColors[beam.element]!;
+    band(_beamGlow + flicker, outer);
+    band(_beamCore + flicker / 2, middle);
+    band(2, inner);
     // A burst of sparks where it hits.
     if (end < parent.size.x) {
       for (var i = 0; i < 4; i++) {
         final spark = Vector2(
           end + shape.nextInt(5) * 2 - 4,
-          hand.y + shape.nextInt(9) * 2 - 8,
+          y + shape.nextInt(9) * 2 - 8,
         );
         canvas.drawRect(
           Rect.fromLTWH(snap(spark.x), snap(spark.y), 4, 4),
-          _beamInner,
+          inner,
         );
       }
     }

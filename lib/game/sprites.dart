@@ -475,6 +475,13 @@ class GameSprites {
 
   late final Sprite slash = _file(SpriteFiles.slash);
 
+  /// The middle 16x24 of the slash: a Foice cut.
+  late final Sprite cut = Sprite(
+    _images[SpriteFiles.slash]!,
+    srcPosition: Vector2(0, 12),
+    srcSize: Vector2(16, 24),
+  );
+
   late final List<Sprite> smoke = [
     for (var i = 0; i < 2; i++) _frame(SpriteFiles.smoke, i, 16),
   ];

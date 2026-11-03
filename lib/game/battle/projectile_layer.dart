@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 
 import '../../domain/battle/battle_state.dart';
 import '../../domain/chips/battle_chip.dart' show ChipFx;
+import '../../domain/element.dart';
 import '../../domain/grid.dart';
 import '../../ui/theme.dart';
 import '../sprites.dart';
@@ -105,13 +106,38 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
     }
     for (final flash in battle.flashes) {
       if (flash.pos.y != row) continue;
+      final tint = _tint(flash);
       if (flash.kind == FlashKind.slash) {
         sprites.slash.render(
           canvas,
           position: parent.cellCenter(flash.pos),
           size: sprites.slash.srcSize * 2,
           anchor: Anchor.center,
+          overridePaint: tint,
         );
+        continue;
+      }
+      if (flash.kind == FlashKind.cut) {
+        // Half the slash, leaning toward the panel it hits.
+        final cut = sprites.cut;
+        final at = parent.cellCenter(flash.pos);
+        canvas
+          ..save()
+          ..translate(at.x, at.y)
+          ..rotate(
+            flash.pos.y < battle.player.pos.y
+                ? _cutAngle
+                : flash.pos.y > battle.player.pos.y
+                ? -_cutAngle
+                : 0,
+          );
+        cut.render(
+          canvas,
+          size: cut.srcSize * 2,
+          anchor: Anchor.center,
+          overridePaint: tint,
+        );
+        canvas.restore();
         continue;
       }
       final frame =
@@ -123,9 +149,38 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
         position: parent.cellCenter(flash.pos),
         size: _size,
         anchor: Anchor.center,
+        overridePaint: tint,
       );
     }
   }
+
+  /// Slant of a Foice cut, in radians.
+  static const _cutAngle = 0.6;
+
+  /// Recolors a flash: the element's color for tinted ones, blue for the
+  /// Pulso EMP's. Fire keeps the art's own orange.
+  static Paint? _tint(HitFlash flash) {
+    final color = flash.kind == FlashKind.pulse
+        ? Pico.blue
+        : switch (flash.element) {
+            Element.aqua => Pico.blue,
+            Element.elec => Pico.yellow,
+            Element.wood => Pico.green,
+            Element.fire => flash.kind == FlashKind.slash ? Pico.orange : null,
+            _ => null,
+          };
+    if (color == null) return null;
+    return _tints.putIfAbsent(
+      color,
+      () => Paint()
+        ..colorFilter = ColorFilter.mode(
+          color.withValues(alpha: 0.7),
+          BlendMode.srcATop,
+        ),
+    );
+  }
+
+  static final _tints = <Color, Paint>{};
 
   /// Outlines of the warned panels and of the panels enemy shots are on
   /// (the cart's warning), under the fighters.

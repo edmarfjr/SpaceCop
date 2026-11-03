@@ -543,6 +543,12 @@ class Projectile {
 enum FlashKind {
   explosion,
 
+  /// An explosion in blue (Pulso EMP).
+  pulse,
+
+  /// A short slanted slash (Foice).
+  cut,
+
   /// A vertical sword slash centered on [HitFlash.pos], 3 rows tall.
   slash,
 }
@@ -550,33 +556,49 @@ enum FlashKind {
 /// Lightning from [from] (null: the player's hand) to [to], for a moment.
 /// Purely visual.
 class Zap {
-  Zap(this.to, {this.from});
+  Zap(this.to, {this.from, this.tracer = false});
 
   static const int lifetime = 8;
 
   final GridPos? from;
   final GridPos to;
+
+  /// A straight white streak instead of lightning (Ricochete).
+  final bool tracer;
   int ticksLeft = lifetime;
 }
 
 /// A beam from the player's hand down their row (Feixe Contínuo). Purely
 /// visual.
 class Beam {
-  Beam(this.ticksLeft) : lifetime = ticksLeft;
+  Beam(this.ticksLeft, {required this.element, this.pierce = false})
+    : lifetime = ticksLeft;
 
   final int lifetime;
   int ticksLeft;
+
+  /// Its color.
+  final Element element;
+
+  /// Goes through the whole row instead of stopping at the first enemy.
+  final bool pierce;
 }
+
+/// How long a row strike's beam shows.
+const int rowBeamTicks = 5;
 
 /// A cell that was just hit. Purely visual.
 class HitFlash {
-  HitFlash(this.pos, [this.kind = FlashKind.explosion]);
+  HitFlash(this.pos, [this.kind = FlashKind.explosion, this.element]);
 
   /// Long enough for the 4-frame explosion.
   static const int lifetime = 12;
 
   final GridPos pos;
   final FlashKind kind;
+
+  /// Tints it in this element's color; null keeps the art's.
+  final Element? element;
   int ticksLeft = lifetime;
 }
 
@@ -953,7 +975,7 @@ class BattleState {
       if (flash.ticksLeft == HitFlash.lifetime) {
         events.add(
           BattleEvent(
-            flash.kind == FlashKind.slash
+            flash.kind == FlashKind.slash || flash.kind == FlashKind.cut
                 ? BattleEventKind.slash
                 : BattleEventKind.explosion,
           ),
@@ -1328,6 +1350,7 @@ class BattleState {
           element: def.element,
           family: def.family,
           status: status,
+          fx: def.fx,
         );
         _toss(shot.pos, () => _impact(shot, Team.enemy));
       case ProjectileEffect(:final pattern, :final farBonus):
@@ -1364,6 +1387,7 @@ class BattleState {
           element: def.element,
           family: def.family,
           status: status,
+          fx: def.fx,
         );
         _toss(target, () {
           // Who is in the blast, before the hit can push or kill them.
@@ -1454,7 +1478,12 @@ class BattleState {
         final from = _homingCell;
         if (def.fx == ChipFx.beam) {
           // Until the last shot has crossed the row.
-          beams.add(Beam((count - 1) * gapTicks + gridColumns + 2));
+          beams.add(
+            Beam(
+              (count - 1) * gapTicks + gridColumns + 2,
+              element: def.element,
+            ),
+          );
         }
         _fire(def, damage, status: status);
         for (var i = 1; i < count; i++) {
@@ -1469,6 +1498,9 @@ class BattleState {
       case final MeleeEffect melee:
         _melee(def, melee, damage, status);
       case RowStrikeEffect(:final fromColumn, :final panel):
+        if (def.fx == ChipFx.beam) {
+          beams.add(Beam(rowBeamTicks, element: def.element, pierce: true));
+        }
         if (panel != null) {
           for (var x = fromColumn; x < gridColumns; x++) {
             final cell = GridPos(x, player.pos.y);
@@ -1816,9 +1848,20 @@ class BattleState {
     final struck = <Fighter>{};
     final front = player.pos + const GridPos(1, 0);
     if (slash && front.inBounds) {
-      flashes.add(HitFlash(front, FlashKind.slash));
+      flashes.add(
+        HitFlash(
+          front,
+          FlashKind.slash,
+          def.element == Element.neutral ? null : def.element,
+        ),
+      );
     }
+    final cut = def.fx == ChipFx.cut;
     for (final offset in pattern) {
+      final cell = player.pos + offset;
+      if (cut && cell.inBounds) flashes.add(HitFlash(cell, FlashKind.cut));
+      // Sparks from the hand to every panel hit (Cacetete, Chicote).
+      if (def.fx == ChipFx.bolt && cell.inBounds) zaps.add(Zap(cell));
       strike(
         player.pos + offset,
         damage,
@@ -1827,7 +1870,7 @@ class BattleState {
         family: def.family,
         status: status,
         struck: struck,
-        flash: !slash,
+        flash: !slash && !cut,
       );
     }
     final steps = push + (hasRelic(Relics.servoArm) ? 1 : 0);
@@ -2460,7 +2503,11 @@ class BattleState {
     for (final offset in shot.pattern) {
       final cell = shot.pos + GridPos(offset.x * shot.dir, offset.y);
       if (!cell.inBounds) continue;
-      flashes.add(HitFlash(cell));
+      flashes.add(switch (shot.fx) {
+        ChipFx.blast => HitFlash(cell, FlashKind.explosion, shot.element),
+        ChipFx.pulse => HitFlash(cell, FlashKind.pulse),
+        _ => HitFlash(cell),
+      });
       final straight = offset == const GridPos(0, 0);
       final target = _targetAt(cell, opponent);
       if (target != null && struck.add(target)) {
@@ -2503,6 +2550,9 @@ class BattleState {
         final next = others[random.nextInt(others.length)];
         if (shot.fx == ChipFx.bolt) {
           zaps.add(Zap(next.pos, from: target.pos));
+        }
+        if (shot.fx == ChipFx.tracer) {
+          zaps.add(Zap(next.pos, from: target.pos, tracer: true));
         }
         strike(
           next.pos,

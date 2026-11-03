@@ -81,6 +81,7 @@ abstract final class Chips {
     damage: 10,
     element: Element.fire,
     effect: RowStrikeEffect(),
+    fx: ChipFx.beam,
   );
 
   static const missile = ChipDef(
@@ -116,6 +117,7 @@ abstract final class Chips {
     element: Element.elec,
     effect: MeleeEffect(pattern: [GridPos(1, 0)], stunTicks: 2 * ticksPerSecond),
     pose: ChipPose.melee,
+    fx: ChipFx.bolt,
   );
 
   static const sword = ChipDef(
@@ -158,6 +160,7 @@ abstract final class Chips {
     element: Element.elec,
     effect: MeleeEffect(pattern: [GridPos(1, 0), GridPos(2, 0)]),
     pose: ChipPose.melee,
+    fx: ChipFx.bolt,
   );
 
   static const seismicHammer = ChipDef(
@@ -204,6 +207,7 @@ abstract final class Chips {
     effect: GrenadeEffect(panel: PanelState.lava),
     pose: ChipPose.toss,
     exhaust: true,
+    fx: ChipFx.blast,
   );
 
   static const smokeGrenade = ChipDef(
@@ -238,6 +242,7 @@ abstract final class Chips {
     effect: GrenadeEffect(stunTicks: 2 * ticksPerSecond),
     pose: ChipPose.toss,
     exhaust: true,
+    fx: ChipFx.blast,
   );
 
   static const recover = ChipDef(
@@ -365,6 +370,7 @@ abstract final class Chips {
     damage: 20,
     element: Element.elec,
     effect: RowStrikeEffect(),
+    fx: ChipFx.beam,
   );
 
   static const barrier = ChipDef(
@@ -489,6 +495,7 @@ abstract final class Chips {
     effect: GrenadeEffect(panel: PanelState.ice, wetTicks: wetTicks),
     pose: ChipPose.toss,
     exhaust: true,
+    fx: ChipFx.blast,
   );
 
   static const emp = ChipDef(
@@ -507,6 +514,7 @@ abstract final class Chips {
     effect: GrenadeEffect(shieldTicks: 3 * ticksPerSecond),
     pose: ChipPose.toss,
     exhaust: true,
+    fx: ChipFx.pulse,
   );
 
   static const neuralVine = ChipDef(
@@ -634,6 +642,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 12,
     effect: RowStrikeEffect(),
+    fx: ChipFx.beam,
   );
 
   static const tranqDart = ChipDef(
@@ -710,6 +719,7 @@ abstract final class Chips {
     damage: 15,
     element: Element.fire,
     effect: RowStrikeEffect(panel: PanelState.lava),
+    fx: ChipFx.beam,
   );
 
   static const freezeRay = ChipDef(
@@ -782,6 +792,7 @@ abstract final class Chips {
     damage: 15,
     effect: MeleeEffect(pattern: [GridPos(1, -1), GridPos(1, 1)]),
     pose: ChipPose.melee,
+    fx: ChipFx.cut,
   );
 
   static const hydraulicFist = ChipDef(
@@ -1010,6 +1021,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 10,
     effect: BounceEffect(),
+    fx: ChipFx.tracer,
   );
 
   static const voltaicArc = ChipDef(

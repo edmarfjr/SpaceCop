@@ -402,9 +402,23 @@ enum ChipFx {
   /// jump (Arco Voltaico).
   bolt,
 
-  /// A beam from the hand down the row while the burst lasts, in place of
-  /// its shots (Feixe Contínuo).
+  /// A beam from the hand down the row in the card's element color: while
+  /// a burst lasts, in place of its shots (Feixe Contínuo), or a flash
+  /// through the whole row on a row strike (Melta, Lança Trovão...).
   beam,
+
+  /// Explosions in the card's element color (the grenades).
+  blast,
+
+  /// Blue explosions (Pulso EMP).
+  pulse,
+
+  /// A white streak from the target to whoever the shot bounces to
+  /// (Ricochete).
+  tracer,
+
+  /// A short slash on each panel hit, slanted toward it (Foice).
+  cut,
 }
 
 class ChipDef {
