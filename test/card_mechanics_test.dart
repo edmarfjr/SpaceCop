@@ -23,6 +23,12 @@ void main() {
     }
   });
 
+  test('every offered card has its own art', () {
+    for (final def in Chips.all) {
+      expect(SpriteFiles.chips[def.id], isNotNull, reason: def.name);
+    }
+  });
+
   group('phase 1', () {
     test('Investida dashes to the front of its side and hits', () {
       final battle = battleWith([Chips.dash], spawns: [dummyAt(3, 1)]);
