@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 
 import '../../domain/battle/battle_state.dart';
+import '../../domain/chips/battle_chip.dart' show ChipFx;
 import '../../domain/grid.dart';
 import '../../ui/theme.dart';
 import '../sprites.dart';
@@ -64,7 +65,8 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
       return;
     }
     for (final shot in battle.projectiles) {
-      if (shot.pos.y != row) continue;
+      // The beam covers its own shots.
+      if (shot.pos.y != row || shot.fx == ChipFx.beam) continue;
       sprites.shot[_frame ~/ 6 % 2].render(
         canvas,
         position: parent.cellCenter(shot.pos),

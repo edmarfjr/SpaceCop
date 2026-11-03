@@ -740,6 +740,7 @@ abstract final class Chips {
     damage: 5,
     element: Element.elec,
     effect: BurstEffect(4),
+    fx: ChipFx.beam,
   );
 
   static const dagger = ChipDef(
@@ -1024,6 +1025,7 @@ abstract final class Chips {
     damage: 10,
     element: Element.elec,
     effect: BounceEffect(adjacent: true),
+    fx: ChipFx.bolt,
   );
 
   static const homingRocket = ChipDef(
@@ -1139,6 +1141,7 @@ abstract final class Chips {
     exhaust: base.exhaust,
     upgraded: true,
     rarity: base.rarity,
+    fx: base.fx,
   );
 
   static final Map<String, ChipDef> _upgrades = {

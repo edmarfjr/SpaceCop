@@ -394,6 +394,19 @@ enum ChipPose {
   toss,
 }
 
+/// Extra look of a card in battle. Purely visual.
+enum ChipFx {
+  none,
+
+  /// Lightning from the hand to the shot, then from target to target on a
+  /// jump (Arco Voltaico).
+  bolt,
+
+  /// A beam from the hand down the row while the burst lasts, in place of
+  /// its shots (Feixe Contínuo).
+  beam,
+}
+
 class ChipDef {
   const ChipDef({
     required this.id,
@@ -410,6 +423,7 @@ class ChipDef {
     this.exhaust = false,
     this.upgraded = false,
     this.rarity = Rarity.common,
+    this.fx = ChipFx.none,
   });
 
   final String id;
@@ -436,6 +450,8 @@ class ChipDef {
 
   /// How often it is offered and its shop price.
   final Rarity rarity;
+
+  final ChipFx fx;
 }
 
 /// One copy of a chip in the player's deck.

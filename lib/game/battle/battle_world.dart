@@ -15,6 +15,7 @@ import 'damage_text.dart';
 import 'fighter_component.dart';
 import 'grid_component.dart';
 import 'projectile_layer.dart';
+import 'chip_fx_layer.dart';
 import 'shield_link_layer.dart';
 
 /// Flame side of one battle: steps [battle] at a fixed rate, turns keys and
@@ -96,6 +97,7 @@ class BattleWorld extends World
       for (var row = 0; row < gridRows; row++)
         ProjectileLayer.row(battle, game.sprites, row),
       ShieldLinkLayer(battle, (fighter) => _views[fighter]),
+      ChipFxLayer(battle, (fighter) => _views[fighter]),
     ]);
     _syncViews();
   }

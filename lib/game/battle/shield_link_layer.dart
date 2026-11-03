@@ -101,7 +101,11 @@ class ShieldLinkLayer extends Component with ParentIsA<GridComponent> {
   Vector2 _middle(FighterComponent view) =>
       view.position - Vector2(0, view.size.y / 2);
 
-  void _draw(Canvas canvas, Vector2 a, Vector2 b, Random shape) {
+  void _draw(Canvas canvas, Vector2 a, Vector2 b, Random shape) =>
+      drawBolt(canvas, a, b, shape);
+
+  /// Blue lightning with a white core from [a] to [b].
+  static void drawBolt(Canvas canvas, Vector2 a, Vector2 b, Random shape) {
     final path = _bolt(a, b, shape);
     canvas
       ..drawPath(path, _glow)
@@ -109,7 +113,7 @@ class ShieldLinkLayer extends Component with ParentIsA<GridComponent> {
   }
 
   /// A jagged line from [a] to [b], bent sideways at each kink.
-  Path _bolt(Vector2 a, Vector2 b, Random shape) {
+  static Path _bolt(Vector2 a, Vector2 b, Random shape) {
     double snap(double v) => (v / _pixel).roundToDouble() * _pixel;
     final along = b - a;
     final side = Vector2(-along.y, along.x)..normalize();

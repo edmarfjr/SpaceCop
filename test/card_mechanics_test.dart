@@ -237,4 +237,36 @@ void main() {
       expect(battle.player.hp, lessThan(100));
     });
   });
+
+  group('effects', () {
+    test('Arco Voltaico leaves a bolt to the target and one to the jump', () {
+      final battle = battleWith(
+        [Chips.voltaicArc],
+        spawns: [dummyAt(3, 1), dummyAt(4, 1)],
+      );
+      battle
+        ..selectChip(0)
+        ..tick(const PlayerInput(useChip: true));
+      expect(battle.projectiles.single.fx, ChipFx.bolt);
+      wait(battle, 3);
+      expect(battle.zaps.map((z) => (z.from, z.to)), [
+        (null, const GridPos(3, 1)),
+        (const GridPos(3, 1), const GridPos(4, 1)),
+      ]);
+      wait(battle, Zap.lifetime);
+      expect(battle.zaps, isEmpty);
+    });
+
+    test('Feixe Contínuo shows a beam while its burst lasts', () {
+      final battle = battleWith([Chips.steadyBeam], spawns: [dummyAt(3, 1)]);
+      battle
+        ..selectChip(0)
+        ..tick(const PlayerInput(useChip: true));
+      expect(battle.beams, hasLength(1));
+      wait(battle, 3 * 4);
+      expect(battle.beams, hasLength(1), reason: 'the last shot just left');
+      wait(battle, 20);
+      expect(battle.beams, isEmpty);
+    });
+  });
 }

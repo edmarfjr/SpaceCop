@@ -510,6 +510,7 @@ class Projectile {
     this.family,
     this.onHit,
     this.status,
+    this.fx = ChipFx.none,
   }) : stepTimer = stepTicks;
 
   final Team team;
@@ -530,6 +531,9 @@ class Projectile {
 
   /// Applied to everything hit (third chip of a chain).
   final Status? status;
+
+  /// How the card that fired it looks.
+  final ChipFx fx;
   int stepTimer;
   int ttl = projectileLifetime;
   bool spent = false;
@@ -541,6 +545,27 @@ enum FlashKind {
 
   /// A vertical sword slash centered on [HitFlash.pos], 3 rows tall.
   slash,
+}
+
+/// Lightning from [from] (null: the player's hand) to [to], for a moment.
+/// Purely visual.
+class Zap {
+  Zap(this.to, {this.from});
+
+  static const int lifetime = 8;
+
+  final GridPos? from;
+  final GridPos to;
+  int ticksLeft = lifetime;
+}
+
+/// A beam from the player's hand down their row (Feixe Contínuo). Purely
+/// visual.
+class Beam {
+  Beam(this.ticksLeft) : lifetime = ticksLeft;
+
+  final int lifetime;
+  int ticksLeft;
 }
 
 /// A cell that was just hit. Purely visual.
@@ -617,6 +642,8 @@ class BattleState {
   final Set<GridPos> runes = {};
   final List<Projectile> projectiles = [];
   final List<HitFlash> flashes = [];
+  final List<Zap> zaps = [];
+  final List<Beam> beams = [];
 
   /// Damage dealt during the last [tick], for the renderer's numbers and
   /// the player's hurt feedback.
@@ -935,6 +962,14 @@ class BattleState {
       flash.ticksLeft--;
     }
     flashes.removeWhere((f) => f.ticksLeft <= 0);
+    for (final zap in zaps) {
+      zap.ticksLeft--;
+    }
+    zaps.removeWhere((z) => z.ticksLeft <= 0);
+    for (final beam in beams) {
+      beam.ticksLeft--;
+    }
+    beams.removeWhere((b) => b.ticksLeft <= 0);
     for (final enemy in enemies) {
       if (enemy.isDead) {
         events.add(BattleEvent(BattleEventKind.death, unit: enemy));
@@ -1417,6 +1452,10 @@ class BattleState {
         gaugeSpeedBonus += percent;
       case BurstEffect(:final count, :final gapTicks):
         final from = _homingCell;
+        if (def.fx == ChipFx.beam) {
+          // Until the last shot has crossed the row.
+          beams.add(Beam((count - 1) * gapTicks + gridColumns + 2));
+        }
         _fire(def, damage, status: status);
         for (var i = 1; i < count; i++) {
           schedule(
@@ -1592,6 +1631,7 @@ class BattleState {
         family: def.family,
         onHit: onHit,
         status: status,
+        fx: def.fx,
       ),
     );
   }
@@ -2458,8 +2498,12 @@ class BattleState {
                         1))
               enemy,
         ];
+        if (shot.fx == ChipFx.bolt) zaps.add(Zap(target.pos));
         if (others.isEmpty) return;
         final next = others[random.nextInt(others.length)];
+        if (shot.fx == ChipFx.bolt) {
+          zaps.add(Zap(next.pos, from: target.pos));
+        }
         strike(
           next.pos,
           shot.damage,
