@@ -103,6 +103,7 @@ abstract final class Chips {
         GridPos(0, -1),
       ],
     ),
+    fx: ChipFx.smoke,
   );
 
   static const baton = ChipDef(
@@ -175,6 +176,7 @@ abstract final class Chips {
     damage: 30,
     effect: MeleeEffect(pattern: [GridPos(1, 0)], crack: true),
     pose: ChipPose.melee,
+    fx: ChipFx.quake,
   );
 
   static const grenade = ChipDef(
@@ -616,6 +618,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 30,
     effect: ProjectileEffect(farBonus: 15),
+    fx: ChipFx.sniper,
   );
 
   static const incendiaryRound = ChipDef(
@@ -686,6 +689,7 @@ abstract final class Chips {
     effect: GrenadeEffect(distance: 4),
     pose: ChipPose.toss,
     exhaust: true,
+    fx: ChipFx.quake,
   );
 
   static const fissureBomb = ChipDef(
@@ -807,6 +811,7 @@ abstract final class Chips {
     damage: 25,
     effect: MeleeEffect(pattern: [GridPos(1, 0)], push: 3),
     pose: ChipPose.melee,
+    fx: ChipFx.quake,
   );
 
   static const fireTurret = ChipDef(
@@ -887,6 +892,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     element: Element.elec,
     effect: StatusAllEffect(Status.stunned, ticksPerSecond),
+    fx: ChipFx.glitch,
   );
 
   static const dash = ChipDef(
@@ -979,6 +985,7 @@ abstract final class Chips {
     damage: 5,
     element: Element.elec,
     effect: ChainScaleEffect(),
+    fx: ChipFx.rings,
   );
 
   static const wildcard = ChipDef(
@@ -1055,6 +1062,7 @@ abstract final class Chips {
     effect: GrenadeEffect(homing: true),
     pose: ChipPose.toss,
     exhaust: true,
+    fx: ChipFx.smoke,
   );
 
   static const c4 = ChipDef(

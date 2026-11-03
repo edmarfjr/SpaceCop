@@ -42,7 +42,11 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
   static final Vector2 _size = Vector2.all(32);
 
   /// Peak height of a lob, in px above the straight line.
-  static const double _lobHeight = 28;
+  static const double lobHeight = 28;
+
+  /// Where a lob is at [t] (0 to 1) of its flight from [from] to [to].
+  static Vector2 lobAt(Vector2 from, Vector2 to, double t) =>
+      from + (to - from) * t - Vector2(0, lobHeight * 4 * t * (1 - t));
 
   static final _danger = Paint()
     ..color = Pico.white
@@ -80,8 +84,7 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
       final from = parent.cellCenter(lob.from.pos);
       final to = parent.cellCenter(lob.to);
       final t = 1 - lob.ticksLeft / lob.flightTicks;
-      final at =
-          from + (to - from) * t - Vector2(0, _lobHeight * 4 * t * (1 - t));
+      final at = lobAt(from, to, t);
       canvas
         ..save()
         ..translate(at.x, at.y);

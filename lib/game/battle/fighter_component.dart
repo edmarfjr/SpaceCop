@@ -69,6 +69,26 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   /// A phased Etéreo is drawn see-through.
   static final _phasedPaint = Paint()..color = const Color(0x80FFFFFF);
 
+  /// The Holograma: see-through and blue, crossed by scanlines.
+  static final _hologramPaint = Paint()
+    ..colorFilter = ColorFilter.mode(
+      Pico.blue.withValues(alpha: 0.5),
+      BlendMode.srcATop,
+    )
+    ..color = const Color(0xB0FFFFFF);
+  static final _scanline = Paint()..color = Pico.blue.withValues(alpha: 0.35);
+
+  bool get _isDecoy =>
+      fighter is Obstacle && (fighter as Obstacle).kind == ObstacleKind.decoy;
+
+  /// Every other art pixel row darker, rolling slowly down.
+  void _scanlines(Canvas canvas) {
+    final shift = (_clock * 8).floor() % 2 * 2.0;
+    for (var y = shift; y < size.y; y += 4) {
+      canvas.drawRect(Rect.fromLTWH(0, y, size.x, 2), _scanline);
+    }
+  }
+
   /// Seconds each energy shield frame stays on screen.
   static const _shieldFrameTime = 0.1;
 
@@ -170,8 +190,11 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
           ? _hurtPaint
           : fighter is EnemyFighter && (fighter as EnemyFighter).phased
           ? _phasedPaint
+          : _isDecoy
+          ? _hologramPaint
           : null,
     );
+    if (_isDecoy) _scanlines(canvas);
     canvas.restore();
     // Energy shield: the player's barrier, or an enemy nothing can hurt.
     final shielded = switch (fighter) {

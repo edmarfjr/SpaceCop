@@ -97,7 +97,7 @@ class BattleWorld extends World
       for (var row = 0; row < gridRows; row++)
         ProjectileLayer.row(battle, game.sprites, row),
       ShieldLinkLayer(battle, (fighter) => _views[fighter]),
-      ChipFxLayer(battle, (fighter) => _views[fighter]),
+      ChipFxLayer(battle, game.sprites, (fighter) => _views[fighter]),
     ]);
     _syncViews();
   }
@@ -170,6 +170,9 @@ class BattleWorld extends World
         _showHit(hit.target, hit.amount);
       }
       _sounds.afterTick(battle);
+      if (battle.events.any((e) => e.kind == BattleEventKind.quake)) {
+        _shake = _shakeTime;
+      }
       _usePressed = _cyclePressed = false;
       // Consumed once it moved, or once the chip left the hand.
       _swipeTicks = battle.player.pos != from ? 0 : _swipeTicks - 1;

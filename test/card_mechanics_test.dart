@@ -269,4 +269,44 @@ void main() {
       expect(battle.beams, isEmpty);
     });
   });
+
+  group('effects, lots 2-4', () {
+    BattleState fire(ChipDef def, {List<EnemySpawn>? spawns}) {
+      final battle = battleWith([def], spawns: spawns ?? [dummyAt(3, 1)]);
+      battle
+        ..selectChip(0)
+        ..tick(const PlayerInput(useChip: true));
+      return battle;
+    }
+
+    test('Carga C4 blinks on its victim until it blows up', () {
+      final battle = fire(Chips.c4);
+      expect(battle.stickies.single.victim, battle.enemies.single);
+      wait(battle, 3 * ticksPerSecond);
+      expect(battle.stickies, isEmpty);
+    });
+
+    test('Investida leaves a trail; Martelo shakes the screen', () {
+      final dash = fire(Chips.dash);
+      expect(dash.trails.single.to, const GridPos(2, 1));
+      final hammer = battleWith([Chips.seismicHammer], spawns: [dummyAt(3, 1)]);
+      hammer.selectChip(0);
+      hammer.tick(const PlayerInput(useChip: true));
+      expect(hammer.events.map((e) => e.kind), contains(BattleEventKind.quake));
+    });
+
+    test('Rifle streaks; Gancho chains; Feixe Trator beams', () {
+      expect(fire(Chips.sniper).zaps.single.style, ZapStyle.tracer);
+      final hook = fire(Chips.hook);
+      wait(hook, 3);
+      expect(hook.zaps.single.style, ZapStyle.chain);
+      expect(fire(Chips.tractorBeam).zaps.single.style, ZapStyle.tractor);
+    });
+
+    test('Pulso rings, Interferência static, Energético glow', () {
+      expect(fire(Chips.resonance).rings.single.count, 1);
+      expect(fire(Chips.jammer).glitchTicks, greaterThan(0));
+      expect(fire(Chips.energyDrink).energyGlowTicks, greaterThan(0));
+    });
+  });
 }

@@ -20,6 +20,7 @@ class BattleSounds {
         BattleEventKind.explosion => Sfx.explosion,
         BattleEventKind.slash => Sfx.slash,
         BattleEventKind.blocked => Sfx.block,
+        BattleEventKind.quake => Sfx.explosion,
         BattleEventKind.death => Sfx.enemyDeath,
         BattleEventKind.newHand => Sfx.newHand,
         BattleEventKind.won => Sfx.win,

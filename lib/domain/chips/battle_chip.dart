@@ -419,6 +419,23 @@ enum ChipFx {
 
   /// A short slash on each panel hit, slanted toward it (Foice).
   cut,
+
+  /// Shakes the screen on impact (Martelo Sísmico, Punho Hidráulico,
+  /// Morteiro).
+  quake,
+
+  /// A smoke trail behind the shot or the lob (Míssil, Foguete
+  /// Teleguiado).
+  smoke,
+
+  /// A white streak down the row as it fires (Rifle de Precisão).
+  sniper,
+
+  /// Static over the enemies while it lasts (Interferência).
+  glitch,
+
+  /// Rings out of the hand, one per place in the chain (Pulso Ressonante).
+  rings,
 }
 
 class ChipDef {

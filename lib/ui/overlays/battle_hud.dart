@@ -439,7 +439,11 @@ class _RamBar extends StatelessWidget {
               color: i < battle.energy
                   ? (i >= battle.energyMax ? Pico.green : Pico.blue)
                   : null,
-              border: Border.all(color: Pico.blue, width: 0.5),
+              // A card just gave Energy: the pips glow white.
+              border: Border.all(
+                color: battle.energyGlowTicks > 0 ? Pico.white : Pico.blue,
+                width: battle.energyGlowTicks > 0 ? 1 : 0.5,
+              ),
             ),
           ),
       ],

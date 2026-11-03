@@ -218,6 +218,9 @@ enum BattleEventKind {
 
   /// The gauge filled and a new hand was drawn.
   newHand,
+
+  /// A heavy hit that shakes the screen.
+  quake,
   won,
   lost,
 }
@@ -255,7 +258,15 @@ class Collision {
 
 /// What an enemy throws at the targeted panels of a scheduled attack.
 /// Purely visual: it lands on the tick the attack resolves.
-enum Lob { none, ball, pickaxe, molotov }
+enum Lob {
+  none,
+  ball,
+  pickaxe,
+  molotov,
+
+  /// A ball leaving a smoke trail (Foguete Teleguiado).
+  rocket,
+}
 
 /// An enemy attack waiting for its telegraph to run out.
 class _Scheduled {
@@ -556,15 +567,37 @@ enum FlashKind {
 /// Lightning from [from] (null: the player's hand) to [to], for a moment.
 /// Purely visual.
 class Zap {
-  Zap(this.to, {this.from, this.tracer = false});
+  Zap(this.to, {this.from, this.style = ZapStyle.bolt});
 
   static const int lifetime = 8;
 
   final GridPos? from;
   final GridPos to;
+  final ZapStyle style;
+  int ticksLeft = lifetime;
+}
 
-  /// A straight white streak instead of lightning (Ricochete).
-  final bool tracer;
+enum ZapStyle {
+  bolt,
+
+  /// A straight white streak (Ricochete, Rifle de Precisão).
+  tracer,
+
+  /// A chain to the target pulled in (Gancho).
+  chain,
+
+  /// A pulling beam (Feixe Trator).
+  tractor,
+}
+
+/// [count] rings out of the player's hand (Pulso Ressonante). Purely
+/// visual.
+class Ring {
+  Ring(this.count);
+
+  static const int lifetime = 14;
+
+  final int count;
   int ticksLeft = lifetime;
 }
 
@@ -583,6 +616,30 @@ class Beam {
   /// Goes through the whole row instead of stopping at the first enemy.
   final bool pierce;
 }
+
+/// The player dashed from [from] to [to] (Investida): ghosts of them
+/// fade along the way. Purely visual.
+class Trail {
+  Trail(this.from, this.to);
+
+  static const int lifetime = 10;
+
+  final GridPos from;
+  final GridPos to;
+  int ticksLeft = lifetime;
+}
+
+/// A Carga C4 stuck on [victim], [ticksLeft] from blowing up. Purely
+/// visual: the blast itself is scheduled.
+class StickyBomb {
+  StickyBomb(this.victim, this.ticksLeft);
+
+  final Fighter victim;
+  int ticksLeft;
+}
+
+/// How long the Energy bar glows after a card gives Energy.
+const int energyGlowLength = 12;
 
 /// How long a row strike's beam shows.
 const int rowBeamTicks = 5;
@@ -666,6 +723,15 @@ class BattleState {
   final List<HitFlash> flashes = [];
   final List<Zap> zaps = [];
   final List<Beam> beams = [];
+  final List<StickyBomb> stickies = [];
+  final List<Trail> trails = [];
+  final List<Ring> rings = [];
+
+  /// While positive, static shows over the enemies (Interferência).
+  int glitchTicks = 0;
+
+  /// While positive, the Energy bar glows: a card just gave Energy.
+  int energyGlowTicks = 0;
 
   /// Damage dealt during the last [tick], for the renderer's numbers and
   /// the player's hurt feedback.
@@ -992,6 +1058,20 @@ class BattleState {
       beam.ticksLeft--;
     }
     beams.removeWhere((b) => b.ticksLeft <= 0);
+    for (final bomb in stickies) {
+      bomb.ticksLeft--;
+    }
+    stickies.removeWhere((b) => b.ticksLeft <= 0);
+    for (final trail in trails) {
+      trail.ticksLeft--;
+    }
+    trails.removeWhere((t) => t.ticksLeft <= 0);
+    for (final ring in rings) {
+      ring.ticksLeft--;
+    }
+    rings.removeWhere((r) => r.ticksLeft <= 0);
+    if (glitchTicks > 0) glitchTicks--;
+    if (energyGlowTicks > 0) energyGlowTicks--;
     for (final enemy in enemies) {
       if (enemy.isDead) {
         events.add(BattleEvent(BattleEventKind.death, unit: enemy));
@@ -1090,14 +1170,15 @@ class BattleState {
   }
 
   /// The player lobs a ball at [cell]; [land] runs when it gets there.
-  void _toss(GridPos cell, void Function() land) => schedule(
-    player,
-    [cell],
-    playerTossTicks,
-    land,
-    lob: Lob.ball,
-    telegraph: false,
-  );
+  void _toss(GridPos cell, void Function() land, {Lob lob = Lob.ball}) =>
+      schedule(
+        player,
+        [cell],
+        playerTossTicks,
+        land,
+        lob: lob,
+        telegraph: false,
+      );
 
   /// Where a tossed attack lands: the first target in the player's row, or
   /// the far end of it.
@@ -1355,6 +1436,9 @@ class BattleState {
         _toss(shot.pos, () => _impact(shot, Team.enemy));
       case ProjectileEffect(:final pattern, :final farBonus):
         final far = _tossTarget();
+        if (def.fx == ChipFx.sniper) {
+          zaps.add(Zap(far, style: ZapStyle.tracer));
+        }
         final back =
             far.x == gridColumns - 1 && _targetAt(far, Team.enemy) != null;
         _fire(
@@ -1389,7 +1473,10 @@ class BattleState {
           status: status,
           fx: def.fx,
         );
-        _toss(target, () {
+        _toss(lob: def.fx == ChipFx.smoke ? Lob.rocket : Lob.ball, target, () {
+          if (def.fx == ChipFx.quake) {
+            events.add(BattleEvent(BattleEventKind.quake));
+          }
           // Who is in the blast, before the hit can push or kill them.
           final caught = {
             if (stunTicks > 0 || wetTicks > 0 || shieldTicks > 0)
@@ -1435,10 +1522,12 @@ class BattleState {
         );
       case ChainScaleEffect():
         _fire(def, damage, status: status);
+        if (def.fx == ChipFx.rings) rings.add(Ring(link));
       case StickyBombEffect(:final delay):
         final victim = _targetAt(_tossTarget(), Team.enemy);
         if (victim != null) {
           flashes.add(HitFlash(victim.pos));
+          stickies.add(StickyBomb(victim, delay));
           final bomb = damage;
           schedule(player, const [], delay, telegraph: false, () {
             _impact(
@@ -1470,8 +1559,10 @@ class BattleState {
       case EnergyBurstEffect(:final amount):
         energy += amount;
         energyBonus += amount;
+        energyGlowTicks = energyGlowLength;
       case EnergyMaxEffect(:final amount):
         energyMax += amount;
+        energyGlowTicks = energyGlowLength;
       case GaugeSpeedEffect(:final percent):
         gaugeSpeedBonus += percent;
       case BurstEffect(:final count, :final gapTicks):
@@ -1531,7 +1622,10 @@ class BattleState {
             if (ownerAt(next) != Team.player || !canEnter(player, next)) break;
             to = next;
           }
-          if (to != player.pos) _moveUnit(player, to, const GridPos(1, 0));
+          if (to != player.pos) {
+            trails.add(Trail(player.pos, to));
+            _moveUnit(player, to, const GridPos(1, 0));
+          }
         }
         _melee(def, melee, damage, status);
       case CleanseEffect(:final heal):
@@ -1562,6 +1656,7 @@ class BattleState {
           element: def.element,
         );
       case StatusAllEffect(:final status, :final ticks):
+        if (def.fx == ChipFx.glitch) glitchTicks = ticks;
         for (final enemy in enemies) {
           if (!enemy.isDead && !enemy.hidden) enemy.applyStatus(status, ticks);
         }
@@ -1581,6 +1676,7 @@ class BattleState {
         ]..sort((a, b) => a.pos.x.compareTo(b.pos.x));
         for (final enemy in pulled) {
           displace(enemy, -1, 0, steps, byPlayer: true, force: true);
+          zaps.add(Zap(enemy.pos, style: ZapStyle.tractor));
         }
       case ChainSurgeEffect():
         chainSurge = true;
@@ -1857,6 +1953,7 @@ class BattleState {
       );
     }
     final cut = def.fx == ChipFx.cut;
+    if (def.fx == ChipFx.quake) events.add(BattleEvent(BattleEventKind.quake));
     for (final offset in pattern) {
       final cell = player.pos + offset;
       if (cut && cell.inBounds) flashes.add(HitFlash(cell, FlashKind.cut));
@@ -2552,7 +2649,7 @@ class BattleState {
           zaps.add(Zap(next.pos, from: target.pos));
         }
         if (shot.fx == ChipFx.tracer) {
-          zaps.add(Zap(next.pos, from: target.pos, tracer: true));
+          zaps.add(Zap(next.pos, from: target.pos, style: ZapStyle.tracer));
         }
         strike(
           next.pos,
@@ -2574,6 +2671,7 @@ class BattleState {
         );
       case PullEffect(:final stunTicks):
         _pull(target);
+        zaps.add(Zap(target.pos, style: ZapStyle.chain));
         if (stunTicks > 0) target.applyStatus(Status.stunned, stunTicks);
       case StatusShotEffect(:final status, :final ticks, :final panel):
         target.applyStatus(status, ticks);
