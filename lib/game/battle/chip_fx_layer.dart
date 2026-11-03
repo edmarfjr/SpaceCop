@@ -358,8 +358,9 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
   /// it swells in, flickers, and thins out at the end.
   void _beam(Canvas canvas, Vector2 hand, Beam beam, Random shape) {
     final row = battle.player.pos.y;
-    // Level with the shots and the explosions, not the raised gun.
-    final y = parent.cellCenter(battle.player.pos).y;
+    // Level with the shots, not the raised gun: their art fills the top
+    // half of a frame centered on the cell, 8 px above its center.
+    final y = parent.cellCenter(battle.player.pos).y - 8;
     var end = parent.size.x;
     for (
       var x = battle.player.pos.x + 1;
