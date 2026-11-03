@@ -375,6 +375,9 @@ class PlayerFighter extends Fighter {
   /// Pose of the last chip used, drawn while [attackCooldown] runs.
   ChipPose pose = ChipPose.shoot;
 
+  /// The last chip used, for the weapon in hand during a melee swing.
+  ChipDef? lastChip;
+
   /// While positive, the next damage is cancelled.
   int barrierTicks = 0;
 
@@ -1389,7 +1392,9 @@ class BattleState {
   /// and relic bonuses, in that order.
   void _activate(ChipDef def) {
     events.add(BattleEvent(BattleEventKind.chipUsed, chip: def));
-    player.pose = def.pose;
+    player
+      ..pose = def.pose
+      ..lastChip = def;
     var family = def.family;
     if (wildcard && family.chains) {
       wildcard = false;

@@ -51,6 +51,28 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     return f is PlayerFighter && f.attackCooldown > 0;
   }
 
+  /// The melee card's weapon in the fist of the swing frame, outside the
+  /// clip since it reaches past the sprite.
+  void _drawWeapon(Canvas canvas) {
+    final f = fighter;
+    if (f is! PlayerFighter || !_attacking || f.pose != ChipPose.melee) return;
+    final weapon = switch (f.lastChip) {
+      final def? => sprites.weapon(def),
+      null => null,
+    };
+    if (weapon == null) return;
+    final grip = (weapon.srcSize.y ~/ 2).toDouble();
+    weapon.render(
+      canvas,
+      position: (_fist - Vector2(0, grip)) * _scale,
+      size: weapon.srcSize * _scale,
+      overridePaint: _flashing ? _hurtPaint : null,
+    );
+  }
+
+  /// The fist in the player's swing frame, in art pixels.
+  static final _fist = Vector2(22, 9);
+
   /// Firing gets the muzzle flash; swings and tosses don't.
   bool get _shooting {
     final f = fighter;
@@ -196,6 +218,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     );
     if (_isDecoy) _scanlines(canvas);
     canvas.restore();
+    _drawWeapon(canvas);
     // Energy shield: the player's barrier, or an enemy nothing can hurt.
     final shielded = switch (fighter) {
       PlayerFighter(:final barrierTicks) => barrierTicks > 0,

@@ -228,6 +228,21 @@ abstract final class SpriteFiles {
     Chips.seismicHammer.id: 'chips/marreta.png',
   };
 
+  /// Weapon in hand during a melee card's swing, pointing forward. The
+  /// pixel on the left edge, middle row, sits on the player's fist.
+  static final weapons = <String, String>{
+    Chips.baton.id: 'weapons/baton.png',
+    Chips.sword.id: 'weapons/sword.png',
+    Chips.energyWhip.id: 'weapons/energy_whip.png',
+    Chips.seismicHammer.id: 'weapons/seismic_hammer.png',
+    Chips.cracker.id: 'weapons/cracker.png',
+    Chips.hook.id: 'weapons/hook.png',
+    Chips.dagger.id: 'weapons/dagger.png',
+    Chips.thermalBlade.id: 'weapons/thermal_blade.png',
+    Chips.scythe.id: 'weapons/scythe.png',
+    Chips.hydraulicFist.id: 'weapons/hydraulic_fist.png',
+  };
+
   /// Frame drawn over every panel, by the side that owns it.
   static const panelFrames = <Team, String>{
     Team.player: 'panels/panel_panelPlr.png',
@@ -373,6 +388,7 @@ abstract final class SpriteFiles {
     ...enemies.values,
     ...obstacles.values,
     ...chips.values,
+    ...weapons.values,
     ...panels.values,
     ...panelFrames.values,
     ...elements.values,
@@ -540,6 +556,12 @@ class GameSprites {
 
   Sprite chip(ChipDef def) =>
       _file(SpriteFiles.chips[def.id] ?? SpriteFiles.chips[Chips.shot.id]!);
+
+  /// Null for cards swung bare-handed (Ombrada, Investida).
+  Sprite? weapon(ChipDef def) => switch (SpriteFiles.weapons[def.id]) {
+    final path? => _file(path),
+    null => null,
+  };
 
   Sprite panel(PanelState state) => _file(SpriteFiles.panels[state]!);
 
