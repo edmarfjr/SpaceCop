@@ -188,6 +188,7 @@ abstract final class SpriteFiles {
     Chips.tractorBeam.id: 'chips/raioTrator.png',
     Chips.teslaCoil.id: 'chips/teslaCoil.png',
     Chips.overclock.id: 'chips/overclock.png',
+    Chips.piercingShot.id: 'chips/piercingBlt.png',
     Chips.sniper.id: 'chips/rifle.png',
     Chips.incendiaryRound.id: 'chips/flameBuller.png',
     Chips.tranqDart.id: 'chips/dardo.png',
@@ -479,7 +480,11 @@ class GameSprites {
     return _frame(path, attacking && frames > 1 ? 1 : 0, frame);
   }
 
-  Sprite obstacle(ObstacleKind kind) => _file(SpriteFiles.obstacles[kind]!);
+  /// A Fire turret (Torre Incendiária) is drawn with its card's art.
+  Sprite obstacle(ObstacleKind kind, {el.Element? element}) =>
+      kind == ObstacleKind.turret && element == el.Element.fire
+      ? chip(Chips.fireTurret)
+      : _file(SpriteFiles.obstacles[kind]!);
 
   Sprite chip(ChipDef def) =>
       _file(SpriteFiles.chips[def.id] ?? SpriteFiles.chips[Chips.shot.id]!);

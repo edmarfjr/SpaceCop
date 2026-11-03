@@ -35,7 +35,10 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
         stage: stage,
         pose: pose,
       ),
-      Obstacle(:final kind) => sprites.obstacle(kind),
+      Obstacle(:final kind, :final element) => sprites.obstacle(
+        kind,
+        element: element,
+      ),
       _ => sprites.playerIdle,
     };
   }
