@@ -47,6 +47,8 @@ class _StarCopAppState extends State<StarCopApp> {
         child: GameWidget<StarCopGame>(
           game: _game,
           focusNode: _game.focusNode,
+          loadingBuilder: (context) =>
+              VirtualScreen(child: LoadingScreen(progress: _game.loadProgress)),
           overlayBuilderMap: {
             for (final MapEntry(:key, :value) in _overlays.entries)
               key: (context, game) => VirtualScreen(

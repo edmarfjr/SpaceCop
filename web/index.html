@@ -31,8 +31,53 @@
 
   <title>StarCop</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    /* Loader while the game downloads; the game's own LoadingScreen (same
+       look) takes over once Flutter draws its first frame on top. */
+    @font-face {
+      font-family: Pixel;
+      src: url("assets/assets/fonts/pixel.ttf");
+    }
+    html, body { margin: 0; height: 100%; background: #000; }
+    #loading {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #loading .screen {
+      /* The 256x192 virtual screen, scaled to fit like the game's. */
+      width: min(100vw, 133.33vh); aspect-ratio: 4 / 3;
+      background: #1D2B53; color: #FFF1E8;
+      font-family: Pixel, monospace;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-size: calc(min(100vw, 133.33vh) * 8 / 256);
+    }
+    #loading .title {
+      font-size: 1.375em; font-weight: bold; margin-bottom: 2em;
+    }
+    #loading .bar {
+      width: 15em; height: 1em; margin-top: 0.75em;
+      box-sizing: border-box; border: 0.125em solid #FFF1E8;
+      padding: 0.125em; overflow: hidden;
+    }
+    #loading .fill {
+      width: 30%; height: 100%; background: #00E756;
+      animation: slide 1.2s steps(12) infinite;
+    }
+    @keyframes slide {
+      from { transform: translateX(-100%); }
+      to { transform: translateX(333%); }
+    }
+  </style>
 </head>
 <body>
+  <div id="loading">
+    <div class="screen">
+      <div class="title">STAR COP</div>
+      <div>Carregando...</div>
+      <div class="bar"><div class="fill"></div></div>
+    </div>
+  </div>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

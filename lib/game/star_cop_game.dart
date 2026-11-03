@@ -95,6 +95,9 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
 
   late final GameSprites sprites;
 
+  /// Share of the art loaded so far, for the loading screen.
+  final loadProgress = ValueNotifier<double>(0);
+
   /// What the last battle left on the Espólios screen, not taken yet.
   List<Spoil> spoils = [];
 
@@ -141,7 +144,10 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   @override
   Future<void> onLoad() async {
     camera.viewfinder.anchor = Anchor.topLeft;
-    sprites = await GameSprites.load(images);
+    sprites = await GameSprites.load(
+      images,
+      onProgress: (done) => loadProgress.value = done,
+    );
     savedRun = await RunSave.load();
     _goTo(GamePhase.menu);
   }

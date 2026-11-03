@@ -390,9 +390,20 @@ abstract final class SpriteFiles {
 class GameSprites {
   GameSprites._(this._images);
 
-  static Future<GameSprites> load(Images images) async => GameSprites._({
-    for (final path in SpriteFiles.all) path: await images.load(path),
-  });
+  /// Loads every file, calling [onProgress] with the share done (0 to 1)
+  /// after each one.
+  static Future<GameSprites> load(
+    Images images, {
+    void Function(double done)? onProgress,
+  }) async {
+    final paths = SpriteFiles.all.toList();
+    final loaded = <String, Image>{};
+    for (final path in paths) {
+      loaded[path] = await images.load(path);
+      onProgress?.call(loaded.length / paths.length);
+    }
+    return GameSprites._(loaded);
+  }
 
   final Map<String, Image> _images;
 

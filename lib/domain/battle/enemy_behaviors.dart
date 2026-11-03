@@ -108,7 +108,6 @@ class MobileCannonBehavior extends EnemyBehavior {
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
     final def = enemy.def;
-    final player = battle.player;
     switch (enemy.state) {
       case EnemyState.idle:
         if (enemy.moveTimer > 0) {

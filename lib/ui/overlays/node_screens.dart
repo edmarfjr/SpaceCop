@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flame/components.dart' show Sprite;
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../domain/chips/battle_chip.dart';
@@ -984,6 +985,40 @@ class _RelicChoiceState extends State<RelicChoice> {
 }
 
 /// The title screen: a new run, or the saved one.
+/// While the game starts: the title and a bar filling as the art loads.
+/// Looks like the page's own loader (web/index.html), shown before it.
+class LoadingScreen extends StatelessWidget {
+  const LoadingScreen({super.key, required this.progress});
+
+  final ValueListenable<double> progress;
+
+  @override
+  Widget build(BuildContext context) => _Panel(
+    title: 'STAR COP',
+    children: [
+      const SizedBox(height: 10),
+      const Text('Carregando...', style: GbText.body),
+      const SizedBox(height: 6),
+      Container(
+        width: 120,
+        height: 8,
+        padding: const EdgeInsets.all(1),
+        decoration: BoxDecoration(border: Border.all(color: Pico.white)),
+        child: ValueListenableBuilder(
+          valueListenable: progress,
+          builder: (context, done, _) => Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: done,
+              child: const ColoredBox(color: Pico.green),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
 class MenuOverlay extends StatelessWidget {
   const MenuOverlay({super.key, required this.game});
 
