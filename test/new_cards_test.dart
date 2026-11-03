@@ -16,9 +16,10 @@ void main() {
     use(battle, Chips.cryoGrenade);
     final [center, side, outside] = battle.enemies;
     for (final hit in [center, side]) {
-      expect(hit.hp, 100 - boom(Chips.cryoGrenade.damage));
       expect(hit.has(Status.wet), isTrue);
     }
+    expect(center.hp, 100 - boom(Chips.cryoGrenade.damage));
+    expect(side.hp, 100 - boom((Chips.cryoGrenade.damage + 1) ~/ 2));
     expect(outside.has(Status.wet), isFalse);
     expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.ice);
   });
@@ -41,7 +42,7 @@ void main() {
       greaterThan(0),
       reason: 'the shield stops shots, not the pulse',
     );
-    expect(inCross.hp, 100 - Chips.emp.damage);
+    expect(inCross.hp, 100 - (Chips.emp.damage + 1) ~/ 2);
     expect(outside.hp, 100);
     expect(brute.shieldDown, greaterThan(2 * ticksPerSecond));
     use(battle, Chips.shot);

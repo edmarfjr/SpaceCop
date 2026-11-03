@@ -106,7 +106,8 @@ void main() {
     );
     use(battle, Chips.grenade);
     final hit = 100 - boom(Chips.grenade.damage);
-    expect(battle.enemies.map((e) => e.hp), [hit, hit, 100, 100]);
+    final side = 100 - boom((Chips.grenade.damage + 1) ~/ 2);
+    expect(battle.enemies.map((e) => e.hp), [hit, side, 100, 100]);
     expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.normal);
   });
 
@@ -116,8 +117,8 @@ void main() {
       spawns: [dummyAt(5, 1), dummyAt(4, 2)],
     );
     use(battle, Chips.incendiaryGrenade);
-    final hit = 100 - boom(Chips.incendiaryGrenade.damage);
-    expect(battle.enemies.map((e) => e.hp), [hit, hit]);
+    final side = 100 - boom((Chips.incendiaryGrenade.damage + 1) ~/ 2);
+    expect(battle.enemies.map((e) => e.hp), [side, side]);
     expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.lava);
     expect(Chips.incendiaryGrenade.element, Element.fire);
   });
@@ -134,8 +135,9 @@ void main() {
         hit.statuses[Status.stunned],
         greaterThan(2 * ticksPerSecond - playerAttackCooldown),
       );
-      expect(hit.hp, 100 - boom(Chips.stunGrenade.damage));
     }
+    expect(center.hp, 100 - boom(Chips.stunGrenade.damage));
+    expect(side.hp, 100 - boom((Chips.stunGrenade.damage + 1) ~/ 2));
     expect(outside.has(Status.stunned), isFalse);
     expect(battle.energy, baseEnergy - 2);
     expect(Chips.stunGrenade.element, Element.elec);
@@ -149,7 +151,8 @@ void main() {
       );
       use(battle, Chips.smokeGrenade);
       final hit = 100 - boom(Chips.smokeGrenade.damage);
-      expect(battle.enemies.map((e) => e.hp), [hit, hit]);
+      final side = 100 - boom((Chips.smokeGrenade.damage + 1) ~/ 2);
+      expect(battle.enemies.map((e) => e.hp), [hit, side]);
       final panel = battle.panelAt(const GridPos(4, 1));
       expect(panel.smoky, isTrue);
       expect(battle.panelAt(const GridPos(5, 1)).smoky, isFalse);
@@ -181,19 +184,21 @@ void main() {
     });
   });
 
-  test('Gancho and Mira Laser leave the Bala Oca bonus for the next attack',
-      () {
-    final battle = battleWith(
-      [Chips.atkBoost, Chips.hook, Chips.laserSight, Chips.shot],
-      spawns: [dummyAt(5, 1)],
-    );
-    use(battle, Chips.atkBoost);
-    use(battle, Chips.hook);
-    use(battle, Chips.laserSight);
-    final enemy = battle.enemies.single;
-    expect(enemy.hp, 100);
-    expect(battle.damageBonus, 10);
-  });
+  test(
+    'Gancho and Mira Laser leave the Bala Oca bonus for the next attack',
+    () {
+      final battle = battleWith(
+        [Chips.atkBoost, Chips.hook, Chips.laserSight, Chips.shot],
+        spawns: [dummyAt(5, 1)],
+      );
+      use(battle, Chips.atkBoost);
+      use(battle, Chips.hook);
+      use(battle, Chips.laserSight);
+      final enemy = battle.enemies.single;
+      expect(enemy.hp, 100);
+      expect(battle.damageBonus, 10);
+    },
+  );
 
   test('Primeiros Socorros heals 10 for 2 energy, single use', () {
     final battle = battleWith([Chips.recover]);

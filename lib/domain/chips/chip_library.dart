@@ -116,7 +116,10 @@ abstract final class Chips {
     target: ChipTarget.self,
     damage: 10,
     element: Element.elec,
-    effect: MeleeEffect(pattern: [GridPos(1, 0)], stunTicks: 2 * ticksPerSecond),
+    effect: MeleeEffect(
+      pattern: [GridPos(1, 0)],
+      stunTicks: 2 * ticksPerSecond,
+    ),
     pose: ChipPose.melee,
     fx: ChipFx.bolt,
   );
@@ -182,7 +185,8 @@ abstract final class Chips {
   static const grenade = ChipDef(
     id: 'grenade',
     name: 'Granada',
-    description: 'Lançada no 3º painel à frente: explode em cruz. Uso único.',
+    description:
+        'Lançada no 3º painel à frente: explode em cruz. Fora do centro, metade do dano. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
@@ -198,7 +202,7 @@ abstract final class Chips {
     name: 'Granada Incendiária',
     description:
         'Lançada no 3º painel à frente: explode em cruz e o centro vira Lava. '
-        'Uso único.',
+        'Fora do centro, metade do dano. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -217,7 +221,7 @@ abstract final class Chips {
     name: 'Granada de Fumaça',
     description:
         'Lançada no 3º painel à frente: explode em cruz e deixa Fumaça por '
-        '10 s. Quem está na Fumaça não ataca. Uso único.',
+        '10 s. Quem está na Fumaça não ataca. Fora do centro, metade do dano. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
@@ -233,7 +237,7 @@ abstract final class Chips {
     name: 'Granada Atordoante',
     description:
         'Lançada no 3º painel à frente: explode em cruz e atordoa quem for '
-        'atingido por 2 s. Uso único.',
+        'atingido por 2 s. Fora do centro, metade do dano. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -486,7 +490,7 @@ abstract final class Chips {
     name: 'Criogranada',
     description:
         'Lançada no 3º painel à frente: explode em cruz, molha quem for '
-        'atingido e o centro vira Gelo. Uso único.',
+        'atingido e o centro vira Gelo. Fora do centro, metade do dano. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -505,7 +509,7 @@ abstract final class Chips {
     name: 'Pulso EMP',
     description:
         'Lançado no 3º painel à frente: pulso em cruz que derruba escudos '
-        'frontais por 3 s. Uso único.',
+        'frontais por 3 s. Fora do centro, metade do dano. Uso único.',
     cost: 2,
     family: ChipFamily.energy,
     rarity: Rarity.uncommon,
@@ -665,7 +669,7 @@ abstract final class Chips {
     id: 'frag_grenade',
     name: 'Granada de Fragmentação',
     description:
-        'Lançada no 3º painel à frente: explode num quadrado 3x3. Uso único.',
+        'Lançada no 3º painel à frente: explode num quadrado 3x3. Fora do centro, metade do dano. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -680,7 +684,8 @@ abstract final class Chips {
   static const mortar = ChipDef(
     id: 'mortar',
     name: 'Morteiro',
-    description: 'Lançado no 4º painel à frente: explode em cruz. Uso único.',
+    description:
+        'Lançado no 4º painel à frente: explode em cruz. Fora do centro, metade do dano. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
@@ -697,7 +702,7 @@ abstract final class Chips {
     name: 'Bomba de Fissura',
     description:
         'Lançada no 3º painel à frente: explode na coluna e racha os 3 '
-        'painéis. Uso único.',
+        'painéis. Fora do centro, metade do dano. Uso único.',
     cost: 1,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -898,8 +903,7 @@ abstract final class Chips {
   static const dash = ChipDef(
     id: 'dash',
     name: 'Investida',
-    description:
-        'Avança até a frente do seu lado e golpeia o painel à frente.',
+    description: 'Avança até a frente do seu lado e golpeia o painel à frente.',
     cost: 1,
     family: ChipFamily.melee,
     rarity: Rarity.uncommon,
@@ -1052,7 +1056,7 @@ abstract final class Chips {
     name: 'Foguete Teleguiado',
     description:
         'Cai no inimigo com menos vida, em qualquer linha: explode em cruz. '
-        'Uso único.',
+        'Fora do centro, metade do dano. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -1097,8 +1101,7 @@ abstract final class Chips {
   static const hologram = ChipDef(
     id: 'hologram',
     name: 'Holograma',
-    description:
-        'Isca de 40 HP à sua frente por 5 s: os inimigos miram nela.',
+    description: 'Isca de 40 HP à sua frente por 5 s: os inimigos miram nela.',
     cost: 1,
     family: ChipFamily.equipment,
     rarity: Rarity.uncommon,
@@ -1193,14 +1196,14 @@ abstract final class Chips {
         stunGrenade,
         description:
             'Lançada no 3º painel à frente: explode em cruz e atordoa quem '
-            'for atingido por 3 s. Uso único.',
+            'for atingido por 3 s. Fora do centro, metade do dano. Uso único.',
         effect: const GrenadeEffect(stunTicks: 3 * ticksPerSecond),
       ),
       _up(
         smokeGrenade,
         description:
             'Lançada no 3º painel à frente: explode em cruz e deixa Fumaça '
-            'por 15 s. Quem está na Fumaça não ataca. Uso único.',
+            'por 15 s. Quem está na Fumaça não ataca. Fora do centro, metade do dano. Uso único.',
         effect: const GrenadeEffect(smokeTicks: 15 * ticksPerSecond),
       ),
       _up(

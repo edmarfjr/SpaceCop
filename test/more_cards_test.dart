@@ -53,7 +53,7 @@ void main() {
     expect(battle.enemies.single.has(Status.stunned), isTrue);
   });
 
-  test('Granada de Fragmentação hits a 3x3 square, single use', () {
+  test('Granada de Fragmentação hits a 3x3 square, half off center', () {
     final battle = withDummies(
       [const GridPos(3, 0), const GridPos(5, 2)],
       [Chips.fragGrenade],
@@ -61,7 +61,7 @@ void main() {
     use(battle, Chips.fragGrenade);
     wait(battle, 30);
     for (final enemy in battle.enemies) {
-      expect(enemy.hp, 100 - boom(15));
+      expect(enemy.hp, 100 - boom(8));
     }
     expect(battle.deck.discardPile, isEmpty);
   });
@@ -77,7 +77,8 @@ void main() {
     final battle = withDummies([const GridPos(4, 0)], [Chips.fissureBomb]);
     use(battle, Chips.fissureBomb);
     wait(battle, 30);
-    expect(battle.enemies.single.hp, 100 - boom(10));
+    // Off the center: half.
+    expect(battle.enemies.single.hp, 100 - boom(5));
     for (var y = 0; y < 3; y++) {
       // Cracked, or already a hole if the dummy stepped off it.
       expect(

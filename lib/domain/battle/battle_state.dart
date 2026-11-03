@@ -522,6 +522,7 @@ class Projectile {
     this.onHit,
     this.status,
     this.fx = ChipFx.none,
+    this.halfSplash = false,
   }) : stepTimer = stepTicks;
 
   final Team team;
@@ -545,6 +546,9 @@ class Projectile {
 
   /// How the card that fired it looks.
   final ChipFx fx;
+
+  /// Panels around the center take half the damage, rounded up (grenades).
+  final bool halfSplash;
   int stepTimer;
   int ttl = projectileLifetime;
   bool spent = false;
@@ -1472,6 +1476,7 @@ class BattleState {
           family: def.family,
           status: status,
           fx: def.fx,
+          halfSplash: true,
         );
         _toss(lob: def.fx == ChipFx.smoke ? Lob.rocket : Lob.ball, target, () {
           if (def.fx == ChipFx.quake) {
@@ -2611,7 +2616,10 @@ class BattleState {
         final through = _passesThrough(target, shot.family);
         damage(
           target,
-          shot.damage + _markBonus(target),
+          (straight || !shot.halfSplash
+                  ? shot.damage
+                  : (shot.damage + 1) ~/ 2) +
+              _markBonus(target),
           element: shot.element,
           family: shot.family,
           kind: straight ? HitKind.straight : HitKind.spread,
