@@ -3,7 +3,6 @@ import 'package:starcop/domain/battle/battle_state.dart';
 import 'package:starcop/domain/battle/enemies.dart';
 import 'package:starcop/domain/battle/enemy_behaviors.dart';
 import 'package:starcop/domain/chips/battle_chip.dart';
-import 'package:starcop/domain/element.dart';
 import 'package:starcop/domain/grid.dart';
 
 import 'battle_helpers.dart';
@@ -55,8 +54,8 @@ void main() {
   });
 
   group('ET Emboscador', () {
-    final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
-    final blast = shotOf(Element.neutral, family: ChipFamily.explosive);
+    final shot = shotOf(family: ChipFamily.projectile);
+    final blast = shotOf(family: ChipFamily.explosive);
 
     test('burrowed, only Explosivo hurts it and shots fly over', () {
       final battle = battleWith(
@@ -114,7 +113,7 @@ void main() {
   });
 
   test('Esfera de Energia is a Máquina: Energia does double', () {
-    final zap = shotOf(Element.neutral, family: ChipFamily.energy);
+    final zap = shotOf(family: ChipFamily.energy);
     final battle = battleWith([zap], spawns: [dummyAt(5, 2)]);
     final sphere = battle.summon(Enemies.energySphere, const GridPos(3, 1))
       ..applyStatus(Status.stunned, 100000);

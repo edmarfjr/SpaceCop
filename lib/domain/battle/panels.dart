@@ -16,10 +16,7 @@ const int smokeDurationTicks = 10 * ticksPerSecond;
 const int grassHeal = 1;
 const int lavaDamage = 5;
 
-/// Electric hit on a unit standing on ice.
-const int iceStunTicks = ticksPerSecond;
-
-/// Wood chip used from grass, or a Fire unit attacking from lava: +30%.
+/// A Fire unit attacking from lava: +30%.
 const double terrainBoost = 1.3;
 
 /// One panel of the grid. The battle owns a 6x3 matrix of these.

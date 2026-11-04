@@ -1,5 +1,5 @@
-/// Chip and enemy attribute. Only drives terrain and statuses (Elec on Wet,
-/// Fire on grass...); damage by enemy type goes by card family instead.
+/// Enemy attribute (Fire units shrug off lava, enemy Fire burns grass...).
+/// Cards have none: [ChipDef.tint] only picks their color and sound.
 ///
 /// Kept out of `battle_chip.dart` exports: Flutter also has an `Element`.
 enum Element {

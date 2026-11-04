@@ -379,9 +379,17 @@ class AreaStealEffect extends ChipEffect {
 /// Places a rock, mine, turret, reflector or tesla coil. Where depends on
 /// the kind.
 class SpawnObstacleEffect extends ChipEffect {
-  const SpawnObstacleEffect(this.kind, {this.amount, this.count = 1});
+  const SpawnObstacleEffect(
+    this.kind, {
+    this.amount,
+    this.count = 1,
+    this.status,
+  });
 
   final ObstacleKind kind;
+
+  /// What a turret's shots inflict (Torre Incendiária).
+  final Status? status;
 
   /// How many mines (Campo Minado).
   final int count;
@@ -465,7 +473,6 @@ class ChipDef {
     required this.target,
     required this.effect,
     this.damage = 0,
-    this.element = Element.neutral,
     this.pose = ChipPose.shoot,
     this.exhaust = false,
     this.upgraded = false,
@@ -484,8 +491,30 @@ class ChipDef {
   final ChipTarget target;
   final ChipEffect effect;
   final int damage;
-  final Element element;
   final ChipPose pose;
+
+  /// Color and sound of the card's shots and blasts, from what it inflicts
+  /// or the panel it leaves. Purely cosmetic: cards have no element.
+  Element get tint => switch (effect) {
+    StatusShotEffect(status: Status.burning) ||
+    MeleeEffect(inflict: Status.burning) ||
+    PushEffect(status: Status.burning) ||
+    SpawnObstacleEffect(status: Status.burning) ||
+    GrenadeEffect(panel: PanelState.lava) ||
+    RowStrikeEffect(panel: PanelState.lava) => Element.fire,
+    StatusShotEffect(status: Status.wet) ||
+    PushEffect(status: Status.wet) ||
+    GrenadeEffect(panel: PanelState.ice) ||
+    GrenadeEffect(wetTicks: > 0) => Element.aqua,
+    StatusShotEffect(status: Status.rooted) ||
+    PanelChangeEffect(state: PanelState.grass) => Element.wood,
+    StatusShotEffect(status: Status.stunned) ||
+    MeleeEffect(inflict: Status.stunned) ||
+    MeleeEffect(stunTicks: > 0) ||
+    GrenadeEffect(stunTicks: > 0) ||
+    PullEffect(stunTicks: > 0) => Element.elec,
+    _ => Element.neutral,
+  };
 
   /// Single use per battle: once used, the card leaves the battle's deck
   /// instead of going to the discard pile.

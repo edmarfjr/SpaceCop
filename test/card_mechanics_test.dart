@@ -4,7 +4,6 @@ import 'package:starcop/domain/battle/enemies.dart';
 import 'package:starcop/domain/battle/enemy_behaviors.dart';
 import 'package:starcop/domain/chips/battle_chip.dart';
 import 'package:starcop/domain/chips/chip_library.dart';
-import 'package:starcop/domain/element.dart';
 import 'package:starcop/domain/grid.dart';
 import 'package:starcop/game/sprites.dart';
 
@@ -134,7 +133,7 @@ void main() {
     });
 
     test('Adrenalina: +5 on the next 3 attacks only', () {
-      final shot = shotOf(Element.neutral);
+      final shot = shotOf();
       final battle = battleWith(
         [Chips.adrenaline, shot, shot, shot, shot],
         spawns: [dummyAt(3, 1)],

@@ -6,7 +6,6 @@ import 'package:starcop/domain/battle/enemies.dart';
 import 'package:starcop/domain/battle/panels.dart';
 import 'package:starcop/domain/chips/battle_chip.dart';
 import 'package:starcop/domain/chips/chip_library.dart';
-import 'package:starcop/domain/element.dart';
 import 'package:starcop/domain/grid.dart';
 import 'package:starcop/domain/run/relics.dart';
 import 'package:starcop/domain/run/run_state.dart';
@@ -29,10 +28,10 @@ BattleState withRelics(
 
 void main() {
   group('family and gear relics', () {
-    final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
-    final blast = shotOf(Element.neutral, family: ChipFamily.explosive);
-    final zap = shotOf(Element.neutral, family: ChipFamily.energy);
-    final slash = shotOf(Element.neutral, family: ChipFamily.melee);
+    final shot = shotOf(family: ChipFamily.projectile);
+    final blast = shotOf(family: ChipFamily.explosive);
+    final zap = shotOf(family: ChipFamily.energy);
+    final slash = shotOf(family: ChipFamily.melee);
 
     int hit(RelicDef relic, ChipDef chip, {EnemyKind? kind}) {
       final battle = withRelics(
@@ -181,20 +180,20 @@ void main() {
     test('Linha de Frente: +20% damage from the front column', () {
       final battle = withRelics(
         [Relics.frontLine],
-        [for (var i = 0; i < 3; i++) shotOf(Element.neutral)],
+        [for (var i = 0; i < 3; i++) shotOf()],
         spawns: [dummyAt(5, 1)],
       );
       final enemy = battle.enemies.single;
-      use(battle, shotOf(Element.neutral));
+      use(battle, shotOf());
       expect(enemy.hp, 100 - 10);
       battle.player.pos = const GridPos(2, 1);
-      use(battle, shotOf(Element.neutral));
+      use(battle, shotOf());
       expect(enemy.hp, 100 - 10 - 12);
       // A stolen column moves the front line forward.
       battle
         ..setColumnOwner(3, Team.player)
         ..player.pos = const GridPos(3, 1);
-      use(battle, shotOf(Element.neutral));
+      use(battle, shotOf());
       expect(enemy.hp, 100 - 10 - 12 - 12);
     });
 

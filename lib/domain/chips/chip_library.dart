@@ -1,6 +1,5 @@
 import '../battle/battle_state.dart';
 import '../battle/panels.dart';
-import '../element.dart';
 import '../grid.dart';
 import 'battle_chip.dart';
 
@@ -64,7 +63,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 10,
-    element: Element.elec,
     effect: ProjectileEffect(
       pattern: [GridPos(0, 0), GridPos(1, 1), GridPos(1, -1)],
     ),
@@ -79,7 +77,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 10,
-    element: Element.fire,
     effect: RowStrikeEffect(),
     fx: ChipFx.beam,
   );
@@ -115,7 +112,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 10,
-    element: Element.elec,
     effect: MeleeEffect(
       pattern: [GridPos(1, 0)],
       stunTicks: 2 * ticksPerSecond,
@@ -161,7 +157,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 15,
-    element: Element.elec,
     effect: MeleeEffect(pattern: [GridPos(1, 0), GridPos(2, 0)]),
     pose: ChipPose.melee,
     fx: ChipFx.bolt,
@@ -209,7 +204,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 15,
-    element: Element.fire,
     effect: GrenadeEffect(panel: PanelState.lava),
     pose: ChipPose.toss,
     exhaust: true,
@@ -244,7 +238,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 5,
-    element: Element.elec,
     effect: GrenadeEffect(stunTicks: 2 * ticksPerSecond),
     pose: ChipPose.toss,
     exhaust: true,
@@ -335,7 +328,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 10,
-    element: Element.aqua,
     effect: PushEffect(1, status: Status.wet),
   );
 
@@ -344,14 +336,13 @@ abstract final class Chips {
     name: 'Chama Cruzada',
     description:
         'Lançada no primeiro inimigo da linha, por cima de obstáculos: '
-        'explode em cruz. Queima Grama.',
+        'explode em cruz.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 15,
-    element: Element.fire,
     effect: ProjectileEffect(
       pattern: [
         GridPos(0, 0),
@@ -374,7 +365,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 20,
-    element: Element.elec,
     effect: RowStrikeEffect(),
     fx: ChipFx.beam,
   );
@@ -413,7 +403,6 @@ abstract final class Chips {
     rarity: Rarity.uncommon,
     type: ChipType.support,
     target: ChipTarget.self,
-    element: Element.wood,
     effect: PanelChangeEffect(PanelState.grass),
   );
 
@@ -462,13 +451,12 @@ abstract final class Chips {
   static const turret = ChipDef(
     id: 'turret',
     name: 'Drone',
-    description: 'Drone de 30 HP que atira 5 Elétrico por segundo por 10 s.',
+    description: 'Drone de 30 HP que atira 5 de dano por segundo por 10 s.',
     cost: 2,
     family: ChipFamily.equipment,
     rarity: Rarity.rare,
     type: ChipType.attack,
     target: ChipTarget.self,
-    element: Element.elec,
     effect: SpawnObstacleEffect(ObstacleKind.turret),
   );
 
@@ -497,7 +485,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 10,
-    element: Element.aqua,
     effect: GrenadeEffect(panel: PanelState.ice, wetTicks: wetTicks),
     pose: ChipPose.toss,
     exhaust: true,
@@ -516,7 +503,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 10,
-    element: Element.elec,
     effect: GrenadeEffect(shieldTicks: 3 * ticksPerSecond),
     pose: ChipPose.toss,
     exhaust: true,
@@ -533,7 +519,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 15,
-    element: Element.wood,
     effect: StatusShotEffect(Status.rooted, 3 * ticksPerSecond),
   );
 
@@ -561,7 +546,6 @@ abstract final class Chips {
     rarity: Rarity.uncommon,
     type: ChipType.support,
     target: ChipTarget.self,
-    element: Element.elec,
     effect: ChainSurgeEffect(),
   );
 
@@ -583,14 +567,13 @@ abstract final class Chips {
     id: 'tesla_coil',
     name: 'Bobina Tesla',
     description:
-        'Bobina de 30 HP na frente do seu lado: dá um choque de 5 Elétrico '
+        'Bobina de 30 HP na frente do seu lado: dá um choque de 5 de dano '
         'no primeiro inimigo da linha a cada 1 s, por 8 s.',
     cost: 2,
     family: ChipFamily.equipment,
     rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.self,
-    element: Element.elec,
     effect: SpawnObstacleEffect(ObstacleKind.tesla),
   );
 
@@ -634,7 +617,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 10,
-    element: Element.fire,
     effect: StatusShotEffect(Status.burning, burnTicks),
   );
 
@@ -726,7 +708,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 15,
-    element: Element.fire,
     effect: RowStrikeEffect(panel: PanelState.lava),
     fx: ChipFx.beam,
   );
@@ -743,21 +724,19 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 10,
-    element: Element.aqua,
     effect: StatusShotEffect(Status.wet, wetTicks, panel: PanelState.ice),
   );
 
   static const steadyBeam = ChipDef(
     id: 'steady_beam',
     name: 'Feixe Contínuo',
-    description: 'Rajada de 4 disparos Elétricos na linha.',
+    description: 'Rajada de 4 disparos na linha.',
     cost: 2,
     family: ChipFamily.energy,
     rarity: Rarity.rare,
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 5,
-    element: Element.elec,
     effect: BurstEffect(4),
     fx: ChipFx.beam,
   );
@@ -785,7 +764,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 15,
-    element: Element.fire,
     effect: MeleeEffect(slash: true, inflict: Status.burning),
     pose: ChipPose.melee,
   );
@@ -823,15 +801,14 @@ abstract final class Chips {
     id: 'fire_turret',
     name: 'Torre Incendiária',
     description:
-        'Torre de 30 HP que atira 5 de Fogo a cada 2 s por 10 s; quem é '
+        'Torre de 30 HP que atira 5 de dano a cada 2 s por 10 s; quem é '
         'atingido fica Queimando.',
     cost: 2,
     family: ChipFamily.equipment,
     rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.self,
-    element: Element.fire,
-    effect: SpawnObstacleEffect(ObstacleKind.turret),
+    effect: SpawnObstacleEffect(ObstacleKind.turret, status: Status.burning),
   );
 
   static const minefield = ChipDef(
@@ -895,7 +872,6 @@ abstract final class Chips {
     rarity: Rarity.uncommon,
     type: ChipType.support,
     target: ChipTarget.self,
-    element: Element.elec,
     effect: StatusAllEffect(Status.stunned, ticksPerSecond),
     fx: ChipFx.glitch,
   );
@@ -930,7 +906,7 @@ abstract final class Chips {
     id: 'dome_generator',
     name: 'Gerador de Domo',
     description: 'Anula os 3 próximos danos. Dura até 10 s.',
-    cost: 2,
+    cost: 4,
     family: ChipFamily.equipment,
     rarity: Rarity.rare,
     type: ChipType.support,
@@ -987,7 +963,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 5,
-    element: Element.elec,
     effect: ChainScaleEffect(),
     fx: ChipFx.rings,
   );
@@ -1046,7 +1021,6 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 10,
-    element: Element.elec,
     effect: BounceEffect(adjacent: true),
     fx: ChipFx.bolt,
   );
@@ -1202,7 +1176,6 @@ abstract final class Chips {
     target: base.target,
     effect: effect ?? base.effect,
     damage: damage ?? base.damage,
-    element: base.element,
     pose: base.pose,
     exhaust: base.exhaust,
     upgraded: true,
@@ -1313,8 +1286,7 @@ abstract final class Chips {
       ),
       _up(
         turret,
-        description:
-            'Drone de 30 HP que atira 5 Elétrico por segundo por 15 s.',
+        description: 'Drone de 30 HP que atira 5 de dano por segundo por 15 s.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.turret,
           amount: 15 * ticksPerSecond,
@@ -1343,7 +1315,7 @@ abstract final class Chips {
         teslaCoil,
         description:
             'Bobina de 30 HP na frente do seu lado: dá um choque de 5 '
-            'Elétrico no primeiro inimigo da linha a cada 1 s, por 12 s.',
+            'de dano no primeiro inimigo da linha a cada 1 s, por 12 s.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.tesla,
           amount: 12 * ticksPerSecond,
@@ -1371,11 +1343,12 @@ abstract final class Chips {
       _up(
         fireTurret,
         description:
-            'Torre de 30 HP que atira 5 de Fogo a cada 2 s por 15 s; quem é '
+            'Torre de 30 HP que atira 5 de dano a cada 2 s por 15 s; quem é '
             'atingido fica Queimando.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.turret,
           amount: 15 * ticksPerSecond,
+          status: Status.burning,
         ),
       ),
       _up(

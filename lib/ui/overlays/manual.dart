@@ -6,7 +6,6 @@ import '../../domain/battle/enemies.dart';
 import '../../domain/battle/panels.dart';
 import '../../domain/chips/battle_chip.dart';
 import '../../domain/chips/chip_library.dart';
-import '../../domain/element.dart' as el;
 import '../../domain/grid.dart';
 import '../../domain/map/run_map.dart';
 import '../../domain/run/events.dart';
@@ -595,29 +594,6 @@ List<_Chapter> _book() => [
       ],
     ),
   ]),
-  _Chapter('Elementos', [
-    (s) => Column(
-      children: [
-        _item(
-          SheetSprite(sprite: s.element(el.Element.fire)!),
-          '*Fogo*: dobro em quem está na Grama, e a queima. '
-          'Unidades de Fogo não se queimam na Lava.',
-        ),
-        _item(
-          SheetSprite(sprite: s.element(el.Element.aqua)!),
-          '*Aqua*: apaga a Lava. A Criogranada molha os alvos.',
-        ),
-        _item(
-          SheetSprite(sprite: s.element(el.Element.elec)!),
-          '*Elétrico*: dobro em alvo Molhado. No Gelo, atordoa 1 s.',
-        ),
-        _item(
-          SheetSprite(sprite: s.element(el.Element.wood)!),
-          '*Madeira*: +30% se usada de cima da Grama.',
-        ),
-      ],
-    ),
-  ]),
   _Chapter('Correntes', [
     (s) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -656,7 +632,7 @@ List<_Chapter> _book() => [
       children: [
         for (final (status, text) in [
           (Status.burning, '*Queimando*: 3 de dano por segundo.'),
-          (Status.wet, '*Molhado*: o próximo Elétrico causa o dobro.'),
+          (Status.wet, '*Molhado*: age na metade da velocidade.'),
           (Status.stunned, '*Atordoado*: não anda, não ataca.'),
           (Status.rooted, '*Enraizado*: não anda, mas ataca.'),
           (Status.marked, '*Marcado*: +5 de dano em cada acerto.'),

@@ -52,7 +52,9 @@ void main() {
       playerHp: 100,
       playerMaxHp: 100,
       deckCards: [for (final def in chips) ChipCard(def)],
-      encounter: const Encounter([EnemySpawn(Enemies.mobileCannon, GridPos(5, 2))]),
+      encounter: const Encounter([
+        EnemySpawn(Enemies.mobileCannon, GridPos(5, 2)),
+      ]),
       random: Random(3),
     );
 
@@ -96,30 +98,33 @@ void main() {
       expect(battle.energy, baseEnergy - 4);
     });
 
-    test('Energy drink pays for an extra chip and its bonus ends with the hand', () {
-      final battle = battleWith([
-        Chips.thunderLance,
-        Chips.energyDrink,
-        Chips.shotgun,
-        Chips.smg,
-        Chips.atkBoost,
-      ]);
-      battle.tick();
-      use(battle, inHand(battle, Chips.thunderLance));
-      use(battle, inHand(battle, Chips.energyDrink));
-      expect(battle.energy, baseEnergy - 2 - 1 + 2);
-      use(battle, inHand(battle, Chips.shotgun));
-      use(battle, inHand(battle, Chips.smg));
-      use(battle, inHand(battle, Chips.atkBoost));
-      expect(battle.hand, isEmpty);
-      expect(battle.energy, 0);
-      // The refill happens inside the tick that fills the gauge.
-      for (var i = 0; i < gaugeTicks; i++) {
+    test(
+      'Energy drink pays for an extra chip and its bonus ends with the hand',
+      () {
+        final battle = battleWith([
+          Chips.thunderLance,
+          Chips.energyDrink,
+          Chips.shotgun,
+          Chips.smg,
+          Chips.atkBoost,
+        ]);
         battle.tick();
-      }
-      expect(battle.energyBonus, 0);
-      expect(battle.energy, battle.energyMax);
-    });
+        use(battle, inHand(battle, Chips.thunderLance));
+        use(battle, inHand(battle, Chips.energyDrink));
+        expect(battle.energy, baseEnergy - 2 - 1 + 2);
+        use(battle, inHand(battle, Chips.shotgun));
+        use(battle, inHand(battle, Chips.smg));
+        use(battle, inHand(battle, Chips.atkBoost));
+        expect(battle.hand, isEmpty);
+        expect(battle.energy, 0);
+        // The refill happens inside the tick that fills the gauge.
+        for (var i = 0; i < gaugeTicks; i++) {
+          battle.tick();
+        }
+        expect(battle.energyBonus, 0);
+        expect(battle.energy, battle.energyMax);
+      },
+    );
 
     test('Tanque de Energia adds 1 max energy and leaves the battle', () {
       final battle = battleWith(List.filled(2, Chips.energyTank));
@@ -138,8 +143,8 @@ void main() {
   });
 
   group('elements and statuses', () {
-    ChipDef shotOf(Element element) => ChipDef(
-      id: 'test_${element.name}',
+    ChipDef shotOf() => ChipDef(
+      id: 'test_shot',
       name: 'Teste',
       description: '',
       cost: 0,
@@ -147,7 +152,6 @@ void main() {
       type: ChipType.attack,
       target: ChipTarget.row,
       damage: 5,
-      element: element,
       effect: const ProjectileEffect(),
     );
 
@@ -180,9 +184,8 @@ void main() {
       }
     }
 
-    test('elements have no weakness: only terrain and statuses', () {
-      final battle = battleWith([shotOf(Element.fire)], dummyOf(Element.wood))
-        ..tick();
+    test('enemy elements have no weakness', () {
+      final battle = battleWith([shotOf()], dummyOf(Element.wood))..tick();
       fire(battle);
       expect(battle.enemies.single.hp, 100 - 5);
     });
@@ -204,31 +207,22 @@ void main() {
       expect(enemy.has(Status.burning), isFalse);
     });
 
-    test('wet doubles the next Elec hit and is removed by it', () {
-      final battle = battleWith([
-        shotOf(Element.elec),
-        shotOf(Element.elec),
-      ], dummyOf(Element.neutral))..tick();
+    test('a wet enemy acts at half speed until it dries', () {
+      final battle = battleWith(
+        [],
+        dummyOf(Element.neutral),
+        pos: const GridPos(5, 0),
+      );
       final enemy = battle.enemies.single..applyStatus(Status.wet, wetTicks);
-      fire(battle);
-      expect(enemy.hp, 100 - 10);
-      expect(enemy.has(Status.wet), isFalse);
-      // Let the element chain lapse so the second hit is a plain one.
-      for (var i = 0; i < chainWindowTicks; i++) {
+      // Dry, its starting (half) move cooldown is over by tick 17.
+      for (var i = 0; i < 20; i++) {
         battle.tick();
       }
-      fire(battle);
-      expect(enemy.hp, 100 - 10 - 5);
-    });
-
-    test('wet is not consumed by other elements and wears off', () {
-      final battle = battleWith([
-        shotOf(Element.fire),
-      ], dummyOf(Element.neutral))..tick();
-      final enemy = battle.enemies.single..applyStatus(Status.wet, wetTicks);
-      fire(battle);
-      expect(enemy.hp, 100 - 5);
-      expect(enemy.has(Status.wet), isTrue);
+      expect(enemy.pos, const GridPos(5, 0));
+      for (var i = 0; i < 20; i++) {
+        battle.tick();
+      }
+      expect(enemy.pos, isNot(const GridPos(5, 0)));
       for (var i = 0; i < wetTicks; i++) {
         battle.tick();
       }

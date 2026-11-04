@@ -27,7 +27,7 @@ void freeze(BattleState battle) {
 void main() {
   group('enemy kinds', () {
     int hitWith(ChipFamily family, EnemyKind kind) {
-      final chip = shotOf(Element.neutral, family: family);
+      final chip = shotOf(family: family);
       final battle = battleWith([chip], spawns: [dummyAt(3, 1, kind: kind)]);
       freeze(battle);
       use(battle, chip);
@@ -66,7 +66,7 @@ void main() {
     });
 
     test('a shot flies through a phased Etéreo to the enemy behind', () {
-      final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
+      final shot = shotOf(family: ChipFamily.projectile);
       final battle = battleWith(
         [shot],
         spawns: [
@@ -81,8 +81,8 @@ void main() {
     });
 
     test('Etéreo is solid while it attacks and for 2 s after an Explosivo', () {
-      final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
-      final blast = shotOf(Element.neutral, family: ChipFamily.explosive);
+      final shot = shotOf(family: ChipFamily.projectile);
+      final blast = shotOf(family: ChipFamily.explosive);
       final battle = battleWith(
         [shot, blast, shot, shot],
         spawns: [dummyAt(3, 1, kind: EnemyKind.ethereal)],

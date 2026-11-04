@@ -21,7 +21,7 @@ void until(BattleState battle, bool Function() done, {int limit = 900}) {
   expect(done(), isTrue, reason: 'never happened');
 }
 
-final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
+final shot = shotOf(family: ChipFamily.projectile);
 
 void main() {
   group('ruins enemies', () {

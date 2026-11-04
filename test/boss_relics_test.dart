@@ -22,7 +22,7 @@ BattleState battleWithRelics(
 }) => BattleState(
   playerHp: 100,
   playerMaxHp: 100,
-  deckCards: [for (var i = 0; i < 10; i++) ChipCard(shotOf(Element.neutral))],
+  deckCards: [for (var i = 0; i < 10; i++) ChipCard(shotOf())],
   encounter: Encounter(
     spawns ?? [EnemySpawn(dummyOf(Element.neutral), const GridPos(3, 1))],
   ),

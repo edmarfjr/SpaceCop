@@ -1428,7 +1428,7 @@ class BattleState {
     final base = def.effect is ChainScaleEffect
         ? def.damage * link
         : def.damage;
-    var damage = boosted(player, base + bonus + ammo, def.element);
+    var damage = boosted(player, base + bonus + ammo);
     damage = (damage * chain).round();
     for (final relic in relics) {
       damage = relic.modifyDamage?.call(this, def, damage) ?? damage;
@@ -1443,7 +1443,7 @@ class BattleState {
           stepTicks: 0,
           damage: damage,
           pattern: pattern,
-          element: def.element,
+          element: def.tint,
           family: def.family,
           status: status,
           fx: def.fx,
@@ -1483,7 +1483,7 @@ class BattleState {
           stepTicks: 0,
           damage: damage,
           pattern: pattern,
-          element: def.element,
+          element: def.tint,
           family: def.family,
           status: status,
           fx: def.fx,
@@ -1555,7 +1555,7 @@ class BattleState {
                 stepTicks: 0,
                 damage: bomb,
                 pattern: const GrenadeEffect().pattern,
-                element: def.element,
+                element: def.tint,
                 family: def.family,
               ),
               Team.enemy,
@@ -1587,10 +1587,7 @@ class BattleState {
         if (def.fx == ChipFx.beam) {
           // Until the last shot has crossed the row.
           beams.add(
-            Beam(
-              (count - 1) * gapTicks + gridColumns + 2,
-              element: def.element,
-            ),
+            Beam((count - 1) * gapTicks + gridColumns + 2, element: def.tint),
           );
         }
         _fire(def, damage, status: status);
@@ -1607,7 +1604,7 @@ class BattleState {
         _melee(def, melee, damage, status);
       case RowStrikeEffect(:final fromColumn, :final panel):
         if (def.fx == ChipFx.beam) {
-          beams.add(Beam(rowBeamTicks, element: def.element, pierce: true));
+          beams.add(Beam(rowBeamTicks, element: def.tint, pierce: true));
         }
         if (panel != null) {
           for (var x = fromColumn; x < gridColumns; x++) {
@@ -1622,7 +1619,7 @@ class BattleState {
             GridPos(x, player.pos.y),
             damage,
             Team.enemy,
-            def.element,
+            def.tint,
             family: def.family,
             status: status,
           );
@@ -1670,7 +1667,7 @@ class BattleState {
           amount,
           tossed: def.pose == ChipPose.toss,
           count: count,
-          element: def.element,
+          element: def.tint,
         );
       case StatusAllEffect(:final status, :final ticks):
         if (def.fx == ChipFx.glitch) glitchTicks = ticks;
@@ -1774,7 +1771,7 @@ class BattleState {
         stepTicks: 0,
         damage: damage,
         pattern: pattern,
-        element: def.element,
+        element: def.tint,
         family: def.family,
         onHit: onHit,
         status: status,
@@ -1978,7 +1975,7 @@ class BattleState {
         HitFlash(
           front,
           FlashKind.slash,
-          def.element == Element.neutral ? null : def.element,
+          def.tint == Element.neutral ? null : def.tint,
         ),
       );
     }
@@ -1993,7 +1990,7 @@ class BattleState {
         player.pos + offset,
         damage,
         Team.enemy,
-        def.element,
+        def.tint,
         family: def.family,
         status: status,
         struck: struck,
@@ -2215,13 +2212,11 @@ class BattleState {
 
   // --------------------------------------------------------------- damage
 
-  /// Attacker-side terrain bonus: Wood chips from grass and Fire units on
-  /// lava hit 30% harder.
-  int boosted(Fighter user, int damage, Element element) {
-    final state = panelAt(user.pos).state;
+  /// Attacker-side terrain bonus: Fire units on lava hit 30% harder.
+  int boosted(Fighter user, int damage) {
     final boosted =
-        (state == PanelState.grass && element == Element.wood) ||
-        (state == PanelState.lava && user.element == Element.fire);
+        panelAt(user.pos).state == PanelState.lava &&
+        user.element == Element.fire;
     return boosted ? (damage * terrainBoost).round() : damage;
   }
 
@@ -2254,7 +2249,7 @@ class BattleState {
         target.applyStatus(status, statusTicks(status));
       }
     }
-    _scorch(cell, element);
+    if (opponent == Team.player) _scorch(cell, element);
   }
 
   /// A Capanga Infiltrador whose twin lives on another row: projectiles
@@ -2274,10 +2269,7 @@ class BattleState {
   /// - the Escudo Refletor can't be hurt; the player's barrier cancels the
   ///   hit;
   /// - the card [family] against the enemy's kind ([_kindMultiplier]); a
-  ///   phased Etéreo lets it through, and an Explosivo makes it solid;
-  /// - Elec on a Wet target doubles it again and dries the target;
-  /// - Elec on a unit standing on ice stuns it;
-  /// - Fire on a unit standing on grass doubles it.
+  ///   phased Etéreo lets it through, and an Explosivo makes it solid.
   void damage(
     Fighter target,
     int amount, {
@@ -2349,17 +2341,6 @@ class BattleState {
       }
     }
     if (target is EnemyFighter && target.exposedTicks > 0) total *= 2;
-    final panel = panelAt(target.pos).state;
-    if (element == Element.elec) {
-      if (target.has(Status.wet)) {
-        total *= 2;
-        target.statuses.remove(Status.wet);
-      }
-      if (panel == PanelState.ice) {
-        target.applyStatus(Status.stunned, iceStunTicks);
-      }
-    }
-    if (element == Element.fire && panel == PanelState.grass) total *= 2;
     if (target is PlayerFighter && target.barrierTicks > 0) {
       if (--target.barrierCharges <= 0) target.barrierTicks = 0;
       events.add(BattleEvent(BattleEventKind.blocked, unit: target));
@@ -2457,8 +2438,8 @@ class BattleState {
     );
   }
 
-  /// Panel side effects of an attack landing on [cell]: Fire burns grass
-  /// away and Aqua puts lava out.
+  /// Panel side effects of an enemy attack landing on [cell]: Fire burns
+  /// grass away and Aqua puts lava out. Cards don't do this.
   void _scorch(GridPos cell, Element element) {
     final state = panelAt(cell).state;
     if ((element == Element.fire && state == PanelState.grass) ||
@@ -2480,6 +2461,8 @@ class BattleState {
         _interrupt(enemy);
         continue;
       }
+      // Wet enemies act at half speed.
+      if (enemy.has(Status.wet) && ticks.isOdd) continue;
       enemy.def.behavior.tick(enemy, this);
     }
   }
@@ -2510,7 +2493,7 @@ class BattleState {
         pos: enemy.pos + const GridPos(-1, 0),
         dir: -1,
         stepTicks: stepTicks ?? enemy.def.shotStepTicks,
-        damage: boosted(enemy, damage ?? enemy.def.shotDamage, shotElement),
+        damage: boosted(enemy, damage ?? enemy.def.shotDamage),
         pattern: const [GridPos(0, 0)],
         element: shotElement,
       ),
@@ -2662,7 +2645,7 @@ class BattleState {
           if (straight) _applyOnHit(shot, target);
         }
       }
-      _scorch(cell, shot.element);
+      if (shot.team == Team.enemy) _scorch(cell, shot.element);
     }
   }
 

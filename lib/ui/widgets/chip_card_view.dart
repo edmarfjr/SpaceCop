@@ -61,7 +61,6 @@ class _ChipCardViewState extends State<ChipCardView> {
   static const _art = Rect.fromLTWH(5, 10, 22, 16);
   static const _left = Rect.fromLTWH(1, 8, 6, 6);
   static const _right = Rect.fromLTWH(25, 8, 6, 6);
-  static const _element = Rect.fromLTWH(13, 8, 6, 6);
   static const _description = Rect.fromLTWH(3, 28, 26, 17);
 
   @override
@@ -166,16 +165,6 @@ class _ChipCardViewState extends State<ChipCardView> {
                 at(
                   _right,
                   Center(child: fitted('${def.damage}', 5 * scale * 0.8)),
-                ),
-              if (widget.sprites.element(def.element) case final icon?)
-                at(
-                  _element,
-                  Center(
-                    child: SheetSprite(
-                      sprite: icon,
-                      scale: scale * _element.width / icon.srcSize.x,
-                    ),
-                  ),
                 ),
               at(
                 _description,

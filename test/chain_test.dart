@@ -4,16 +4,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:starcop/domain/battle/battle_state.dart';
 import 'package:starcop/domain/battle/enemies.dart';
 import 'package:starcop/domain/chips/battle_chip.dart';
-import 'package:starcop/domain/element.dart';
 import 'package:starcop/domain/run/relics.dart';
 
 import 'battle_helpers.dart';
 
 void main() {
   group('family chain', () {
-    final shot = shotOf(Element.neutral, family: ChipFamily.projectile);
-    final blast = shotOf(Element.neutral, family: ChipFamily.explosive);
-    final zap = shotOf(Element.neutral, family: ChipFamily.energy);
+    final shot = shotOf(family: ChipFamily.projectile);
+    final blast = shotOf(family: ChipFamily.explosive);
+    final zap = shotOf(family: ChipFamily.energy);
 
     test('2nd chip +25%, 3rd +50% and applies the family status', () {
       final battle = battleWith([shot, shot, shot]);
@@ -36,7 +35,7 @@ void main() {
         (ChipFamily.energy, Status.stunned),
         (ChipFamily.melee, Status.rooted),
       ]) {
-        final chip = shotOf(Element.neutral, family: family);
+        final chip = shotOf(family: family);
         final battle = battleWith([chip, chip, chip]);
         for (var i = 0; i < 3; i++) {
           use(battle, chip);
@@ -47,7 +46,7 @@ void main() {
 
     test('cards that do not chain keep it; another family or a 2 s gap '
         'break it', () {
-      final other = shotOf(Element.neutral);
+      final other = shotOf();
       final battle = battleWith([shot, other, shot, blast, shot]);
       final enemy = battle.enemies.single;
       use(battle, shot);

@@ -37,12 +37,10 @@ void main() {
     );
     use(battle, Chips.melta);
     expect(battle.enemies.map((e) => e.hp), [90, 90, 100]);
-    expect(Chips.melta.element, Element.fire);
   });
 
-  test('Plasma is the Elec V-shot', () {
+  test('Plasma is the V-shot', () {
     expect(Chips.vShot.name, 'Plasma');
-    expect(Chips.vShot.element, Element.elec);
   });
 
   test('Míssil travels the row and explodes in a cross', () {
@@ -120,7 +118,7 @@ void main() {
     final side = 100 - boom((Chips.incendiaryGrenade.damage + 1) ~/ 2);
     expect(battle.enemies.map((e) => e.hp), [side, side]);
     expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.lava);
-    expect(Chips.incendiaryGrenade.element, Element.fire);
+    expect(Chips.incendiaryGrenade.tint, Element.fire);
   });
 
   test('Granada Atordoante stuns everyone in the cross for 2 s', () {
@@ -140,7 +138,7 @@ void main() {
     expect(side.hp, 100 - boom((Chips.stunGrenade.damage + 1) ~/ 2));
     expect(outside.has(Status.stunned), isFalse);
     expect(battle.energy, baseEnergy - 2);
-    expect(Chips.stunGrenade.element, Element.elec);
+    expect(Chips.stunGrenade.tint, Element.elec);
   });
 
   group('Granada de Fumaça', () {

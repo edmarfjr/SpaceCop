@@ -474,7 +474,7 @@ class LavaGuardBehavior extends EnemyBehavior {
     final y = battle.aimPos.y;
     final cells = [GridPos(1, y), GridPos(2, y)];
     battle.schedule(enemy, cells, ticksPerSecond, lob: Lob.ball, () {
-      final amount = battle.boosted(enemy, damage, Element.fire);
+      final amount = battle.boosted(enemy, damage);
       for (final cell in cells) {
         battle.strike(cell, amount, Team.player, Element.fire);
       }

@@ -34,8 +34,8 @@ void main() {
     expect(battle.panelAt(const GridPos(2, 1)).state, PanelState.normal);
   });
 
-  test('ice slides the mover to the edge and Elec on it stuns', () {
-    final battle = battleWith([shotOf(Element.elec)])
+  test('ice slides the mover to the edge; cards on it do nothing more', () {
+    final battle = battleWith([Chips.stunGrenade, Chips.shot])
       ..player.pos = const GridPos(0, 1)
       ..setPanel(const GridPos(1, 1), PanelState.ice);
     battle.tick(const PlayerInput(dx: 1));
@@ -44,14 +44,14 @@ void main() {
     battle
       ..player.pos = const GridPos(1, 1)
       ..setPanel(const GridPos(3, 1), PanelState.ice);
-    use(battle, shotOf(Element.elec));
-    expect(battle.enemies.single.has(Status.stunned), isTrue);
+    use(battle, Chips.shot);
+    expect(battle.enemies.single.has(Status.stunned), isFalse);
     wait(battle, iceTicks);
     expect(battle.panelAt(const GridPos(3, 1)).state, PanelState.normal);
   });
 
-  test('grass heals, boosts Wood chips, doubles Fire and burns away', () {
-    final battle = battleWith([shotOf(Element.wood), shotOf(Element.fire)])
+  test('grass heals and wears off; cards on it deal plain damage', () {
+    final battle = battleWith([shotOf(), shotOf()])
       ..setPanel(const GridPos(1, 1), PanelState.grass)
       ..setPanel(const GridPos(3, 1), PanelState.grass);
     battle.player.hp = 50;
@@ -60,20 +60,20 @@ void main() {
     expect(battle.player.hp, 50 + grassHeal);
 
     final enemy = battle.enemies.single;
-    use(battle, shotOf(Element.wood));
-    expect(enemy.hp, 100 - 13);
-    use(battle, shotOf(Element.fire));
-    expect(enemy.hp, 100 - 13 - 20);
-    expect(battle.panelAt(const GridPos(3, 1)).state, PanelState.normal);
+    use(battle, shotOf());
+    expect(enemy.hp, 100 - 10);
+    use(battle, shotOf());
+    expect(enemy.hp, 100 - 20);
+    expect(battle.panelAt(const GridPos(3, 1)).state, PanelState.grass);
     wait(battle, grassTicks);
     expect(battle.panelAt(const GridPos(1, 1)).state, PanelState.normal);
   });
 
-  test('lava burns non-Fire units, boosts Fire ones and Aqua puts it out', () {
+  test('lava burns non-Fire units and boosts Fire ones; cards leave it', () {
     final fireEnemy = dummyOf(Element.fire, shotDamage: 10);
     final battle =
         battleWith(
-            [shotOf(Element.aqua)],
+            [Chips.bubblePush],
             spawns: [EnemySpawn(fireEnemy, const GridPos(3, 1))],
           )
           ..setPanel(const GridPos(3, 1), PanelState.lava)
@@ -90,7 +90,7 @@ void main() {
     expect(battle.panelAt(const GridPos(0, 0)).state, PanelState.lava);
 
     battle.player.pos = const GridPos(1, 1);
-    use(battle, shotOf(Element.aqua));
-    expect(battle.panelAt(const GridPos(3, 1)).state, PanelState.normal);
+    use(battle, Chips.bubblePush);
+    expect(battle.panelAt(const GridPos(3, 1)).state, PanelState.lava);
   });
 }

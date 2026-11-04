@@ -37,7 +37,7 @@ void main() {
     expect(enemy.has(Status.wet), isTrue);
   });
 
-  test('Chama Cruzada hits a cross and burns grass', () {
+  test('Chama Cruzada hits a cross and leaves grass alone', () {
     final battle = battleWith(
       [Chips.crossFlame],
       spawns: [dummyAt(3, 1), dummyAt(4, 1), dummyAt(3, 0), dummyAt(5, 2)],
@@ -45,7 +45,7 @@ void main() {
     use(battle, Chips.crossFlame);
     final hit = 100 - boom(Chips.crossFlame.damage);
     expect(battle.enemies.map((e) => e.hp), [hit, hit, hit, 100]);
-    expect(battle.panelAt(const GridPos(3, 2)).state, PanelState.normal);
+    expect(battle.panelAt(const GridPos(3, 2)).state, PanelState.grass);
   });
 
   test('tossed chips land after a short flight, then take effect', () {
@@ -64,14 +64,13 @@ void main() {
     expect(battle.enemies.single.hp, 100 - boom(Chips.crossFlame.damage));
   });
 
-  test('Lança Trovão hits columns 3 to 5 of the row, double on Wet', () {
+  test('Lança Trovão hits columns 3 to 5 of the row', () {
     final battle = battleWith(
       [Chips.thunderLance],
       spawns: [dummyAt(3, 1), dummyAt(5, 1), dummyAt(4, 0)],
     );
-    battle.enemies[1].applyStatus(Status.wet, wetTicks);
     use(battle, Chips.thunderLance);
-    expect(battle.enemies.map((e) => e.hp), [80, 60, 100]);
+    expect(battle.enemies.map((e) => e.hp), [80, 80, 100]);
   });
 
   test('Escudo de Energia cancels the next hit and expires after 5 s', () {

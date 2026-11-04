@@ -23,7 +23,7 @@ BattleState battleWithRelics(
   playerHp: 100,
   playerMaxHp: 100,
   deckCards: [
-    for (final def in chips ?? List.filled(10, shotOf(Element.neutral)))
+    for (final def in chips ?? List.filled(10, shotOf()))
       ChipCard(def),
   ],
   encounter: Encounter(
@@ -68,7 +68,6 @@ void main() {
       type: ChipType.attack,
       target: ChipTarget.row,
       damage: 1,
-      element: Element.neutral,
       effect: const ProjectileEffect(),
     );
     final battle = battleWithRelics([

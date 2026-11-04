@@ -53,7 +53,7 @@ class BattleSounds {
     ChipType.attack => switch (def.pose) {
       ChipPose.melee => Sfx.melee,
       ChipPose.toss => Sfx.toss,
-      ChipPose.shoot => switch (def.element) {
+      ChipPose.shoot => switch (def.tint) {
         Element.fire => Sfx.shotFire,
         Element.aqua => Sfx.shotAqua,
         Element.elec => Sfx.shotElec,

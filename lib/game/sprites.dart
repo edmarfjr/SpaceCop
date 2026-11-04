@@ -266,13 +266,6 @@ abstract final class SpriteFiles {
     PanelState.lava: 'panels/panel_panelLava.png',
   };
 
-  static const elements = <el.Element, String>{
-    el.Element.fire: 'icons/fogo.png',
-    el.Element.aqua: 'icons/agua.png',
-    el.Element.elec: 'icons/raio.png',
-    el.Element.wood: 'icons/folha.png',
-  };
-
   static const statuses = <Status, String>{
     Status.burning: 'icons/fogo.png',
     Status.wet: 'icons/agua.png',
@@ -374,6 +367,8 @@ abstract final class SpriteFiles {
     Events.prisoner.title: 'events/prisioneiroTribo.png',
     Events.harvestFeast.title: 'events/festaColheita.png',
     Events.brokenBridge.title: 'events/ponteQuebrada.png',
+    Events.forge.title: 'events/forja.png',
+    Events.oracle.title: 'events/oraculoTotem.png',
   };
 
   static const nodes = <NodeType, String>{
@@ -415,7 +410,6 @@ abstract final class SpriteFiles {
     ...weapons.values,
     ...panels.values,
     ...panelFrames.values,
-    ...elements.values,
     ...statuses.values,
     ...relics.values,
     relicPlaceholder,
@@ -591,13 +585,6 @@ class GameSprites {
   Sprite panel(PanelState state) => _file(SpriteFiles.panels[state]!);
 
   Sprite panelFrame(Team side) => _file(SpriteFiles.panelFrames[side]!);
-
-  /// Null for Neutral, which has no icon.
-  Sprite? element(el.Element element) =>
-      switch (SpriteFiles.elements[element]) {
-        final path? => _file(path),
-        null => null,
-      };
 
   Sprite status(Status status) => _file(SpriteFiles.statuses[status]!);
 
