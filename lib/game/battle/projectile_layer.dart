@@ -72,12 +72,13 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
     for (final shot in battle.projectiles) {
       // The beam covers its own shots.
       if (shot.pos.y != row || shot.fx == ChipFx.beam) continue;
-      sprites.shot[_frame ~/ 6 % 2].render(
-        canvas,
-        position: parent.cellCenter(shot.pos),
-        size: _size,
-        anchor: Anchor.center,
-      );
+      (shot.fx == ChipFx.spear ? sprites.spear : sprites.shot[_frame ~/ 6 % 2])
+          .render(
+            canvas,
+            position: parent.cellCenter(shot.pos),
+            size: _size,
+            anchor: Anchor.center,
+          );
     }
     for (final lob in battle.lobs) {
       if (lob.to.y != row) continue;

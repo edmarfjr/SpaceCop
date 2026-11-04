@@ -105,6 +105,9 @@ const int medicHeal = 2;
 const int decoyHp = 40;
 const int decoyTicks = 5 * ticksPerSecond;
 
+/// How long a Lança stays stuck in the ground.
+const int spearTicks = 8 * ticksPerSecond;
+
 /// Mira Laser: a marked unit takes this much more from each hit.
 const int markBonus = 5;
 const int markTicks = 5 * ticksPerSecond;
@@ -186,6 +189,9 @@ enum ObstacleKind {
   tesla,
   medic,
   decoy,
+
+  /// A Lança stuck in an enemy panel: blocks enemies, not shots.
+  spear,
 }
 
 /// Red outlines warn of damage, blue ones of terrain changes.
@@ -1522,6 +1528,7 @@ class BattleState {
       case CrackEffect() ||
           PushEffect() ||
           PullEffect() ||
+          SpearEffect() ||
           StatusShotEffect() ||
           BounceEffect():
         _fire(
@@ -1719,6 +1726,7 @@ class BattleState {
     CrackEffect() ||
     PushEffect() ||
     PullEffect() ||
+    SpearEffect() ||
     StatusShotEffect() ||
     BounceEffect() ||
     BurstEffect() ||
@@ -1736,6 +1744,7 @@ class BattleState {
         CrackEffect() ||
         PushEffect() ||
         PullEffect() ||
+        SpearEffect() ||
         StatusShotEffect() ||
         BurstEffect() ||
         MeleeEffect() ||
@@ -1828,6 +1837,9 @@ class BattleState {
     bool free(GridPos pos) =>
         pos.inBounds && panelAt(pos).walkable && unitAt(pos) == null;
     switch (kind) {
+      // Only stuck in the ground by the Lança's shot.
+      case ObstacleKind.spear:
+        return;
       case ObstacleKind.rock:
         final pos = player.pos + const GridPos(1, 0);
         if (!free(pos)) return;
@@ -1949,8 +1961,16 @@ class BattleState {
 
   /// Melee hit of [def] with [effect]'s shape, for [damage].
   void _melee(ChipDef def, MeleeEffect effect, int damage, Status? status) {
-    final MeleeEffect(:pattern, :stunTicks, :push, :crack, :slash, :inflict) =
-        effect;
+    final MeleeEffect(
+      :pattern,
+      :stunTicks,
+      :push,
+      :crack,
+      :slash,
+      :inflict,
+      :tipPush,
+    ) = effect;
+    final tip = player.pos + pattern.last;
     final struck = <Fighter>{};
     final front = player.pos + const GridPos(1, 0);
     if (slash && front.inBounds) {
@@ -1985,8 +2005,9 @@ class BattleState {
       if (_passesThrough(unit, def.family)) continue;
       if (stunTicks > 0) unit.applyStatus(Status.stunned, stunTicks);
       if (inflict != null) unit.applyStatus(inflict, statusTicks(inflict));
-      if (steps > 0 && !unit.isDead) {
-        displace(unit, 1, 0, steps, byPlayer: true);
+      final pushed = steps + (unit.occupies(tip) ? tipPush : 0);
+      if (pushed > 0 && !unit.isDead) {
+        displace(unit, 1, 0, pushed, byPlayer: true);
       }
     }
     if (crack) {
@@ -2586,6 +2607,10 @@ class BattleState {
       shot.ttl--;
       if (shot.pos.x < 0 || shot.pos.x >= gridColumns || shot.ttl <= 0) {
         shot.spent = true;
+        // A Lança that missed sticks in the last panel of its row.
+        if (shot.onHit is SpearEffect && shot.pos.x >= gridColumns) {
+          _plantSpear(GridPos(gridColumns - 1, shot.pos.y));
+        }
       }
     }
     projectiles.removeWhere((p) => p.spent);
@@ -2682,6 +2707,21 @@ class BattleState {
           steps,
           byPlayer: shot.team == Team.player,
         );
+      case SpearEffect():
+        final back = _cellsAt(
+          target,
+          target.pos + const GridPos(1, 0),
+        ).any((c) => !c.inBounds || ownerAt(c) != target.team);
+        displace(target, 1, 0, 1, byPlayer: true);
+        // Already at the back: the wall throws it 1 panel forward.
+        final forward = target.pos + const GridPos(-1, 0);
+        if (back &&
+            target.pushable &&
+            !target.isDead &&
+            canEnter(target, forward)) {
+          _step(target, forward);
+        }
+        _plantSpear(shot.pos);
       case PullEffect(:final stunTicks):
         _pull(target);
         zaps.add(Zap(target.pos, style: ZapStyle.chain));
@@ -2699,10 +2739,29 @@ class BattleState {
   /// opponent or a neutral blocker.
   Fighter? _targetAt(GridPos pos, Team opponent) {
     final unit = unitAt(pos);
-    if (unit == null || (unit.team != null && unit.team != opponent)) {
+    if (unit == null ||
+        (unit.team != null && unit.team != opponent) ||
+        // Shots and blows fly past a Lança stuck in the ground.
+        (unit is Obstacle && unit.kind == ObstacleKind.spear)) {
       return null;
     }
     return unit;
+  }
+
+  /// Sticks a Lança in [pos] if nothing stands there.
+  void _plantSpear(GridPos pos) {
+    if (!pos.inBounds || !panelAt(pos).walkable || unitAt(pos) != null) {
+      return;
+    }
+    obstacles.add(
+      Obstacle(
+        ObstacleKind.spear,
+        pos: pos,
+        hp: 1,
+        team: Team.player,
+        ticksLeft: _lasting(spearTicks),
+      ),
+    );
   }
 }
 

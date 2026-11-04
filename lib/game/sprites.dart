@@ -104,6 +104,9 @@ abstract final class SpriteFiles {
 
   /// Projectiles and effects, 16x16 frames side by side.
   static const shot = 'projeteis/tiro.png';
+
+  /// The Lança in flight, drawn like [shot] (one frame).
+  static const spear = 'projeteis/lanca.png';
   static const ball = 'projeteis/bola.png';
   static const pickaxe = 'projeteis/picareta.png';
   static const molotov = 'projeteis/molotov.png';
@@ -146,6 +149,7 @@ abstract final class SpriteFiles {
     ObstacleKind.tesla: 'chips/teslaCoil.png',
     ObstacleKind.medic: 'chips/droneCura.png',
     ObstacleKind.decoy: player,
+    ObstacleKind.spear: 'obstacles/lanca.png',
   };
 
   static final chips = <String, String>{
@@ -226,6 +230,9 @@ abstract final class SpriteFiles {
     Chips.shoulderBash.id: 'chips/ombreiras.png',
     Chips.energyWhip.id: 'chips/chicote.png',
     Chips.seismicHammer.id: 'chips/marreta.png',
+    Chips.spear.id: 'chips/lanca.png',
+    Chips.energyCannon.id: 'chips/canhao.png',
+    Chips.polearm.id: 'chips/armaHaste.png',
   };
 
   /// Weapon in hand during a melee card's swing, pointing forward. The
@@ -241,6 +248,7 @@ abstract final class SpriteFiles {
     Chips.thermalBlade.id: 'weapons/thermal_blade.png',
     Chips.scythe.id: 'weapons/scythe.png',
     Chips.hydraulicFist.id: 'weapons/hydraulic_fist.png',
+    Chips.polearm.id: 'weapons/polearm.png',
   };
 
   /// Frame drawn over every panel, by the side that owns it.
@@ -351,6 +359,13 @@ abstract final class SpriteFiles {
     Events.clinic.title: 'events/enfermaria.png',
     Events.hangar.title: 'events/contrabando.png',
     Events.shredder.title: 'events/trituradorEvidencias.png',
+    Events.mural.title: 'events/muralAncestrais.png',
+    Events.fountain.title: 'events/fonteLuminosa.png',
+    Events.scarabNest.title: 'events/ninhoEscaravelho.png',
+    Events.stasis.title: 'events/camaraEstase.png',
+    Events.prisoner.title: 'events/prisioneiroTribo.png',
+    Events.harvestFeast.title: 'events/festaColheita.png',
+    Events.brokenBridge.title: 'events/ponteQuebrada.png',
   };
 
   static const nodes = <NodeType, String>{
@@ -373,6 +388,7 @@ abstract final class SpriteFiles {
     chipFrame,
     chipFrameUpgraded,
     shot,
+    spear,
     ball,
     pickaxe,
     molotov,
@@ -454,6 +470,7 @@ class GameSprites {
   late final List<Sprite> shot = [
     for (var i = 0; i < 2; i++) _frame(SpriteFiles.shot, i, 16),
   ];
+  late final Sprite spear = _file(SpriteFiles.spear);
   late final Sprite ball = _file(SpriteFiles.ball);
   late final Sprite chipFrame = _file(SpriteFiles.chipFrame);
   late final Sprite chipFrameUpgraded = _file(SpriteFiles.chipFrameUpgraded);

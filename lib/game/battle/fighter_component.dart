@@ -288,8 +288,9 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
         size: sprites.muzzle.srcSize * _scale,
       );
     }
-    // Enemies show their life in the HUD, on the right.
-    if (fighter is Obstacle) {
+    // Enemies show their life in the HUD, on the right; a Lança has none
+    // worth showing.
+    if (fighter case Obstacle(:final kind) when kind != ObstacleKind.spear) {
       _hpText.render(
         canvas,
         '${fighter.hp}',

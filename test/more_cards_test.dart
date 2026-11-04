@@ -120,7 +120,7 @@ void main() {
     final battle = atFront([const GridPos(3, 1)], [Chips.dagger]);
     final energy = battle.energy;
     use(battle, Chips.dagger);
-    expect(battle.enemies.single.hp, 94);
+    expect(battle.enemies.single.hp, 100 - Chips.dagger.damage);
     expect(battle.energy, energy);
   });
 

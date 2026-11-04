@@ -125,11 +125,16 @@ class MeleeEffect extends ChipEffect {
     this.crack = false,
     this.slash = false,
     this.inflict,
+    this.tipPush = 0,
   });
 
   final List<GridPos> pattern;
   final int stunTicks;
   final int push;
+
+  /// Panels pushed, only for whoever stands on the last panel of
+  /// [pattern] (Arma de Haste).
+  final int tipPush;
   final bool crack;
 
   /// Given to whoever is hit, for its default time (Lâmina Térmica burns).
@@ -218,6 +223,14 @@ class PushEffect extends ChipEffect {
 
   final int steps;
   final Status? status;
+}
+
+/// Projectile that pushes the first target hit 1 panel back; one already
+/// at the back takes a collision and is thrown 1 panel forward. The spear
+/// then sticks in the impact panel, or in the last panel of the row on a
+/// miss (Lança): enemies can't walk through it, shots fly past.
+class SpearEffect extends ChipEffect {
+  const SpearEffect();
 }
 
 /// Projectile that drags the first target hit to the front enemy column
@@ -430,6 +443,9 @@ enum ChipFx {
 
   /// A white streak down the row as it fires (Rifle de Precisão).
   sniper,
+
+  /// Drawn as a flying spear instead of a bullet (Lança).
+  spear,
 
   /// Static over the enemies while it lasts (Interferência).
   glitch,

@@ -770,7 +770,7 @@ abstract final class Chips {
     family: ChipFamily.melee,
     type: ChipType.attack,
     target: ChipTarget.self,
-    damage: 6,
+    damage: 10,
     effect: MeleeEffect(pattern: [GridPos(1, 0)]),
     pose: ChipPose.melee,
   );
@@ -1110,6 +1110,49 @@ abstract final class Chips {
     effect: SpawnObstacleEffect(ObstacleKind.decoy),
   );
 
+  static const spear = ChipDef(
+    id: 'spear',
+    name: 'Lança',
+    description:
+        'Empurra o alvo 1 painel; no fundo, ele bate e volta 1 painel. A lança '
+        'crava no painel por 8 s e bloqueia os inimigos, mas não os tiros.',
+    cost: 1,
+    family: ChipFamily.projectile,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 10,
+    effect: SpearEffect(),
+    fx: ChipFx.spear,
+  );
+
+  static const energyCannon = ChipDef(
+    id: 'energy_cannon',
+    name: 'Canhão',
+    description: 'Dispara um tiro de energia em linha reta.',
+    cost: 2,
+    family: ChipFamily.energy,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 15,
+    effect: ProjectileEffect(),
+  );
+
+  static const polearm = ChipDef(
+    id: 'polearm',
+    name: 'Arma de Haste',
+    description:
+        'Golpeia os 2 painéis à frente na sua linha e empurra 1 painel quem '
+        'está no segundo.',
+    cost: 1,
+    family: ChipFamily.melee,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    effect: MeleeEffect(pattern: [GridPos(1, 0), GridPos(2, 0)], tipPush: 1),
+    pose: ChipPose.melee,
+  );
+
   static const _square = [
     GridPos(-1, -1),
     GridPos(0, -1),
@@ -1321,7 +1364,7 @@ abstract final class Chips {
       _up(fusionLaser, damage: 20),
       _up(freezeRay, damage: 15),
       _up(steadyBeam, damage: 7),
-      _up(dagger, damage: 10),
+      _up(dagger, damage: 15),
       _up(thermalBlade, damage: 20),
       _up(scythe, damage: 20),
       _up(hydraulicFist, damage: 35),
@@ -1415,6 +1458,9 @@ abstract final class Chips {
         description: 'Os 3 próximos ataques causam +8 de dano. Uso único.',
         effect: const AttackChargesEffect(3, 8),
       ),
+      _up(spear, damage: 15),
+      _up(energyCannon, damage: 25),
+      _up(polearm, damage: 20),
     ])
       up.id: up,
   };
@@ -1496,6 +1542,9 @@ abstract final class Chips {
     c4,
     assistedAim,
     hologram,
+    spear,
+    energyCannon,
+    polearm,
   ];
 
   /// Every card, offered or not (Bug), by id: what a saved deck
@@ -1578,6 +1627,9 @@ abstract final class Chips {
       c4,
       assistedAim,
       hologram,
+      spear,
+      energyCannon,
+      polearm,
       bug,
     ])
       def.id: def,
