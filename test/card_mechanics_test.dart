@@ -114,9 +114,12 @@ void main() {
         spawns: [dummyAt(3, 1)],
       );
       use(battle, Chips.resonance);
-      expect(battle.enemies.single.hp, 95);
+      expect(battle.enemies.single.hp, 100 - zap(5));
       use(battle, Chips.resonance);
-      expect(battle.enemies.single.hp, 95 - (10 * chain2Multiplier).round());
+      expect(
+        battle.enemies.single.hp,
+        100 - zap(5) - zap((10 * chain2Multiplier).round()),
+      );
     });
 
     test('Coringa: the next card joins the chain in progress', () {
@@ -155,7 +158,7 @@ void main() {
       use(battle, Chips.smg);
       wait(battle, 30);
       expect(battle.damageBonus, 0);
-      expect(battle.enemies.single.hp, 100 - 3 * 15);
+      expect(battle.enemies.single.hp, 100 - 3 * pew(15));
     });
   });
 
@@ -182,7 +185,7 @@ void main() {
       weak.hp = 40;
       use(battle, Chips.assistedAim);
       use(battle, Chips.shot);
-      expect(weak.hp, 40 - Chips.shot.damage);
+      expect(weak.hp, 40 - pew(Chips.shot.damage));
       expect(strong.hp, 100);
       expect(battle.homingShots, 0);
     });
@@ -194,7 +197,7 @@ void main() {
       );
       use(battle, Chips.ricochet);
       for (final enemy in battle.enemies) {
-        expect(enemy.hp, 90);
+        expect(enemy.hp, 100 - pew(10));
       }
     });
 
@@ -204,7 +207,11 @@ void main() {
         spawns: [dummyAt(3, 1), dummyAt(4, 1), dummyAt(5, 0)],
       );
       use(battle, Chips.voltaicArc);
-      expect(battle.enemies.map((e) => e.hp), [90, 90, 100]);
+      expect(battle.enemies.map((e) => e.hp), [
+        100 - zap(10),
+        100 - zap(10),
+        100,
+      ]);
     });
 
     test('Carga C4 blows up 3 s after it sticks', () {

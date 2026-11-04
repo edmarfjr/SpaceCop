@@ -12,19 +12,19 @@ void main() {
   group('family chain', () {
     final shot = shotOf(family: ChipFamily.projectile);
     final blast = shotOf(family: ChipFamily.explosive);
-    final zap = shotOf(family: ChipFamily.energy);
+    final beam = shotOf(family: ChipFamily.energy);
 
     test('2nd chip +25%, 3rd +50% and applies the family status', () {
       final battle = battleWith([shot, shot, shot]);
       final enemy = battle.enemies.single;
       use(battle, shot);
-      expect(enemy.hp, 100 - 10);
+      expect(enemy.hp, 100 - pew(10));
       expect(battle.chainCount, 1);
       expect(battle.chainFamily, ChipFamily.projectile);
       use(battle, shot);
-      expect(enemy.hp, 100 - 10 - 13);
+      expect(enemy.hp, 100 - pew(10) - pew(13));
       use(battle, shot);
-      expect(enemy.hp, 100 - 10 - 13 - 15);
+      expect(enemy.hp, 100 - pew(10) - pew(13) - pew(15));
       expect(enemy.has(Status.marked), isTrue);
       expect(battle.chainCount, 0);
     });
@@ -53,27 +53,27 @@ void main() {
       use(battle, other);
       expect(battle.chainCount, 1, reason: 'Tático leaves the chain alone');
       use(battle, shot);
-      expect(enemy.hp, 100 - 10 - 10 - 13);
+      expect(enemy.hp, 100 - pew(10) - 10 - pew(13));
       use(battle, blast);
       expect(battle.chainFamily, ChipFamily.explosive);
       expect(battle.chainCount, 1);
       wait(battle, chainWindowTicks);
       expect(battle.chainCount, 0);
       use(battle, shot);
-      expect(enemy.hp, 100 - 10 - 10 - 13 - boom(10) - 10);
+      expect(enemy.hp, 100 - pew(10) - 10 - pew(13) - boom(10) - pew(10));
     });
 
     test('a complete chain fires Gatilho de Corrente', () {
       final battle = BattleState(
         playerHp: 100,
         playerMaxHp: 100,
-        deckCards: [for (var i = 0; i < 3; i++) ChipCard(zap)],
+        deckCards: [for (var i = 0; i < 3; i++) ChipCard(beam)],
         encounter: Encounter([dummyAt(3, 1)]),
         random: Random(1),
         relics: const [Relics.chainTrigger],
       )..tick();
       for (var i = 0; i < 3; i++) {
-        use(battle, zap);
+        use(battle, beam);
       }
       expect(battle.enemies.single.has(Status.stunned), isTrue);
       expect(battle.boostNextGauge, isTrue);

@@ -41,17 +41,19 @@ void main() {
       expect(hitWith(ChipFamily.explosive, EnemyKind.machine), 10);
     });
 
-    test('Orgânico: Explosivo +50%, the rest plain', () {
-      expect(hitWith(ChipFamily.explosive, EnemyKind.organic), 15);
-      expect(hitWith(ChipFamily.projectile, EnemyKind.organic), 10);
-      expect(hitWith(ChipFamily.energy, EnemyKind.organic), 10);
+    test('Orgânico: Projétil +50%, Energia half, the rest plain', () {
+      expect(hitWith(ChipFamily.projectile, EnemyKind.organic), 15);
+      expect(hitWith(ChipFamily.energy, EnemyKind.organic), 5);
+      expect(hitWith(ChipFamily.explosive, EnemyKind.organic), 10);
+      expect(hitWith(ChipFamily.melee, EnemyKind.organic), 10);
     });
 
-    test('Etéreo in phase: Projétil and Corpo-a-corpo pass through', () {
+    test('Etéreo in phase: Projétil and Corpo-a-corpo pass through, '
+        'Explosivo does half', () {
       expect(hitWith(ChipFamily.projectile, EnemyKind.ethereal), 0);
       expect(hitWith(ChipFamily.melee, EnemyKind.ethereal), 0);
       expect(hitWith(ChipFamily.energy, EnemyKind.ethereal), 10);
-      expect(hitWith(ChipFamily.explosive, EnemyKind.ethereal), 10);
+      expect(hitWith(ChipFamily.explosive, EnemyKind.ethereal), 5);
     });
 
     test('Cacetete neither hurts nor stuns a phased Etéreo', () {
@@ -77,7 +79,7 @@ void main() {
       freeze(battle);
       use(battle, shot);
       wait(battle, 5);
-      expect(battle.enemies.map((e) => e.hp), [100, 90]);
+      expect(battle.enemies.map((e) => e.hp), [100, 100 - pew(10)]);
     });
 
     test('Etéreo is solid while it attacks and for 2 s after an Explosivo', () {
@@ -96,11 +98,11 @@ void main() {
       use(battle, blast);
       expect(enemy.phased, isFalse);
       use(battle, shot);
-      expect(enemy.hp, 100 - 10 - 10);
+      expect(enemy.hp, 100 - 5 - 10);
       wait(battle, materializeTicks);
       expect(enemy.phased, isTrue);
       use(battle, shot);
-      expect(enemy.hp, 100 - 10 - 10);
+      expect(enemy.hp, 100 - 5 - 10);
     });
   });
 
@@ -214,14 +216,14 @@ void main() {
 
     battle.player.pos = const GridPos(1, 0);
     use(battle, Chips.vShot);
-    expect(brute.hp, 80 - 10);
+    expect(brute.hp, 80 - zap(10));
 
     battle
       ..player.pos = const GridPos(1, 1)
       ..displace(brute, 1, 0, 5);
     expect(brute.pos, const GridPos(5, 1));
     use(battle, Chips.shot);
-    expect(brute.hp, 80 - 10 - collisionDamage - Chips.shot.damage);
+    expect(brute.hp, 80 - zap(10) - collisionDamage - pew(Chips.shot.damage));
   });
 
   test('Brute charges down the player row every 4 s', () {
@@ -247,7 +249,7 @@ void main() {
     wait(battle, BruteBehavior.chargeEvery ~/ 2 + BruteBehavior.warnTicks);
     expect(brute.shieldDown, greaterThan(0));
     use(battle, Chips.shot);
-    expect(brute.hp, 80 - Chips.shot.damage);
+    expect(brute.hp, 80 - pew(Chips.shot.damage));
   });
 
   test('Escavador is untouchable underground and its pickaxe cracks', () {
@@ -322,11 +324,11 @@ void main() {
     expect(battle.player.hp, 100 - Chips.shot.damage);
 
     use(battle, Chips.thunderLance);
-    expect(a.hp, 40 - Chips.thunderLance.damage);
+    expect(a.hp, 40 - zap(Chips.thunderLance.damage));
 
     b.pos = const GridPos(5, 0);
     use(battle, Chips.shot);
-    expect(a.hp, 40 - Chips.thunderLance.damage - Chips.shot.damage);
+    expect(a.hp, 40 - zap(Chips.thunderLance.damage) - pew(Chips.shot.damage));
   });
 
   test('Guardião de Lava puts lava on the player side and flames columns '

@@ -22,7 +22,13 @@ EnemyDef dummyOf(
 );
 
 /// Damage of an Explosivo hit on an Orgânico, like the test dummies.
-int boom(int damage) => (damage * organicExplosiveMultiplier).round();
+int boom(int damage) => damage;
+
+/// Damage of one Projétil hit on an Orgânico, like the test dummies.
+int pew(int damage) => (damage * organicProjectileMultiplier).round();
+
+/// Damage of one Energia hit on an Orgânico, like the test dummies.
+int zap(int damage) => (damage * organicEnergyMultiplier).round();
 
 /// Single-target shot, 10 damage, free. Its family defaults to one that
 /// doesn't chain, so repeated shots keep their plain damage.

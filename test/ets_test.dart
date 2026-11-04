@@ -72,7 +72,7 @@ void main() {
       use(battle, shot);
       wait(battle, 5);
       expect(trap.hp, Enemies.etTrap.hp);
-      expect(behind.hp, 90, reason: 'the shot flew over the trap');
+      expect(behind.hp, 100 - pew(10), reason: 'the shot flew over the trap');
       use(battle, blast);
       expect(trap.hp, Enemies.etTrap.hp - boom(10));
     });
@@ -113,11 +113,11 @@ void main() {
   });
 
   test('Esfera de Energia is a Máquina: Energia does double', () {
-    final zap = shotOf(family: ChipFamily.energy);
-    final battle = battleWith([zap], spawns: [dummyAt(5, 2)]);
+    final beam = shotOf(family: ChipFamily.energy);
+    final battle = battleWith([beam], spawns: [dummyAt(5, 2)]);
     final sphere = battle.summon(Enemies.energySphere, const GridPos(3, 1))
       ..applyStatus(Status.stunned, 100000);
-    use(battle, zap);
+    use(battle, beam);
     expect(sphere.isDead, isTrue, reason: '20 HP, hit for 20');
   });
 }

@@ -10,11 +10,12 @@ enum EnemyKind {
   /// Armored: Projétil does half, Energia double.
   machine,
 
-  /// Flesh: Explosivo does +50%.
+  /// Flesh: Projétil does +50%, Energia half.
   organic,
 
   /// Phased out of normal matter: Projétil and Corpo-a-corpo pass through
-  /// it, except while it attacks or for a moment after an Explosivo hit.
+  /// it and Explosivo does half, except while it attacks or for a moment
+  /// after an Explosivo hit.
   ethereal;
 
   /// Name shown in game.

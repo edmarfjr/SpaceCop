@@ -19,7 +19,7 @@ void main() {
       final battle = withDummies([const GridPos(3, 1)], [Chips.spear]);
       use(battle, Chips.spear);
       final enemy = battle.enemies.single;
-      expect(enemy.hp, 100 - Chips.spear.damage);
+      expect(enemy.hp, 100 - pew(Chips.spear.damage));
       expect(enemy.pos, const GridPos(4, 1));
       expect(spearAt(battle, const GridPos(3, 1)), isNotNull);
     });
@@ -28,7 +28,7 @@ void main() {
       final battle = withDummies([const GridPos(5, 1)], [Chips.spear]);
       use(battle, Chips.spear);
       final enemy = battle.enemies.single;
-      expect(enemy.hp, 100 - Chips.spear.damage - collisionDamage);
+      expect(enemy.hp, 100 - pew(Chips.spear.damage) - collisionDamage);
       expect(enemy.pos, const GridPos(4, 1));
       expect(spearAt(battle, const GridPos(5, 1)), isNotNull);
     });
@@ -67,7 +67,7 @@ void main() {
   test('Canhão: a plain Energia shot for 15, 25 upgraded', () {
     final battle = withDummies([const GridPos(3, 1)], [Chips.energyCannon]);
     use(battle, Chips.energyCannon);
-    expect(battle.enemies.single.hp, 85);
+    expect(battle.enemies.single.hp, 100 - zap(15));
     expect(Chips.energyCannon.family, ChipFamily.energy);
     expect(Chips.energyCannon.cost, 2);
     expect(Chips.byId('energy_cannon', upgraded: true)!.damage, 25);

@@ -30,7 +30,7 @@ void main() {
   group('family and gear relics', () {
     final shot = shotOf(family: ChipFamily.projectile);
     final blast = shotOf(family: ChipFamily.explosive);
-    final zap = shotOf(family: ChipFamily.energy);
+    final beam = shotOf(family: ChipFamily.energy);
     final slash = shotOf(family: ChipFamily.melee);
 
     int hit(RelicDef relic, ChipDef chip, {EnemyKind? kind}) {
@@ -44,18 +44,18 @@ void main() {
     }
 
     test('Munição Perfurante: Projétil +3', () {
-      expect(hit(Relics.piercingAmmo, shot), 13);
-      expect(hit(Relics.piercingAmmo, zap), 10);
+      expect(hit(Relics.piercingAmmo, shot), pew(10 + 3));
+      expect(hit(Relics.piercingAmmo, beam), zap(10));
     });
 
     test('Carga Dupla: Explosivo +5', () {
       expect(hit(Relics.doubleCharge, blast), boom(15));
-      expect(hit(Relics.doubleCharge, shot), 10);
+      expect(hit(Relics.doubleCharge, shot), pew(10));
     });
 
     test('Decodificador: +25% against Máquinas', () {
-      expect(hit(Relics.decoder, zap, kind: EnemyKind.machine), 25);
-      expect(hit(Relics.decoder, zap), 10);
+      expect(hit(Relics.decoder, beam, kind: EnemyKind.machine), 25);
+      expect(hit(Relics.decoder, beam), zap(10));
     });
 
     test('Sintonizador de Fase: Projétil hits a phased Etéreo for half', () {
@@ -75,12 +75,12 @@ void main() {
     });
 
     test('Bobina Supercondutora: Energia stuns a Wet target', () {
-      final battle = withRelics([Relics.superconductor], [zap, zap]);
+      final battle = withRelics([Relics.superconductor], [beam, beam]);
       final enemy = battle.enemies.single;
-      use(battle, zap);
+      use(battle, beam);
       expect(enemy.has(Status.stunned), isFalse);
       enemy.applyStatus(Status.wet, wetTicks);
-      use(battle, zap);
+      use(battle, beam);
       expect(enemy.has(Status.stunned), isTrue);
     });
 
@@ -207,7 +207,7 @@ void main() {
       battle.selectChip(0);
       battle.tick(const PlayerInput(useChip: true));
       wait(battle, 4);
-      expect(enemy.hp, 100 - 10 - collisionDamage - 20);
+      expect(enemy.hp, 100 - pew(10) - collisionDamage - 20);
       expect(
         enemy.statuses[Status.stunned],
         greaterThan(collisionStunTicks + ticksPerSecond - 5),

@@ -47,7 +47,7 @@ void main() {
     final battle = battleWith([up(Chips.smg)], spawns: [dummyAt(3, 1)]);
     use(battle, up(Chips.smg));
     wait(battle, 10);
-    expect(battle.enemies.single.hp, 100 - 4 * 5);
+    expect(battle.enemies.single.hp, 100 - 4 * pew(5));
   });
 
   test('Cacetete+ stuns for 3 s', () {
@@ -76,7 +76,7 @@ void main() {
     );
     use(battle, up(Chips.atkBoost));
     use(battle, Chips.shot);
-    expect(battle.enemies.single.hp, 100 - 25);
+    expect(battle.enemies.single.hp, 100 - pew(5 + 20));
   });
 
   test('Gerador+ speeds the gauge 30%', () {

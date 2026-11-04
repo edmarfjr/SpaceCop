@@ -24,7 +24,7 @@ void main() {
   test('Rachador hits and cracks the target panel', () {
     final battle = battleWith([Chips.cracker], spawns: [dummyAt(3, 1)]);
     use(battle, Chips.cracker);
-    expect(battle.enemies.single.hp, 100 - 20);
+    expect(battle.enemies.single.hp, 100 - pew(20));
     expect(battle.panelAt(const GridPos(3, 1)).state, PanelState.cracked);
   });
 
@@ -32,7 +32,7 @@ void main() {
     final battle = battleWith([Chips.bubblePush], spawns: [dummyAt(3, 1)]);
     use(battle, Chips.bubblePush);
     final enemy = battle.enemies.single;
-    expect(enemy.hp, 100 - 10);
+    expect(enemy.hp, 100 - pew(10));
     expect(enemy.pos, const GridPos(4, 1));
     expect(enemy.has(Status.wet), isTrue);
   });
@@ -70,7 +70,11 @@ void main() {
       spawns: [dummyAt(3, 1), dummyAt(5, 1), dummyAt(4, 0)],
     );
     use(battle, Chips.thunderLance);
-    expect(battle.enemies.map((e) => e.hp), [80, 80, 100]);
+    expect(battle.enemies.map((e) => e.hp), [
+      100 - zap(20),
+      100 - zap(20),
+      100,
+    ]);
   });
 
   test('Escudo de Energia cancels the next hit and expires after 5 s', () {
@@ -122,7 +126,7 @@ void main() {
     use(battle, Chips.mirror);
     use(battle, Chips.shot);
     wait(battle, 5);
-    expect(battle.enemies.single.hp, 95);
+    expect(battle.enemies.single.hp, 100 - pew(Chips.shot.damage));
   });
 
   test('Semear Grama turns the player side into grass', () {
@@ -183,7 +187,7 @@ void main() {
     expect(battle.unitAt(barricade.pos), isNull);
     use(battle, Chips.shot);
     expect(barricade.hp, rockHp);
-    expect(battle.enemies.single.hp, 100 - Chips.shot.damage);
+    expect(battle.enemies.single.hp, 100 - pew(Chips.shot.damage));
     battle.projectiles.add(
       Projectile(
         team: Team.enemy,
@@ -247,7 +251,7 @@ void main() {
       battle.tick();
     }
     expect(battle.hits.single.target, enemy);
-    expect(battle.hits.single.amount, Chips.shot.damage);
+    expect(battle.hits.single.amount, pew(Chips.shot.damage));
     battle.tick();
     expect(battle.hits, isEmpty);
   });

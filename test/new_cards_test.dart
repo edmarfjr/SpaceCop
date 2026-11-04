@@ -42,7 +42,7 @@ void main() {
       greaterThan(0),
       reason: 'the shield stops shots, not the pulse',
     );
-    expect(inCross.hp, 100 - (Chips.emp.damage + 1) ~/ 2);
+    expect(inCross.hp, 100 - zap((Chips.emp.damage + 1) ~/ 2));
     expect(outside.hp, 100);
     expect(brute.shieldDown, greaterThan(2 * ticksPerSecond));
     use(battle, Chips.shot);
@@ -53,7 +53,7 @@ void main() {
     final battle = battleWith([Chips.neuralVine], spawns: [dummyAt(4, 1)]);
     final enemy = battle.enemies.single;
     use(battle, Chips.neuralVine);
-    expect(enemy.hp, 85);
+    expect(enemy.hp, 100 - pew(15));
     expect(
       enemy.statuses[Status.rooted],
       greaterThan(3 * ticksPerSecond - playerAttackCooldown),
@@ -70,7 +70,7 @@ void main() {
     expect(enemy.hp, 100, reason: 'the mark itself does no damage');
     expect(enemy.has(Status.marked), isTrue);
     use(battle, Chips.shot);
-    expect(enemy.hp, 100 - Chips.shot.damage - markBonus);
+    expect(enemy.hp, 100 - pew(Chips.shot.damage + markBonus));
     wait(battle, markTicks);
     expect(enemy.has(Status.marked), isFalse);
   });
@@ -91,7 +91,7 @@ void main() {
     expect(battle.chainCount, 2);
     expect(
       enemy.hp,
-      100 - (Chips.vShot.damage * chain2Multiplier).round() - mark,
+      100 - zap((Chips.vShot.damage * chain2Multiplier).round() + mark),
     );
     expect(battle.chainSurge, isFalse);
     use(battle, Chips.vShot);
@@ -146,8 +146,8 @@ void main() {
     expect(
       battle.enemies.single.hp,
       100 -
-          Chips.cannon.damage -
-          (Chips.cannon.damage * chain2Multiplier).round(),
+          pew(Chips.cannon.damage) -
+          pew((Chips.cannon.damage * chain2Multiplier).round()),
       reason: 'the second run is the 2nd chip of a chain',
     );
     expect(battle.energy, baseEnergy - 1 - Chips.cannon.cost);

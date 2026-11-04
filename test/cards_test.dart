@@ -15,7 +15,7 @@ void main() {
     final battle = battleWith([Chips.smg], spawns: [dummyAt(3, 1)]);
     use(battle, Chips.smg);
     wait(battle, 5);
-    expect(battle.enemies.single.hp, 100 - 3 * 5);
+    expect(battle.enemies.single.hp, 100 - 3 * pew(5));
   });
 
   test('Bala Oca boosts every shot of the SMG burst', () {
@@ -26,7 +26,7 @@ void main() {
     use(battle, Chips.atkBoost);
     use(battle, Chips.smg);
     wait(battle, 5);
-    expect(battle.enemies.single.hp, 100 - 3 * 15);
+    expect(battle.enemies.single.hp, 100 - 3 * pew(15));
     expect(battle.damageBonus, 0);
   });
 
@@ -36,7 +36,11 @@ void main() {
       spawns: [dummyAt(3, 1), dummyAt(5, 1), dummyAt(4, 0)],
     );
     use(battle, Chips.melta);
-    expect(battle.enemies.map((e) => e.hp), [90, 90, 100]);
+    expect(battle.enemies.map((e) => e.hp), [
+      100 - zap(10),
+      100 - zap(10),
+      100,
+    ]);
   });
 
   test('Plasma is the V-shot', () {

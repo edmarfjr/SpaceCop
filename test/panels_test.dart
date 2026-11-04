@@ -29,7 +29,7 @@ void main() {
     battle.tick(const PlayerInput(dx: 1));
     expect(battle.player.pos, const GridPos(1, 1));
     use(battle, Chips.shot);
-    expect(battle.enemies.single.hp, 100 - Chips.shot.damage);
+    expect(battle.enemies.single.hp, 100 - pew(Chips.shot.damage));
     wait(battle, holeTicks);
     expect(battle.panelAt(const GridPos(2, 1)).state, PanelState.normal);
   });

@@ -622,11 +622,11 @@ List<_Chapter> _book() => [
   _Chapter('Inimigos e status', [
     (s) => _spread(SheetSprite(sprite: s.enemy(Enemies.tank)), [
       '*Máquina*: Projétil causa metade; Energia, o dobro.',
-      '*Orgânico*: Explosivo causa ×1,5.',
-      '*Etéreo*: Projétil e Corpo-a-corpo o atravessam, menos quando ele '
-          'ataca ou por 2 s depois de um Explosivo.',
-      'Escudos frontais só param *tiros retos* de frente. O Pulso EMP '
-          'os derruba.',
+      '*Orgânico*: Projétil causa ×1,5; Energia, metade.',
+      '*Etéreo*: Projétil e Corpo-a-corpo o atravessam e Explosivo causa '
+          'metade, menos quando ele ataca ou por 2 s depois de um Explosivo.',
+      'Escudos frontais só param *tiros retos* de frente: Corpo-a-corpo e '
+          'Explosivo passam. O Pulso EMP os derruba.',
     ]),
     (s) => Column(
       children: [
@@ -740,8 +740,8 @@ List<_Chapter> _book() => [
     (s) => _spread(SheetSprite(sprite: s.playerAttack, scale: 3), [
       '*Saia da linha* quando o sinal piscar.',
       '*Gaste a Energia*: ela não passa para a próxima mão.',
-      'Energia contra Máquinas, Explosivo contra Orgânicos e Etéreos.',
-      '*Monte correntes* e use o chão: molhe antes de eletrocutar.',
+      'Energia contra Máquinas, Projétil contra Orgânicos.',
+      '*Monte correntes*: 3 da mesma família deixam um status.',
       'Deck enxuto bate forte: remova cartas fracas na loja.',
     ]),
   ]),

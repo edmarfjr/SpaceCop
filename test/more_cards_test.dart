@@ -23,10 +23,10 @@ void main() {
     final far = withDummies([const GridPos(5, 1)], [Chips.sniper]);
     use(far, Chips.sniper);
     wait(far, 30);
-    expect(far.enemies.single.hp, 55);
+    expect(far.enemies.single.hp, 100 - pew(30 + 15));
     final near = withDummies([const GridPos(3, 1)], [Chips.sniper]);
     use(near, Chips.sniper);
-    expect(near.enemies.single.hp, 70);
+    expect(near.enemies.single.hp, 100 - pew(30));
   });
 
   test('Bala Incendiária burns', () {
@@ -42,14 +42,14 @@ void main() {
     );
     use(battle, Chips.piercingShot);
     for (final enemy in battle.enemies) {
-      expect(enemy.hp, 88);
+      expect(enemy.hp, 100 - pew(12));
     }
   });
 
   test('Dardo Tranquilizante stuns', () {
     final battle = withDummies([const GridPos(3, 1)], [Chips.tranqDart]);
     use(battle, Chips.tranqDart);
-    expect(battle.enemies.single.hp, 95);
+    expect(battle.enemies.single.hp, 100 - pew(5));
     expect(battle.enemies.single.has(Status.stunned), isTrue);
   });
 
@@ -96,7 +96,7 @@ void main() {
         [Chips.fusionLaser],
       );
       use(battle, Chips.fusionLaser);
-      expect(battle.enemies.last.hp, 85);
+      expect(battle.enemies.last.hp, 100 - zap(15));
       expect(battle.panelAt(const GridPos(4, 1)).state, PanelState.lava);
       expect(battle.panelAt(const GridPos(5, 1)).state, PanelState.normal);
     },
@@ -113,7 +113,7 @@ void main() {
     final battle = withDummies([const GridPos(3, 1)], [Chips.steadyBeam]);
     use(battle, Chips.steadyBeam);
     wait(battle, 30);
-    expect(battle.enemies.single.hp, 80);
+    expect(battle.enemies.single.hp, 100 - 4 * zap(5));
   });
 
   test('Adaga hits the panel in front for free', () {
@@ -191,7 +191,7 @@ void main() {
       );
       use(battle, Chips.specialAmmo);
       use(battle, Chips.shot);
-      expect(battle.enemies.single.hp, 100 - Chips.shot.damage - 3);
+      expect(battle.enemies.single.hp, 100 - pew(Chips.shot.damage + 3));
       expect(battle.projectileBonus, 3);
     },
   );

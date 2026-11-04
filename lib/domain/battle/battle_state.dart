@@ -61,7 +61,11 @@ const int chainWindowTicks = 2 * ticksPerSecond;
 /// Card family against enemy type (see `BattleState._kindMultiplier`).
 const double machineProjectileMultiplier = 0.5;
 const double machineEnergyMultiplier = 2;
-const double organicExplosiveMultiplier = 1.5;
+const double organicProjectileMultiplier = 1.5;
+const double organicEnergyMultiplier = 0.5;
+
+/// Explosivo on a phased Etéreo.
+const double phasedExplosiveMultiplier = 0.5;
 
 /// Energia on ARGOS while its core is open, instead of
 /// [machineEnergyMultiplier].
@@ -2401,10 +2405,13 @@ class BattleState {
         when target.def == Enemies.argos && target.shieldDown > 0 =>
       argosOpenEnergyMultiplier,
     (EnemyKind.machine, ChipFamily.energy) => machineEnergyMultiplier,
-    (EnemyKind.organic, ChipFamily.explosive) => organicExplosiveMultiplier,
+    (EnemyKind.organic, ChipFamily.projectile) => organicProjectileMultiplier,
+    (EnemyKind.organic, ChipFamily.energy) => organicEnergyMultiplier,
     (EnemyKind.ethereal, ChipFamily.projectile || ChipFamily.melee)
         when target.phased =>
       0,
+    (EnemyKind.ethereal, ChipFamily.explosive) when target.phased =>
+      phasedExplosiveMultiplier,
     _ => 1,
   };
 
