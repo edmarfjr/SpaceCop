@@ -111,7 +111,7 @@ void main() {
     expect(run.drawnElites, isEmpty);
   });
 
-  test('events never repeat; act 3 gets the act 1 ones left', () {
+  test('events never repeat; each act has its own', () {
     final run = RunState(random: Random(8));
     final act1 = {for (var i = 0; i < 4; i++) run.drawEvent()!};
     expect(act1, hasLength(4));
@@ -124,7 +124,7 @@ void main() {
     for (var event = run.drawEvent(); event != null; event = run.drawEvent()) {
       act3.add(event);
     }
-    expect(act3, Events.all.toSet().difference(act1));
+    expect(act3, Events.abyss.toSet());
   });
 
   test('relics offered once are never offered again', () {

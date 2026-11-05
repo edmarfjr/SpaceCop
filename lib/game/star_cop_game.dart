@@ -221,6 +221,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   }
 
   void _startBattle(Encounter encounter) {
+    final boss = run.current?.type == NodeType.boss;
     final battle = BattleState(
       playerHp: run.hp,
       playerMaxHp: run.maxHp,
@@ -228,13 +229,19 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       encounter: encounter,
       random: run.random,
       relics: run.relics,
-      energyBaseBonus: run.energyBaseBonus + run.nextBattleEnergy,
+      energyBaseBonus:
+          run.energyBaseBonus +
+          run.nextBattleEnergy +
+          (run.energyBattles > 0 ? 1 : 0),
       openingStunTicks: run.openingStunTicks,
+      bossHpCut: boss ? run.bossHpCut : 0,
+      openingBarrier: boss && run.bossBarrier,
       pauseOnNewHand: true,
     );
     run
       ..openingStunTicks = 0
-      ..nextBattleEnergy = 0;
+      ..nextBattleEnergy = 0
+      ..energyBattles = run.energyBattles > 0 ? run.energyBattles - 1 : 0;
     _goTo(
       GamePhase.battle,
       world: BattleWorld(battle: battle, onFinished: _onBattleFinished),

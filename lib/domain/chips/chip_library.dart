@@ -1154,6 +1154,18 @@ abstract final class Chips {
     effect: NoEffect(),
   );
 
+  /// Curse from the act 3 events: hurts when drawn.
+  static const whisper = ChipDef(
+    id: 'whisper',
+    name: 'Sussurro',
+    description: 'Não faz nada. Ao ser comprada, causa 2 de dano em você.',
+    cost: 0,
+    family: ChipFamily.tactical,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: WhisperEffect(),
+  );
+
   /// The "+" version of [def], or null if it can't be upgraded (already
   /// upgraded, Bug).
   static ChipDef? upgradeOf(ChipDef def) =>
@@ -1604,6 +1616,7 @@ abstract final class Chips {
       energyCannon,
       polearm,
       bug,
+      whisper,
     ])
       def.id: def,
   };

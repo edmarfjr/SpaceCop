@@ -399,6 +399,11 @@ class SpawnObstacleEffect extends ChipEffect {
   final int? amount;
 }
 
+/// Does nothing when used, and hurts the player when drawn (Sussurro).
+class WhisperEffect extends ChipEffect {
+  const WhisperEffect();
+}
+
 /// Does nothing; it only wastes a slot of the hand (chip Bug).
 class NoEffect extends ChipEffect {
   const NoEffect();

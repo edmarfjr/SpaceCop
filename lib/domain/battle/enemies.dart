@@ -259,8 +259,50 @@ abstract final class Enemies {
     behavior: TankBehavior(),
   );
 
-  // ETs: the second mission's enemies, a tribe living in ancient ruins.
+   /// Another boss of the first mission.
+  static const colonel = EnemyDef(
+    name: 'Coronel Inimigo',
+    hp: 200,
+    //pushable: false,
+    behavior: ColonelBehavior(),
+  );
 
+  /// The Coronel's bodyguards: they stand in front of him. They don't
+  /// count toward winning.
+  static const colonelGuard = EnemyDef(
+    name: 'Guarda-costas',
+    hp: 40,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    frontShield: true,
+    summon: true,
+    behavior: ShieldBearerBehavior(),
+  );
+
+  /// Another boss of the first mission: the base's security AI. Two panels
+  /// by two: [pos] is the top front one.
+  static const argos = EnemyDef(
+    name: 'ARGOS',
+    kind: EnemyKind.machine,
+    hp: 350,
+    pushable: false,
+    footprint: [GridPos(0, 0), GridPos(1, 0), GridPos(0, 1), GridPos(1, 1)],
+    behavior: ArgosBehavior(),
+  );
+
+  /// Put up by ARGOS; doesn't count toward winning.
+  static const argosTurret = EnemyDef(
+    name: 'Torre de Defesa',
+    kind: EnemyKind.machine,
+    hp: 40,
+    shotDamage: 10,
+    shotStepTicks: 8,
+    pushable: false,
+    summon: true,
+    behavior: SentryBehavior(),
+  );
+
+  // ETs: the second mission's enemies, a tribe living in ancient ruins.
   static const etWarrior = EnemyDef(
     name: 'ET Guerreiro',
     hp: 45,
@@ -369,49 +411,6 @@ abstract final class Enemies {
     pushable: false,
     frontShield: true,
     behavior: PortalBehavior(),
-  );
-
-  /// Another boss of the first mission.
-  static const colonel = EnemyDef(
-    name: 'Coronel Inimigo',
-    hp: 380,
-    pushable: false,
-    behavior: ColonelBehavior(),
-  );
-
-  /// The Coronel's bodyguards: they stand in front of him. They don't
-  /// count toward winning.
-  static const colonelGuard = EnemyDef(
-    name: 'Guarda-costas',
-    hp: 60,
-    shotDamage: 10,
-    shotStepTicks: 8,
-    frontShield: true,
-    summon: true,
-    behavior: ShieldBearerBehavior(),
-  );
-
-  /// Another boss of the first mission: the base's security AI. Two panels
-  /// by two: [pos] is the top front one.
-  static const argos = EnemyDef(
-    name: 'ARGOS',
-    kind: EnemyKind.machine,
-    hp: 350,
-    pushable: false,
-    footprint: [GridPos(0, 0), GridPos(1, 0), GridPos(0, 1), GridPos(1, 1)],
-    behavior: ArgosBehavior(),
-  );
-
-  /// Put up by ARGOS; doesn't count toward winning.
-  static const argosTurret = EnemyDef(
-    name: 'Torre de Defesa',
-    kind: EnemyKind.machine,
-    hp: 40,
-    shotDamage: 10,
-    shotStepTicks: 8,
-    pushable: false,
-    summon: true,
-    behavior: SentryBehavior(),
   );
 
   /// The second mission's boss. Two panels wide: [pos] is the front one.

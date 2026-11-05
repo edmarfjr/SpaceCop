@@ -35,8 +35,11 @@ class Shop {
 
   int _price(int base) => _member ? (base * 0.75).round() : base;
 
-  int chipCost(ChipDef def) => _price(chipPrice(def.rarity));
-  int relicCost(RelicDef relic) => _price(relicPrice(relic.rarity));
+  /// Transmissão para a Base: the first card or relic bought is free.
+  bool get _free => run.freeShopItem;
+
+  int chipCost(ChipDef def) => _free ? 0 : _price(chipPrice(def.rarity));
+  int relicCost(RelicDef relic) => _free ? 0 : _price(relicPrice(relic.rarity));
   int get removalCost => _member ? 0 : _price(removalPrice);
 
   /// Only one card can be removed per visit.
@@ -51,14 +54,18 @@ class Shop {
   bool buyChip(ChipDef def) {
     if (!chips.contains(def) || !_pay(chipCost(def))) return false;
     chips.remove(def);
-    run.deck.add(ChipCard(def));
+    run
+      ..deck.add(ChipCard(def))
+      ..freeShopItem = false;
     return true;
   }
 
   bool buyRelic(RelicDef relic) {
     if (!relics.contains(relic) || !_pay(relicCost(relic))) return false;
     relics.remove(relic);
-    run.addRelic(relic);
+    run
+      ..freeShopItem = false
+      ..addRelic(relic);
     return true;
   }
 

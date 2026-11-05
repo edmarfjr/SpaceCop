@@ -131,6 +131,9 @@ void _superconduct(BattleState battle, EnemyFighter target, ChipFamily family) {
   }
 }
 
+int _abyssLink(BattleState battle, ChipDef chip, int damage) =>
+    chip.exhaust && damage > 0 ? damage + 10 : damage;
+
 double _monoBlade(
   BattleState battle,
   EnemyFighter target,
@@ -684,6 +687,26 @@ abstract final class Relics {
 
   // Raro.
 
+  /// Elo do Abismo, from the Câmara do Sono Eterno.
+  static const abyssLink = RelicDef(
+    id: 'abyss_link',
+    name: 'Elo do Abismo',
+    description: 'Cartas de uso único causam +10 de dano.',
+    kind: RelicKind.combat,
+    rarity: Rarity.rare,
+    modifyDamage: _abyssLink,
+  );
+
+  /// Read by the battle when the player falls; spent once used, after a
+  /// Núcleo Fênix.
+  static const lastBlessing = RelicDef(
+    id: 'last_blessing',
+    name: 'Bênção do Último',
+    description: 'Uma vez por run, ao morrer, fica com 1 HP. Depois se apaga.',
+    kind: RelicKind.combat,
+    rarity: Rarity.uncommon,
+  );
+
   /// Read by the battle when the player falls; spent once used.
   static const phoenixCore = RelicDef(
     id: 'phoenix_core',
@@ -794,5 +817,7 @@ abstract final class Relics {
     incinerator,
     supplyCrate,
     printer3d,
+    abyssLink,
+    lastBlessing,
   ];
 }

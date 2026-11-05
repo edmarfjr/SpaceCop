@@ -66,6 +66,10 @@ class RunState {
       ..energyBaseBonus = json['energyBaseBonus']! as int
       ..nextBattleEnergy = json['nextBattleEnergy']! as int
       ..jumps = json['jumps'] as int? ?? 0
+      ..energyBattles = json['energyBattles'] as int? ?? 0
+      ..bossHpCut = (json['bossHpCut'] as num? ?? 0).toDouble()
+      ..bossBarrier = json['bossBarrier'] as bool? ?? false
+      ..freeShopItem = json['freeShopItem'] as bool? ?? false
       ..relics.addAll([
         for (final id in (json['relics']! as List).cast<String>())
           ?Relics.byId(id),
@@ -107,6 +111,10 @@ class RunState {
     },
     'map': map.toJson(),
     'jumps': jumps,
+    'energyBattles': energyBattles,
+    'bossHpCut': bossHpCut,
+    'bossBarrier': bossBarrier,
+    'freeShopItem': freeShopItem,
     'bossIndex': bossIndex,
     'drawnNormals': drawnNormals.toList(),
     'drawnElites': drawnElites.toList(),
@@ -150,6 +158,20 @@ class RunState {
   /// Added to the next battle's base energy only (Festa da Colheita); used
   /// up by that battle.
   int nextBattleEnergy = 0;
+
+  /// Battles left with +1 base energy (Último Sobrevivente).
+  int energyBattles = 0;
+
+  /// Share of HP the act's boss loses before its fight (Câmara do Sono
+  /// Eterno); reset with each act.
+  double bossHpCut = 0;
+
+  /// The act's boss fight starts with Escudo de Energia (Transmissão para a
+  /// Base); reset with each act.
+  bool bossBarrier = false;
+
+  /// The next shop gives one card or relic away (Transmissão para a Base).
+  bool freeShopItem = false;
 
   final List<RelicDef> relics = [];
 
@@ -220,6 +242,8 @@ class RunState {
     _rollBoss();
     current = null;
     hp += ((maxHp - hp) * actHeal).round();
+    bossHpCut = 0;
+    bossBarrier = false;
   }
 
   void _rollBoss() =>
@@ -282,7 +306,11 @@ class RunState {
     if (won && hasRelic(Relics.medKit)) {
       this.hp = min(maxHp, this.hp + medKitHeal);
     }
-    if (phoenixUsed) relics.remove(Relics.phoenixCore);
+    if (phoenixUsed) {
+      relics.remove(
+        hasRelic(Relics.phoenixCore) ? Relics.phoenixCore : Relics.lastBlessing,
+      );
+    }
   }
 
   /// Reator Instável forbids resting.

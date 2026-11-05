@@ -24,6 +24,13 @@ const int neuralGaugeSlow = 25;
 /// Share of max HP the Núcleo Fênix brings the player back with.
 const double phoenixHeal = 0.3;
 
+/// Escudo de Energia the player starts the boss fight with (Transmissão
+/// para a Base).
+const int openingBarrierTicks = 5 * ticksPerSecond;
+
+/// Damage a Sussurro deals to the player when drawn.
+const int whisperDamage = 2;
+
 /// Drone de Escolta: a shot this strong this often.
 const int droneEvery = 5 * ticksPerSecond;
 const int droneDamage = 5;
@@ -690,6 +697,8 @@ class BattleState {
     this.relics = const [],
     int energyBaseBonus = 0,
     int openingStunTicks = 0,
+    double bossHpCut = 0,
+    bool openingBarrier = false,
     this.pauseOnNewHand = false,
   }) : energyMax = baseEnergy + energyBaseBonus,
        player = PlayerFighter(
@@ -706,6 +715,16 @@ class BattleState {
         enemy.applyStatus(Status.stunned, openingStunTicks);
       }
       enemies.add(enemy);
+    }
+    // The first spawn is the boss (Câmara do Sono Eterno).
+    if (bossHpCut > 0 && enemies.isNotEmpty) {
+      final boss = enemies.first;
+      boss.hp = max(1, (boss.hp * (1 - bossHpCut)).round());
+    }
+    if (openingBarrier) {
+      player
+        ..barrierTicks = openingBarrierTicks
+        ..barrierCharges = 1;
     }
     final prisms = enemies.where((e) => e.def.prism).toList();
     if (prisms.length == 2) {
@@ -990,6 +1009,9 @@ class BattleState {
     deck
       ..discardHand()
       ..draw(hasRelic(Relics.neuralImplant) ? handSize + 1 : handSize);
+    for (final card in hand) {
+      if (card.def.effect is WhisperEffect) damage(player, whisperDamage);
+    }
     final carried = hasRelic(Relics.capacitor)
         ? min(energy, capacitorCarry)
         : 0;
@@ -1100,9 +1122,13 @@ class BattleState {
     obstacles.removeWhere((o) => o.isDead);
     barricades.removeWhere((b) => b.isDead);
 
-    if (player.isDead && hasRelic(Relics.phoenixCore) && !phoenixUsed) {
+    if (player.isDead &&
+        !phoenixUsed &&
+        (hasRelic(Relics.phoenixCore) || hasRelic(Relics.lastBlessing))) {
       phoenixUsed = true;
-      player.hp = (player.maxHp * phoenixHeal).round();
+      player.hp = hasRelic(Relics.phoenixCore)
+          ? (player.maxHp * phoenixHeal).round()
+          : 1;
       events.add(BattleEvent(BattleEventKind.blocked, unit: player));
     }
     if (player.isDead) {
@@ -1683,7 +1709,7 @@ class BattleState {
       case ProjectileBonusEffect(:final amount):
         projectileBonus += amount;
       // An empty case would fall through to the next one.
-      case NoEffect():
+      case NoEffect() || WhisperEffect():
         break;
       case TractorEffect(:final steps):
         final row = player.pos.y;

@@ -625,6 +625,297 @@ EventFollowUp? _buildSecond(RunState run, ChipCard picked) {
   return null;
 }
 
+// The third mission: the abyss.
+
+bool _curse(ChipDef def) => def == Chips.bug || def == Chips.whisper;
+
+bool _notCurse(ChipDef def) => !_curse(def);
+
+/// [count] distinct rare cards to pick one from.
+CardChoice _rareChoice(RunState run, String title) {
+  final pool = Chips.all.where((c) => c.rarity == Rarity.rare).toList()
+    ..shuffle(run.random);
+  return CardChoice(title, pool.take(3).toList());
+}
+
+/// A rare relic the run doesn't own (any relic if none is left).
+RelicDef? _rareRelic(RunState run) {
+  final pool = [
+    for (final r in Relics.all)
+      if (r.rarity == Rarity.rare && !run.hasRelic(r)) r,
+  ];
+  return pool.isEmpty
+      ? run.randomRelic()
+      : pool[run.random.nextInt(pool.length)];
+}
+
+/// A fight in the abyss was won: a rare relic instead of the usual spoils.
+OfferChoice? rareRelicWon(RunState run) {
+  final relic = _rareRelic(run);
+  if (relic == null) return null;
+  run.addRelic(relic);
+  return _notice('Você encontrou: ${relic.name}');
+}
+
+/// [count] random shadows of act 3 on the enemy side.
+Encounter _shadows(RunState run, int count) {
+  const cells = [GridPos(4, 0), GridPos(5, 2), GridPos(5, 0)];
+  final pool = Enemies.shadowBasics;
+  return Encounter([
+    for (var i = 0; i < count; i++)
+      EnemySpawn(pool[run.random.nextInt(pool.length)], cells[i]),
+  ]);
+}
+
+// Arquivo dos Últimos Dias.
+
+const int _archiveMaxHp = 10;
+const int _archiveCredits = 80;
+
+EventFollowUp? _watchArchive(RunState run, ChipCard? _) {
+  run
+    ..maxHp -= _archiveMaxHp
+    ..hp = min(run.hp, run.maxHp);
+  return _rareChoice(run, 'Escolha uma carta');
+}
+
+EventFollowUp? _copyArchive(RunState run, ChipCard? _) {
+  run
+    ..gainCredits(_archiveCredits)
+    ..deck.add(ChipCard(Chips.bug));
+  return null;
+}
+
+// Os Que Fugiram.
+
+Encounter _echoes(RunState run) => _shadows(run, 2);
+
+EventFollowUp? _searchBodies(RunState run, ChipCard? _) {
+  if (run.random.nextBool()) {
+    return const StartFight(elite: false, encounter: _echoes, onWin: echoesWon);
+  }
+  return _bodiesRelic(run);
+}
+
+OfferChoice? _bodiesRelic(RunState run) {
+  final relic = run.randomRelic();
+  if (relic == null) return null;
+  run.addRelic(relic);
+  return _notice('Nos corpos: ${relic.name}');
+}
+
+/// The Ecos fell: the relic on the bodies, and nothing else.
+OfferChoice? echoesWon(RunState run) => _bodiesRelic(run);
+
+EventFollowUp? _followGaze(RunState run, ChipCard? _) {
+  run.deck.add(ChipCard(Chips.whisper));
+  return _rareChoice(run, 'Escolha uma carta');
+}
+
+// Câmara do Sono Eterno.
+
+/// Share of HP the act's boss loses (Reforçar as correntes).
+const double chainsBossCut = 0.15;
+const int _linkCredits = 60;
+
+EventFollowUp? _reinforceChains(RunState run, ChipCard? picked) {
+  run
+    ..deck.remove(picked)
+    ..bossHpCut += chainsBossCut;
+  if (!run.deck.any((c) => _notCurse(c.def))) return null;
+  return const PickCard(
+    'Escolha a segunda carta a remover',
+    _removeSecond,
+    pickable: _notCurse,
+  );
+}
+
+EventFollowUp? _removeSecond(RunState run, ChipCard picked) {
+  run.deck.remove(picked);
+  return null;
+}
+
+EventFollowUp? _stealLink(RunState run, ChipCard? _) {
+  if (run.hasRelic(Relics.abyssLink)) {
+    run.gainCredits(_linkCredits);
+    return _notice('Um elo repetido: +$_linkCredits Créditos');
+  }
+  run.addRelic(Relics.abyssLink);
+  return _notice('Você leva: ${Relics.abyssLink.name}');
+}
+
+// Sussurro na Escuridão.
+
+const int _earsHp = 5;
+
+EventFollowUp? _acceptPact(RunState run, ChipCard? _) {
+  run.deck.addAll([ChipCard(Chips.whisper), ChipCard(Chips.whisper)]);
+  final families = [
+    for (final family in ChipFamily.values)
+      if (run.deck.any((c) => c.def.family == family && _upgradeable(c.def)))
+        family,
+  ];
+  if (families.isEmpty) return null;
+  return OfferChoice('Escolha uma família', [
+    for (final family in families)
+      EventOffer(family.label, (run) {
+        for (final card in List.of(run.deck)) {
+          if (card.def.family == family) run.upgrade(card);
+        }
+      }, description: 'Melhora todas as cartas de ${family.label}'),
+  ]);
+}
+
+EventFollowUp? _answerBack(RunState run, ChipCard? _) =>
+    const StartFight(elite: true, onWin: rareRelicWon);
+
+EventFollowUp? _coverEars(RunState run, ChipCard? _) {
+  _payHp(run, _earsHp);
+  return null;
+}
+
+// Biblioteca Viva.
+
+const int _burnLibraryHp = 15;
+
+bool _rewritable(ChipDef def) => _notCurse(def);
+
+EventFollowUp? _readBook(RunState run, ChipCard? picked) {
+  if (picked == null) return null;
+  final pool = [
+    for (final c in Chips.all)
+      if (c.rarity == picked.def.rarity &&
+          c.id != picked.def.id &&
+          Chips.upgradeOf(c) != null)
+        c,
+  ];
+  if (pool.isEmpty) return null;
+  final def = Chips.upgradeOf(pool[run.random.nextInt(pool.length)])!;
+  run.deck[run.deck.indexOf(picked)] = ChipCard(def);
+  return _notice('${picked.def.name} virou ${def.name}');
+}
+
+EventFollowUp? _burnLibrary(RunState run, ChipCard? _) {
+  _payHp(run, _burnLibraryHp);
+  run.deck.removeWhere((c) => _curse(c.def));
+  return null;
+}
+
+// Espelho Errado.
+
+EventFollowUp? _touchMirror(RunState run, ChipCard? picked) {
+  if (picked == null) return null;
+  run.deck.add(ChipCard(picked.def));
+  return _notice('Agora você tem duas: ${picked.def.name}');
+}
+
+EventFollowUp? _breakMirror(RunState run, ChipCard? _) =>
+    const StartFight(elite: true, onWin: mirrorWon);
+
+/// Your Reflexo fell: 2 random uncommon cards.
+OfferChoice? mirrorWon(RunState run) {
+  final pool = Chips.all.where((c) => c.rarity == Rarity.uncommon).toList()
+    ..shuffle(run.random);
+  final cards = pool.take(2).toList();
+  run.deck.addAll([for (final def in cards) ChipCard(def)]);
+  return _notice('Do espelho: ${cards.map((c) => c.name).join(' e ')}');
+}
+
+// Último Sobrevivente.
+
+/// Battles with +1 base energy after hearing the story.
+const int storyBattles = 2;
+
+EventFollowUp? _hearStory(RunState run, ChipCard? _) {
+  run
+    ..hp = min(run.maxHp, run.hp + (run.maxHp * 0.5).round())
+    ..energyBattles = storyBattles;
+  return null;
+}
+
+EventFollowUp? _mercy(RunState run, ChipCard? _) {
+  if (run.hasRelic(Relics.lastBlessing)) return null;
+  run.addRelic(Relics.lastBlessing);
+  return _notice('Você recebe: ${Relics.lastBlessing.name}');
+}
+
+// Altar do Inominável.
+
+const int _namelessMaxHp = 15;
+
+EventFollowUp? _offerMaxHp(RunState run, ChipCard? _) {
+  run
+    ..maxHp -= _namelessMaxHp
+    ..hp = min(run.hp, run.maxHp);
+  final pool = run.rollBossRelics();
+  if (pool.isEmpty) return null;
+  return OfferChoice('Escolha uma relíquia', [
+    for (final relic in pool)
+      EventOffer(
+        relic.name,
+        (run) => run.addRelic(relic),
+        description: relic.description,
+        relic: relic,
+      ),
+  ]);
+}
+
+EventFollowUp? _offerBadge(RunState run, ChipCard? _) {
+  run.credits = 0;
+  final names = <String>[];
+  for (var i = 0; i < 2; i++) {
+    final relic = _rareRelic(run);
+    if (relic == null) break;
+    run.addRelic(relic);
+    names.add(relic.name);
+  }
+  if (names.isEmpty) return null;
+  return _notice('O altar lhe concede: ${names.join(' e ')}');
+}
+
+Encounter _acolytes(RunState run) => _shadows(run, 3);
+
+EventFollowUp? _desecrate(RunState run, ChipCard? _) =>
+    const StartFight(elite: false, encounter: _acolytes, onWin: rareRelicWon);
+
+// Fenda no Real.
+
+const int _closeRiftHp = 10;
+
+EventFollowUp? _takeHerGear(RunState run, ChipCard? _) {
+  final pool = Chips.all;
+  final def = pool[run.random.nextInt(pool.length)];
+  run.deck.addAll([ChipCard(def), ChipCard(Chips.whisper)]);
+  final relic = run.randomRelic();
+  if (relic != null) run.addRelic(relic);
+  return _notice(
+    relic == null
+        ? 'Você leva: ${def.name}'
+        : 'Você leva: ${def.name} e ${relic.name}',
+  );
+}
+
+EventFollowUp? _closeRift(RunState run, ChipCard? picked) {
+  _payHp(run, _closeRiftHp);
+  return _upgradePicked(run, picked);
+}
+
+// Transmissão para a Base.
+
+const int _supplyCredits = 100;
+
+EventFollowUp? _askSupplies(RunState run, ChipCard? _) {
+  run
+    ..gainCredits(_supplyCredits)
+    ..freeShopItem = true;
+  return null;
+}
+
+EventFollowUp? _sendAlert(RunState run, ChipCard? _) {
+  run.bossBarrier = true;
+  return null;
+}
+
 abstract final class Events {
   // The first mission: the criminal organization's base.
 
@@ -1063,8 +1354,253 @@ abstract final class Events {
     ],
   );
 
-  /// The events of [act]; the ruins have their own.
-  static List<EventDef> of(int act) => act == 2 ? ruins : all;
+  /// The events of [act]; the ruins and the abyss have their own.
+  static List<EventDef> of(int act) => switch (act) {
+    2 => ruins,
+    3 => abyss,
+    _ => all,
+  };
+
+  // The third mission: the abyss.
+
+  static const archive = EventDef(
+    title: 'Arquivo dos Últimos Dias',
+    text:
+        'Telas holográficas tocam a última transmissão da civilização: '
+        'gritos, e uma forma que nenhuma câmera consegue focar.',
+    options: [
+      EventOption(
+        label: 'Assistir até o fim',
+        cost: '−$_archiveMaxHp de HP máximo',
+        reward: '1 carta Rara entre 3',
+        apply: _watchArchive,
+      ),
+      EventOption(
+        label: 'Copiar os dados',
+        cost: 'Recebe a carta Bug',
+        reward: '+$_archiveCredits Créditos',
+        apply: _copyArchive,
+      ),
+      EventOption(label: 'Desligar', apply: _disconnect),
+    ],
+  );
+
+  static const fled = EventDef(
+    title: 'Os Que Fugiram',
+    text:
+        'Centenas de ETs petrificados no meio da corrida, todos olhando '
+        'para o mesmo ponto atrás de você.',
+    options: [
+      EventOption(
+        label: 'Revistar os corpos',
+        cost: '50%: luta contra os Ecos, sem carta de recompensa',
+        reward: '1 relíquia',
+        apply: _searchBodies,
+      ),
+      EventOption(
+        label: 'Seguir o olhar deles',
+        cost: 'Recebe 1 Sussurro',
+        reward: '1 carta Rara entre 3',
+        apply: _followGaze,
+      ),
+      EventOption(label: 'Sair', apply: _disconnect),
+    ],
+  );
+
+  static const sleeper = EventDef(
+    title: 'Câmara do Sono Eterno',
+    text:
+        'Algo dorme, preso por correntes do tamanho de prédios. As '
+        'correntes estão rachadas.',
+    options: [
+      EventOption(
+        label: 'Reforçar as correntes',
+        cost: 'Remove 2 cartas',
+        reward: 'O boss do ato começa com −15% de HP',
+        pick: EventPick.deckChip,
+        pickable: _notCurse,
+        apply: _reinforceChains,
+      ),
+      EventOption(
+        label: 'Roubar um elo',
+        reward: 'Elo do Abismo (ou +$_linkCredits Créditos)',
+        apply: _stealLink,
+      ),
+      EventOption(label: 'Sair na ponta dos pés', apply: _disconnect),
+    ],
+  );
+
+  static const whisperDark = EventDef(
+    title: 'Sussurro na Escuridão',
+    text:
+        'Uma voz sem boca promete poder. Ela sabe seu nome e o número do '
+        'seu distintivo.',
+    options: [
+      EventOption(
+        label: 'Aceitar o pacto',
+        cost: 'Recebe 2 Sussurros',
+        reward: 'Melhora todas as cartas de uma família',
+        apply: _acceptPact,
+      ),
+      EventOption(
+        label: 'Responder com voz de prisão',
+        cost: 'Luta contra um elite, sem a recompensa de sempre',
+        reward: '1 relíquia Rara',
+        apply: _answerBack,
+      ),
+      EventOption(
+        label: 'Tapar os ouvidos',
+        cost: '−$_earsHp HP',
+        apply: _coverEars,
+      ),
+    ],
+  );
+
+  static const library = EventDef(
+    title: 'Biblioteca Viva',
+    text: 'Livros de carne e metal que se reescrevem enquanto você lê.',
+    options: [
+      EventOption(
+        label: 'Ler um livro',
+        reward: 'Uma carta vira outra da mesma raridade, já melhorada',
+        pick: EventPick.deckChip,
+        pickable: _rewritable,
+        apply: _readBook,
+      ),
+      EventOption(
+        label: 'Queimar a biblioteca',
+        cost: '−$_burnLibraryHp HP',
+        reward: 'Remove todas as cartas Bug e Sussurro',
+        apply: _burnLibrary,
+      ),
+      EventOption(label: 'Sair', apply: _disconnect),
+    ],
+  );
+
+  static const mirror = EventDef(
+    title: 'Espelho Errado',
+    text:
+        'Seu reflexo se move meio segundo atrasado. Depois, meio segundo '
+        'adiantado.',
+    options: [
+      EventOption(
+        label: 'Tocar o espelho',
+        reward: 'Duplica 1 carta',
+        pick: EventPick.deckChip,
+        pickable: _notCurse,
+        apply: _touchMirror,
+      ),
+      EventOption(
+        label: 'Quebrar o espelho',
+        cost: 'Luta contra o seu Reflexo, sem a recompensa de sempre',
+        reward: '2 cartas Incomuns',
+        apply: _breakMirror,
+      ),
+      EventOption(label: 'Virar de costas', apply: _disconnect),
+    ],
+  );
+
+  static const survivor = EventDef(
+    title: 'Último Sobrevivente',
+    text: 'Um ET velhíssimo, meio fundido à parede, ainda vivo e lúcido.',
+    options: [
+      EventOption(
+        label: 'Ouvir a história',
+        reward: 'Recupera 50% do HP; +1 de Energia nas próximas 2 lutas',
+        apply: _hearStory,
+      ),
+      EventOption(
+        label: 'Dar um fim misericordioso',
+        reward: 'Bênção do Último',
+        apply: _mercy,
+      ),
+      EventOption(label: 'Sair', apply: _disconnect),
+    ],
+  );
+
+  static const namelessAltar = EventDef(
+    title: 'Altar do Inominável',
+    text:
+        'Um altar sem inscrição alguma. Todas as outras salas apontam para '
+        'cá.',
+    options: [
+      EventOption(
+        label: 'Oferecer HP máximo',
+        cost: '−$_namelessMaxHp de HP máximo',
+        reward: '1 relíquia de boss entre 3',
+        apply: _offerMaxHp,
+      ),
+      EventOption(
+        label: 'Oferecer o distintivo',
+        cost: 'Perde todos os Créditos',
+        reward: '2 relíquias Raras',
+        apply: _offerBadge,
+      ),
+      EventOption(
+        label: 'Profanar',
+        cost: 'Luta contra os Acólitos, sem carta de recompensa',
+        reward: '1 relíquia Rara',
+        apply: _desecrate,
+      ),
+    ],
+  );
+
+  static const rift = EventDef(
+    title: 'Fenda no Real',
+    text:
+        'Uma rachadura no ar. Do outro lado, a mesma sala, com outra '
+        'versão de você já morta.',
+    options: [
+      EventOption(
+        label: 'Pegar o equipamento dela',
+        cost: 'Recebe 1 Sussurro',
+        reward: '1 carta e 1 relíquia aleatórias',
+        apply: _takeHerGear,
+      ),
+      EventOption(
+        label: 'Fechar a fenda',
+        cost: '−$_closeRiftHp HP',
+        reward: 'Melhora 1 carta',
+        pick: EventPick.deckChip,
+        pickable: _upgradeable,
+        apply: _closeRift,
+      ),
+      EventOption(label: 'Sair', apply: _disconnect),
+    ],
+  );
+
+  static const transmission = EventDef(
+    title: 'Transmissão para a Base',
+    text:
+        'Um terminal de comunicação ainda funciona. Dá pra pedir reforço, '
+        'ou avisar a galáxia.',
+    options: [
+      EventOption(
+        label: 'Pedir suprimento',
+        reward: '+$_supplyCredits Créditos; 1 item de graça na próxima loja',
+        apply: _askSupplies,
+      ),
+      EventOption(
+        label: 'Mandar o alerta',
+        reward: 'Começa a luta contra o boss do ato com Escudo de Energia',
+        apply: _sendAlert,
+      ),
+      EventOption(label: 'Não arriscar', apply: _disconnect),
+    ],
+  );
+
+  static const abyss = [
+    archive,
+    fled,
+    sleeper,
+    whisperDark,
+    library,
+    mirror,
+    survivor,
+    namelessAltar,
+    rift,
+    transmission,
+  ];
 
   static const ruins = [
     mural,
