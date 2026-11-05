@@ -975,6 +975,8 @@ class BattleState {
           panelAt(cell).walkable &&
           switch (unitAt(cell)) {
             null => true,
+            // The player walks through its own Holograma.
+            Obstacle(kind: ObstacleKind.decoy) when unit == player => true,
             final other => wide && other == unit,
           },
     );
@@ -1892,8 +1894,9 @@ class BattleState {
           ),
         );
       case ObstacleKind.decoy:
-        final pos = player.pos + const GridPos(1, 0);
-        if (!free(pos) || ownerAt(pos) != Team.player) return;
+        // On the player's own panel: hits there still land on the player
+        // until they step away.
+        final pos = player.pos;
         obstacles.add(
           Obstacle(
             kind,

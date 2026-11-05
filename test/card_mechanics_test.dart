@@ -224,6 +224,21 @@ void main() {
   });
 
   group('phase 4', () {
+    test('Holograma lets the player walk and shoot through it', () {
+      final battle = battleWith(
+        [Chips.hologram, Chips.shot],
+        spawns: [dummyAt(4, 1)],
+      );
+      use(battle, Chips.hologram);
+      battle.tick(const PlayerInput(dx: -1));
+      expect(battle.player.pos, const GridPos(0, 1));
+      use(battle, Chips.shot);
+      wait(battle, 5);
+      expect(battle.enemies.single.hp, 100 - pew(Chips.shot.damage));
+      battle.tick(const PlayerInput(dx: 1));
+      expect(battle.player.pos, const GridPos(1, 1));
+    });
+
     test('Holograma draws the Raiz strike, then the aim goes back', () {
       final battle = battleWith(
         [Chips.hologram],
@@ -231,8 +246,11 @@ void main() {
       );
       use(battle, Chips.hologram);
       final decoy = battle.obstacles.single;
-      expect(decoy.pos, const GridPos(2, 1));
+      expect(decoy.pos, const GridPos(1, 1));
       expect(battle.aimPos, decoy.pos);
+      // Out of its column: the Raiz hits a whole column.
+      battle.tick(const PlayerInput(dx: -1));
+      expect(battle.player.pos, const GridPos(0, 1));
       wait(battle, RootBehavior.cycleTicks ~/ 2 + basicWarnTicks);
       expect(decoy.hp, decoyHp - RootBehavior.damage);
       expect(battle.player.hp, 100);
