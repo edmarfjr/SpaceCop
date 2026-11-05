@@ -360,6 +360,9 @@ abstract final class SpriteFiles {
     Events.brokenBridge.title: 'events/ponteQuebrada.png',
     Events.forge.title: 'events/forja.png',
     Events.oracle.title: 'events/oraculoTotem.png',
+    Events.archive.title: 'events/arquivoUltimosDias.png',
+    Events.sleeper.title: 'events/camaraSono.png',
+    Events.whisperDark.title: 'events/sussuroEscuridao.png',
   };
 
   static const nodes = <NodeType, String>{
