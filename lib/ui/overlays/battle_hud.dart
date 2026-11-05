@@ -58,12 +58,12 @@ class BattleHud extends StatelessWidget {
             right: 2,
             child: Row(
               children: [
-                _IconButton(
+                HudIconButton(
                   icon: game.sprites.deckIcon,
                   onTap: game.showDeck,
                 ),
                 const SizedBox(width: 4),
-                _IconButton(icon: game.sprites.pauseIcon, onTap: game.pause),
+                HudIconButton(icon: game.sprites.pauseIcon, onTap: game.pause),
               ],
             ),
           ),
@@ -167,9 +167,9 @@ class _SwipeAreaState extends State<_SwipeArea> {
   );
 }
 
-/// Pause and deck, top right.
-class _IconButton extends StatelessWidget {
-  const _IconButton({required this.icon, required this.onTap});
+/// Pause and deck, top right (the map shows pause too).
+class HudIconButton extends StatelessWidget {
+  const HudIconButton({super.key, required this.icon, required this.onTap});
 
   /// 8x8 art, drawn at 2x like everything else.
   final Sprite icon;

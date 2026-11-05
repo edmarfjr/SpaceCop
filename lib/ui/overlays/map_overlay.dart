@@ -12,6 +12,7 @@ import '../../game/sprites.dart';
 import '../feedback.dart';
 import '../theme.dart';
 import '../widgets/sheet_sprite.dart';
+import 'battle_hud.dart' show HudIconButton;
 
 /// Slay the Spire style map, floor 0 at the bottom and the boss on top.
 /// Only nodes in [RunState.availableNodes] are tappable (and focusable, for
@@ -81,6 +82,14 @@ class _MapOverlayState extends State<MapOverlay> {
       child: Stack(
         children: [
           _body(run, available),
+          Positioned(
+            top: 2,
+            right: 2,
+            child: HudIconButton(
+              icon: game.sprites.pauseIcon,
+              onTap: game.pause,
+            ),
+          ),
           if (_held case final relic?)
             Positioned(
               top: 18,
@@ -98,7 +107,8 @@ class _MapOverlayState extends State<MapOverlay> {
   Widget _body(RunState run, List<MapNode> available) => Column(
     children: [
       Padding(
-        padding: const EdgeInsets.all(2),
+        // Room on the right for the pause button.
+        padding: const EdgeInsets.fromLTRB(2, 2, 26, 2),
         child: 
         Container(
           decoration: BoxDecoration(
