@@ -145,14 +145,19 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     final shape = Random(_seed);
     for (final shot in battle.projectiles) {
       if (shot.fx != ChipFx.bolt) continue;
-      ShieldLinkLayer.drawBolt(canvas, hand, _body(shot.pos), shape);
+      final to = _body(shot.pos);
+      ShieldLinkLayer.drawBolt(canvas, hand, Vector2(to.x, hand.y), shape);
     }
     for (final zap in battle.zaps) {
       final from = switch (zap.from) {
         final GridPos pos => _body(pos),
         null => hand,
       };
-      final to = _body(zap.to);
+      var to = _body(zap.to);
+      // From the hand down its own row: level with the hand.
+      if (zap.from == null && zap.to.y == battle.player.pos.y) {
+        to = Vector2(to.x, from.y);
+      }
       switch (zap.style) {
         case ZapStyle.bolt:
           ShieldLinkLayer.drawBolt(canvas, from, to, shape);
