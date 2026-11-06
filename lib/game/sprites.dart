@@ -184,6 +184,7 @@ abstract final class SpriteFiles {
     Chips.turret.id: 'chips/droneItn.png',
     Chips.hook.id: 'chips/hook.png',
     Chips.bug.id: 'chips/bug.png',
+    Chips.whisper.id: 'chips/sussurro.png',
     Chips.cryoGrenade.id: 'chips/granadaCrio.png',
     Chips.emp.id: 'chips/emp.png',
     Chips.neuralVine.id: 'chips/cabos.png',
@@ -316,6 +317,8 @@ abstract final class SpriteFiles {
     Relics.incinerator.id: 'relics/incinerador.png',
     Relics.supplyCrate.id: 'relics/caixoteMilitar.png',
     Relics.printer3d.id: 'relics/impressora3D.png',
+    Relics.abyssLink.id: 'relics/eloAbismo.png',
+    Relics.lastBlessing.id: 'relics/bencaoUltimo.png',
     Relics.etCrown.id: 'relics/coroa.png',
     Relics.medKit.id: 'relics/kitSocorros.png',
     Relics.helmet.id: 'relics/capacete.png',
@@ -363,6 +366,11 @@ abstract final class SpriteFiles {
     Events.archive.title: 'events/arquivoUltimosDias.png',
     Events.sleeper.title: 'events/camaraSono.png',
     Events.whisperDark.title: 'events/sussuroEscuridao.png',
+    Events.library.title: 'events/biblioteca.png',
+    Events.mirror.title: 'events/espelhoErrado.png',
+    Events.namelessAltar.title: 'events/altarInominavel.png',
+    Events.survivor.title: 'events/ultimoSobrevivente.png',
+    Events.fled.title: 'events/fugiram.png',
   };
 
   static const nodes = <NodeType, String>{
