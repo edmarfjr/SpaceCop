@@ -21,9 +21,12 @@ import '../widgets/sheet_sprite.dart';
 /// Full-screen panel shared by the non-battle nodes. The title and buttons
 /// stay put; a [ChipPicker] child scrolls only its cards.
 class _Panel extends StatelessWidget {
-  const _Panel({required this.title, required this.children});
+  const _Panel({this.title = '', this.header, required this.children});
 
   final String title;
+
+  /// Drawn instead of [title].
+  final Widget? header;
   final List<Widget> children;
 
   @override
@@ -35,7 +38,8 @@ class _Panel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(title, style: GbText.title, textAlign: TextAlign.center),
+            header ??
+                Text(title, style: GbText.title, textAlign: TextAlign.center),
             const SizedBox(height: 6),
             for (final child in children)
               child is ChipPicker ? Flexible(child: child) : child,
@@ -1026,9 +1030,8 @@ class MenuOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _Panel(
-    title: 'STAR COP',
+    header: _AnimatedTitle(frames: game.sprites.titleFx),
     children: [
-      const SizedBox(height: 10),
       if (game.savedRun != null) ...[
         FilledButton(
           autofocus: true,
@@ -1054,6 +1057,60 @@ class MenuOverlay extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// The menu's title: plays [frames] once as the menu opens, then holds the
+/// last one. The frames are taller than the final title: the band it ends
+/// on takes the layout room, the start of the animation spills over it.
+class _AnimatedTitle extends StatefulWidget {
+  const _AnimatedTitle({required this.frames});
+
+  final List<Sprite> frames;
+
+  static const _frameTime = Duration(milliseconds: 100);
+
+  /// Rows of the frame the finished title sits on.
+  static const _height = 44.0;
+
+  @override
+  State<_AnimatedTitle> createState() => _AnimatedTitleState();
+}
+
+class _AnimatedTitleState extends State<_AnimatedTitle>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _play = AnimationController(
+    vsync: this,
+    duration: _AnimatedTitle._frameTime * widget.frames.length,
+  )..forward();
+
+  @override
+  void dispose() {
+    _play.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final frames = widget.frames;
+    final size = frames.first.src.size;
+    return SizedBox(
+      width: size.width,
+      height: _AnimatedTitle._height,
+      child: OverflowBox(
+        maxHeight: size.height,
+        child: AnimatedBuilder(
+          animation: _play,
+          builder: (context, _) => SheetSprite(
+            sprite: frames[min(
+              frames.length - 1,
+              (_play.value * frames.length).floor(),
+            )],
+            scale: 1,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class GameOverOverlay extends StatelessWidget {

@@ -133,6 +133,9 @@ abstract final class SpriteFiles {
   /// Warning sign over an enemy about to attack, 2 frames blinking.
   static const attackSign = 'actors/sign.png';
 
+  /// The menu's title, 160x160 frames: it plays once and stays on the last.
+  static const titleFx = 'titleFx.png';
+
   /// Battle buttons, top right: 8x8 icons.
   static const deckIcon = 'icons/deck.png';
   static const pauseIcon = 'icons/pause.png';
@@ -412,6 +415,7 @@ abstract final class SpriteFiles {
     attackSign,
     deckIcon,
     pauseIcon,
+    titleFx,
     ...enemies.values,
     ...obstacles.values,
     ...chips.values,
@@ -491,6 +495,7 @@ class GameSprites {
   ];
   late final Sprite deckIcon = _file(SpriteFiles.deckIcon);
   late final Sprite pauseIcon = _file(SpriteFiles.pauseIcon);
+  late final List<Sprite> titleFx = _sheet(SpriteFiles.titleFx);
 
   /// Hits and area attacks, 4 frames played once.
   /// Energy shield loop; frame size read from the file's height.
