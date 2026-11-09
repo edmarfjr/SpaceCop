@@ -255,6 +255,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: HealEffect(10),
     exhaust: true,
+    pose: ChipPose.toss,
   );
 
   static const atkBoost = ChipDef(
@@ -266,6 +267,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: DamageBoostEffect(10),
+    pose: ChipPose.toss,
   );
 
   static const energyDrink = ChipDef(
@@ -277,6 +279,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: EnergyBurstEffect(2),
+    pose: ChipPose.toss,
   );
 
   static const energyTank = ChipDef(
@@ -290,6 +293,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: EnergyMaxEffect(1),
     exhaust: true,
+    pose: ChipPose.toss,
   );
 
   static const powerGenerator = ChipDef(
@@ -303,6 +307,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: GaugeSpeedEffect(20),
     exhaust: true,
+    pose: ChipPose.toss,
   );
 
   static const cracker = ChipDef(
@@ -378,6 +383,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: BarrierEffect(5 * ticksPerSecond),
+    pose: ChipPose.toss,
   );
 
   static const mirror = ChipDef(
@@ -392,6 +398,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: SpawnObstacleEffect(ObstacleKind.reflector),
+    pose: ChipPose.toss,
   );
 
   static const seedGrass = ChipDef(
@@ -404,6 +411,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: PanelChangeEffect(PanelState.grass),
+    pose: ChipPose.toss,
   );
 
   static const areaSteal = ChipDef(
@@ -418,6 +426,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: AreaStealEffect(10 * ticksPerSecond, hitDamage: 5),
+    pose: ChipPose.toss,
   );
 
   // Keeps the old id, so saved runs still load it.
@@ -458,6 +467,7 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     effect: SpawnObstacleEffect(ObstacleKind.turret),
+    pose: ChipPose.toss,
   );
 
   static const hook = ChipDef(
@@ -533,6 +543,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.row,
     effect: StatusShotEffect(Status.marked, markTicks),
+    pose: ChipPose.toss,
   );
 
   static const overcharge = ChipDef(
@@ -547,6 +558,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: ChainSurgeEffect(),
+    pose: ChipPose.toss,
   );
 
   static const tractorBeam = ChipDef(
@@ -575,6 +587,7 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     effect: SpawnObstacleEffect(ObstacleKind.tesla),
+    pose: ChipPose.toss,
   );
 
   static const overclock = ChipDef(
@@ -590,6 +603,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: RepeatNextEffect(),
     exhaust: true,
+    pose: ChipPose.toss,
   );
 
   static const sniper = ChipDef(
@@ -776,7 +790,7 @@ abstract final class Chips {
     family: ChipFamily.melee,
     type: ChipType.attack,
     target: ChipTarget.self,
-    damage: 15,
+    damage: 20,
     effect: MeleeEffect(pattern: [GridPos(1, -1), GridPos(1, 1)]),
     pose: ChipPose.melee,
     fx: ChipFx.cut,
@@ -900,6 +914,7 @@ abstract final class Chips {
     type: ChipType.recovery,
     target: ChipTarget.self,
     effect: SpawnObstacleEffect(ObstacleKind.medic),
+    pose: ChipPose.toss,
   );
 
   static const domeGenerator = ChipDef(
@@ -912,6 +927,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: BarrierEffect(10 * ticksPerSecond, charges: 3),
+    pose: ChipPose.toss,
   );
 
   static const repairKit = ChipDef(
@@ -925,6 +941,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: CleanseEffect(5),
     exhaust: true,
+    pose: ChipPose.toss,
   );
 
   static const nanobots = ChipDef(
@@ -938,6 +955,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: SelfStatusEffect(Status.regen, regenTicks),
     exhaust: true,
+    pose: ChipPose.toss,
   );
 
   static const tacticalReload = ChipDef(
@@ -949,6 +967,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: DrawEffect(2),
+    pose: ChipPose.toss,
   );
 
   static const resonance = ChipDef(
@@ -965,6 +984,7 @@ abstract final class Chips {
     damage: 5,
     effect: ChainScaleEffect(),
     fx: ChipFx.rings,
+    pose: ChipPose.toss,
   );
 
   static const wildcard = ChipDef(
@@ -979,6 +999,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: WildcardEffect(),
+    pose: ChipPose.toss,
   );
 
   static const adrenaline = ChipDef(
@@ -992,6 +1013,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: AttackChargesEffect(3, 5),
     exhaust: true,
+    pose: ChipPose.toss,
   );
 
   static const ricochet = ChipDef(
@@ -1056,6 +1078,7 @@ abstract final class Chips {
     damage: 30,
     effect: StickyBombEffect(3 * ticksPerSecond),
     exhaust: true,
+    pose: ChipPose.toss,
   );
 
   static const assistedAim = ChipDef(
@@ -1070,6 +1093,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: HomingEffect(1),
+    pose: ChipPose.toss,
   );
 
   static const hologram = ChipDef(
@@ -1082,6 +1106,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: SpawnObstacleEffect(ObstacleKind.decoy),
+    pose: ChipPose.toss,
   );
 
   static const spear = ChipDef(
@@ -1098,6 +1123,7 @@ abstract final class Chips {
     damage: 10,
     effect: SpearEffect(),
     fx: ChipFx.spear,
+    pose: ChipPose.toss,
   );
 
   static const energyCannon = ChipDef(
@@ -1350,7 +1376,7 @@ abstract final class Chips {
       _up(steadyBeam, damage: 7),
       _up(dagger, damage: 15),
       _up(thermalBlade, damage: 20),
-      _up(scythe, damage: 20),
+      _up(scythe, damage: 30),
       _up(hydraulicFist, damage: 35),
       _up(
         fireTurret,
@@ -1631,6 +1657,7 @@ abstract final class Chips {
     for (var i = 0; i < 2; i++) ChipCard(vShot), //ChipCard(vShot),
     for (var i = 0; i < 2; i++) ChipCard(shotgun), //ChipCard(shotgun),
     for (var i = 0; i < 2; i++) ChipCard(cannon), //ChipCard(cannon),
+    for (var i = 0; i < 2; i++) ChipCard(scythe), //ChipCard(cannon),
     ChipCard(smokeGrenade),
   ];
 }

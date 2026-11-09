@@ -121,6 +121,8 @@ abstract final class SpriteFiles {
   /// Espada's vertical slash: one 16x48 frame, 3 rows tall.
   static const slash = 'projeteis/slash3Vertical.png';
 
+  static const cut = 'projeteis/cut.png';
+
   /// Energy shield, square frames looped (player's barrier, Brute).
   static const energyShield = 'projeteis/eShld.png';
 
@@ -403,6 +405,7 @@ abstract final class SpriteFiles {
     rune,
     explosion,
     slash,
+    cut,
     smoke,
     energyShield,
     frontShield,
@@ -514,13 +517,14 @@ class GameSprites {
   ];
 
   late final Sprite slash = _file(SpriteFiles.slash);
+  late final Sprite cut = _file(SpriteFiles.cut);
 
   /// The middle 16x24 of the slash: a Foice cut.
-  late final Sprite cut = Sprite(
-    _images[SpriteFiles.slash]!,
-    srcPosition: Vector2(0, 12),
-    srcSize: Vector2(16, 24),
-  );
+ // late final Sprite cut = Sprite(
+ //   _images[SpriteFiles.slash]!,
+ //   srcPosition: Vector2(0, 12),
+ //   srcSize: Vector2(16, 24),
+ // );
 
   late final List<Sprite> smoke = [
     for (var i = 0; i < 2; i++) _frame(SpriteFiles.smoke, i, 16),
