@@ -115,7 +115,7 @@ class _RewardOverlayState extends State<RewardOverlay> {
             children: [
               if (spoils.isEmpty)
                 Text(
-                  'Nada mais a pegar.',
+                  'Nada mais a ser pego.',
                   textAlign: TextAlign.center,
                   style: GbText.small.copyWith(color: Pico.darkGray),
                 ),

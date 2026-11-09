@@ -284,7 +284,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     if (_shooting) {
       sprites.muzzle.render(
         canvas,
-        position: Vector2(size.x - 4, 10),
+        position: Vector2(size.x - 5, 11),
         size: sprites.muzzle.srcSize * _scale,
       );
     }

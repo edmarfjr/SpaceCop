@@ -542,11 +542,10 @@ List<_Chapter> _book() => [
       ),
       [
         'Você é uma *policial espacial*. Sem parceiro e sem reforços, '
-            'vai desmontar uma organização criminosa.',
-        'Cada partida tem *3 missões*. Em cada uma você sobe um mapa até '
+            'vai atender uma ocorrência em um remoto planeta...',
+        'Cada partida tem *3 Atos*. Em cada uma você sobe um mapa até '
             'o chefe no topo.',
-        'Você luta com um *deck de cartas* que cresce a cada vitória. '
-            'Se o HP chegar a zero, a operação recomeça do início.',
+        'Você luta com um *deck de cartas* que cresce a cada vitória. ',
       ],
     ),
   ]),
@@ -586,9 +585,9 @@ List<_Chapter> _book() => [
     (s) => _spread(
       ChipCardView(def: Chips.vShot, sprites: s, width: 56, focusable: false),
       [
-        'A cada *10 s* o gauge enche: a mão vai para o descarte e você '
+        'A cada *10 s* o medidor de turno enche: a mão vai para o descarte e você '
             'compra *5 cartas*.',
-        'Cada mão traz *4 de Energia*. A carta custa o número azul; o '
+        'Cada mão traz *3 de Energia*. A carta custa o número azul; o '
             'vermelho é o dano. A Energia que sobra *não acumula*.',
         'Cartas de *uso único* saem do deck até o fim da luta.',
       ],

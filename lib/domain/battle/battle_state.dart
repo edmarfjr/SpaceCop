@@ -46,7 +46,7 @@ const int playerAttackCooldown = 10;
 const int handSize = 5;
 
 /// Energy available per hand before any bonus.
-const int baseEnergy = 4;
+const int baseEnergy = 3;
 
 /// Player shots move one cell per tick; enemy shots use [EnemyDef.shotStepTicks].
 const int projectileLifetime = 180;

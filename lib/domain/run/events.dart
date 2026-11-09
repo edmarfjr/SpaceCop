@@ -230,8 +230,8 @@ EventFollowUp? _forceVault(RunState run, ChipCard? _) {
 }
 
 bool _explosive(ChipDef def) =>
-    def.id == Chips.missile.id || def.id == Chips.mine.id;
-
+    def.family == ChipFamily.explosive;
+    
 EventFollowUp? _blowVault(RunState run, ChipCard? picked) {
   run.deck.remove(picked);
   run.gainCredits(150);
@@ -1028,11 +1028,11 @@ abstract final class Events {
   );
 
   static const undercoverAgent = EventDef(
-    title: 'Agente Infiltrada',
-    text: 'Uma colega da polícia, disfarçada de capanga, puxa você num canto.',
+    title: 'Agente Infiltrado',
+    text: 'Um colega da polícia, disfarçada de capanga, puxa você num canto.',
     options: [
       EventOption(
-        label: 'Pegar o equipamento dela',
+        label: 'Pegar o equipamento dele',
         reward: '1 relíquia entre 2',
         apply: _takeGear,
       ),
@@ -1044,7 +1044,7 @@ abstract final class Events {
         apply: _cover,
       ),
       EventOption(
-        label: 'Mandar ela sair dali',
+        label: 'Mandar ele sair dali',
         reward: '1 carta Rara aleatória',
         apply: _sendAway,
       ),
@@ -1053,7 +1053,7 @@ abstract final class Events {
 
   static const clinic = EventDef(
     title: 'Enfermaria Clandestina',
-    text: 'A enfermaria da gangue, com uma câmara médica ainda ligada.',
+    text: 'A enfermaria da organização, com uma câmara médica ainda ligada.',
     options: [
       EventOption(
         label: 'Usar a câmara médica',
