@@ -1653,11 +1653,11 @@ abstract final class Chips {
       upgraded ? _upgrades[id] : _byId[id];
 
   static List<ChipCard> starterDeck() => [
-    for (var i = 0; i < 3; i++) ChipCard(shot), //ChipCard(shot),
+    for (var i = 0; i < 2; i++) ChipCard(shot), //ChipCard(shot),
     for (var i = 0; i < 2; i++) ChipCard(vShot), //ChipCard(vShot),
     for (var i = 0; i < 2; i++) ChipCard(shotgun), //ChipCard(shotgun),
     for (var i = 0; i < 2; i++) ChipCard(cannon), //ChipCard(cannon),
-    for (var i = 0; i < 2; i++) ChipCard(mirror), //ChipCard(cannon),
-    ChipCard(smokeGrenade),
+    for (var i = 0; i < 2; i++) ChipCard(baton), //ChipCard(cannon),
+    //ChipCard(smokeGrenade),
   ];
 }
