@@ -96,7 +96,7 @@ void main() {
     use(battle, Chips.mirror);
     final reflector = battle.obstacles.single;
     expect(reflector.kind, ObstacleKind.reflector);
-    expect(reflector.pos, const GridPos(2, 1));
+    expect(reflector.pos, battle.player.pos, reason: "on the player's panel");
     battle.projectiles.add(
       Projectile(
         team: Team.enemy,
@@ -111,8 +111,10 @@ void main() {
     expect(battle.player.hp, 100);
     expect(battle.enemies.single.hp, 100 - 20);
 
-    // Strikes can't break it; it goes away on its own.
+    // It only bounces shots: a strike there still hurts the player, and
+    // can't break it. It goes away on its own.
     battle.strike(reflector.pos, 50, Team.player, Element.neutral);
+    expect(battle.player.hp, 50);
     expect(battle.obstacles, contains(reflector));
     wait(battle, reflectorTicks);
     expect(battle.obstacles, isEmpty);
@@ -127,6 +129,17 @@ void main() {
     use(battle, Chips.shot);
     wait(battle, 5);
     expect(battle.enemies.single.hp, 100 - pew(Chips.shot.damage));
+  });
+
+  test('the player walks off and back onto the Escudo Refletor', () {
+    final battle = battleWith([Chips.mirror], spawns: [dummyAt(4, 1)]);
+    use(battle, Chips.mirror);
+    final reflector = battle.obstacles.single;
+    battle.tick(const PlayerInput(dx: -1));
+    expect(battle.player.pos, const GridPos(0, 1));
+    wait(battle, 5);
+    battle.tick(const PlayerInput(dx: 1));
+    expect(battle.player.pos, reflector.pos);
   });
 
   test('Semear Grama turns the player side into grass', () {

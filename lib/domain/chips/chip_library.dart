@@ -390,7 +390,7 @@ abstract final class Chips {
     id: 'mirror',
     name: 'Escudo Refletor',
     description:
-        'Escudo à sua frente por 5 s: devolve tiros inimigos com o dobro '
+        'Escudo no seu painel por 5 s: devolve tiros inimigos com o dobro '
         'do dano.',
     cost: 2,
     family: ChipFamily.equipment,
@@ -1295,8 +1295,8 @@ abstract final class Chips {
       _up(
         mirror,
         description:
-            'Escudo à sua frente por 8 s: devolve tiros inimigos com o dobro '
-            'do dano.',
+            'Escudo no seu painel por 8 s: devolve tiros inimigos com o '
+            'dobro do dano.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.reflector,
           amount: 8 * ticksPerSecond,
@@ -1657,7 +1657,7 @@ abstract final class Chips {
     for (var i = 0; i < 2; i++) ChipCard(vShot), //ChipCard(vShot),
     for (var i = 0; i < 2; i++) ChipCard(shotgun), //ChipCard(shotgun),
     for (var i = 0; i < 2; i++) ChipCard(cannon), //ChipCard(cannon),
-    for (var i = 0; i < 2; i++) ChipCard(scythe), //ChipCard(cannon),
+    for (var i = 0; i < 2; i++) ChipCard(mirror), //ChipCard(cannon),
     ChipCard(smokeGrenade),
   ];
 }

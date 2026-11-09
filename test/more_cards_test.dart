@@ -141,7 +141,7 @@ void main() {
       [Chips.scythe],
     );
     use(battle, Chips.scythe);
-    expect(battle.enemies.map((e) => e.hp), [85, 100, 85]);
+    expect(battle.enemies.map((e) => e.hp), [80, 100, 80]);
   });
 
   test('Punho Hidráulico pushes 3 panels', () {

@@ -473,9 +473,12 @@ class EnemyFighter extends Fighter {
   final List<EnemyFighter> body = [];
 
   /// Etéreo out of phase: Projétil and Corpo-a-corpo pass through. It is
-  /// solid while it attacks and for [materialTicks].
+  /// solid while it attacks, for [materialTicks], and while rooted.
   bool get phased =>
-      def.kind == EnemyKind.ethereal && materialTicks == 0 && !attacking;
+      def.kind == EnemyKind.ethereal &&
+      materialTicks == 0 &&
+      !attacking &&
+      !has(Status.rooted);
 
   /// Body this unit is a weak point of (the Colossus's fist).
   EnemyFighter? linkedTo;
@@ -994,8 +997,11 @@ class BattleState {
           panelAt(cell).walkable &&
           switch (unitAt(cell)) {
             null => true,
-            // The player walks through its own Holograma.
-            Obstacle(kind: ObstacleKind.decoy) when unit == player => true,
+            // The player walks through its own Holograma and Escudo
+            // Refletor.
+            Obstacle(kind: ObstacleKind.decoy || ObstacleKind.reflector)
+                when unit == player =>
+              true,
             final other => wide && other == unit,
           },
     );
@@ -1888,12 +1894,12 @@ class BattleState {
           }
         });
       case ObstacleKind.reflector:
-        final pos = player.pos + const GridPos(1, 0);
-        if (!free(pos)) return;
+        // On the player's own panel: it only bounces enemy shots, and the
+        // player walks and shoots through it.
         obstacles.add(
           Obstacle(
             kind,
-            pos: pos,
+            pos: player.pos,
             hp: 1,
             team: Team.player,
             ticksLeft: _lasting(amount ?? reflectorTicks),
@@ -1904,7 +1910,7 @@ class BattleState {
         // free panel in front of them.
         GridPos? pos;
         for (var x = 0; x < gridColumns && pos == null; x++) {
-          if (canEnter(player, GridPos(x, player.pos.y))) {
+          if (_placeable(GridPos(x, player.pos.y))) {
             pos = GridPos(x, player.pos.y);
           }
         }
@@ -1936,7 +1942,7 @@ class BattleState {
         // Back of the player's row, like the Drone.
         GridPos? pos;
         for (var x = 0; x < gridColumns && pos == null; x++) {
-          if (canEnter(player, GridPos(x, player.pos.y))) {
+          if (_placeable(GridPos(x, player.pos.y))) {
             pos = GridPos(x, player.pos.y);
           }
         }
@@ -1956,7 +1962,7 @@ class BattleState {
         GridPos? pos;
         for (var x = gridColumns - 1; x >= 0 && pos == null; x--) {
           final cell = GridPos(x, player.pos.y);
-          if (canEnter(player, cell)) pos = cell;
+          if (_placeable(cell)) pos = cell;
         }
         if (pos == null) return;
         obstacles.add(
@@ -2611,7 +2617,7 @@ class BattleState {
         }
       }
       // A phased Etéreo lets the shot fly on through it.
-      if (_targetAt(shot.pos, opponent) case final target?
+      if (_shotTargetAt(shot.pos, opponent) case final target?
           when !_passesThrough(target, shot.family)) {
         _impact(shot, opponent);
         continue;
@@ -2638,7 +2644,7 @@ class BattleState {
   /// Damage is applied once, on the impact tick, only to the opposing team
   /// and neutral units.
   void _impact(Projectile shot, Team opponent) {
-    if (_targetAt(shot.pos, opponent) case final Obstacle reflector
+    if (_shotTargetAt(shot.pos, opponent) case final Obstacle reflector
         when reflector.kind == ObstacleKind.reflector) {
       _reflect(reflector, shot);
       return;
@@ -2766,6 +2772,27 @@ class BattleState {
     }
     return unit;
   }
+
+  /// What an enemy or player shot on [pos] runs into: like [_targetAt],
+  /// but an Escudo Refletor takes enemy shots before the player standing on
+  /// it. Blows and blasts still reach the player.
+  Fighter? _shotTargetAt(GridPos pos, Team opponent) {
+    if (opponent == Team.player) {
+      for (final obstacle in obstacles) {
+        if (obstacle.kind == ObstacleKind.reflector &&
+            !obstacle.isDead &&
+            obstacle.pos == pos) {
+          return obstacle;
+        }
+      }
+    }
+    return _targetAt(pos, opponent);
+  }
+
+  /// A panel of the player's side, in their reach and empty: where a card
+  /// can put a turret, drone or coil. Unlike [canEnter], a Holograma or
+  /// Escudo Refletor there counts as taken.
+  bool _placeable(GridPos pos) => canEnter(player, pos) && unitAt(pos) == null;
 
   /// Sticks a Lança in [pos] if nothing stands there.
   void _plantSpear(GridPos pos) {

@@ -35,11 +35,11 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
   /// Outer, middle and inner colors of a beam of each element.
   static final _beamColors = {
     for (final MapEntry(:key, :value) in {
-      Element.elec: (Pico.royal, Pico.blue, Pico.white),
+      Element.elec: (Pico.royal, Pico.blue, Pico.yellow),
       Element.fire: (Pico.red, Pico.orange, Pico.yellow),
       Element.aqua: (Pico.royal, Pico.blue, Pico.white),
       Element.wood: (Pico.darkGreen, Pico.green, Pico.lime),
-      Element.neutral: (Pico.lavender, Pico.lightGray, Pico.white),
+      Element.neutral: (Pico.pumpkin, Pico.orange, Pico.white),
     }.entries)
       key: (
         Paint()..color = value.$1,

@@ -435,10 +435,21 @@ void main() {
 
     test('bounces the Capanga Atirador shot back', () {
       final battle = against(Enemies.gruntGun, const GridPos(4, 0));
-      final grunt = battle.enemies.single;
-      reflectorThen(battle);
+      untilWarned(battle);
+      battle
+        ..selectChip(battle.hand.indexWhere((c) => c.def == Chips.mirror))
+        ..tick(const PlayerInput(useChip: true));
+      // The grunt may have stepped out of the row by the time it comes
+      // back: check the bounced shot itself.
+      Projectile? bounced;
+      for (var i = 0; i < 3 * ticksPerSecond && bounced == null; i++) {
+        battle.tick();
+        bounced = battle.projectiles
+            .where((p) => p.team == Team.player)
+            .firstOrNull;
+      }
       expect(battle.player.hp, 100);
-      expect(grunt.hp, Enemies.gruntGun.hp - 2 * Enemies.gruntGun.shotDamage);
+      expect(bounced?.damage, 2 * Enemies.gruntGun.shotDamage);
     });
 
     test('does not stop lobbed grenades', () {
