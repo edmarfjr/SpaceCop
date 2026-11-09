@@ -252,6 +252,62 @@ void main() {
     expect(brute.hp, 80 - pew(Chips.shot.damage));
   });
 
+  group('rooted enemies can neither hide nor phase', () {
+    test('a rooted Etéreo is solid', () {
+      final battle = battleWith(
+        [],
+        spawns: [dummyAt(3, 1, kind: EnemyKind.ethereal)],
+      );
+      freeze(battle);
+      final enemy = battle.enemies.single;
+      expect(enemy.phased, isTrue);
+      enemy.applyStatus(Status.rooted, 30);
+      expect(enemy.phased, isFalse);
+    });
+
+    test('Escavador stays up', () {
+      final battle = battleWith(
+        [],
+        spawns: [const EnemySpawn(Enemies.digger, GridPos(4, 1))],
+      );
+      final digger = battle.enemies.single..applyStatus(Status.rooted, 1000);
+      wait(battle, DiggerBehavior.underTicks + DiggerBehavior.digTicks * 2);
+      expect(digger.hidden, isFalse);
+      expect(digger.buried, 0);
+    });
+
+    test('Torreta stays up', () {
+      final battle = battleWith(
+        [],
+        spawns: [const EnemySpawn(Enemies.sentry, GridPos(4, 1))],
+      );
+      final sentry = battle.enemies.single..applyStatus(Status.rooted, 1000);
+      wait(battle, SentryBehavior.hiddenTicks + SentryBehavior.riseTicks * 2);
+      expect(sentry.hidden, isFalse);
+      expect(sentry.buried, 0);
+    });
+
+    test('Predador stays visible', () {
+      final battle = battleWith(
+        [],
+        spawns: [const EnemySpawn(Enemies.predator, GridPos(4, 1))],
+      );
+      final predator = battle.enemies.single..applyStatus(Status.rooted, 1000);
+      wait(battle, PredatorBehavior.visibleTicks + 5);
+      expect(predator.hidden, isFalse);
+    });
+
+    test('Serpente Ancestral throws sand instead of diving', () {
+      final battle = battleWith(
+        [],
+        spawns: [const EnemySpawn(Enemies.serpent, GridPos(4, 1))],
+      );
+      final serpent = battle.enemies.first..applyStatus(Status.rooted, 1000);
+      wait(battle, SerpentBehavior.attackEvery);
+      expect(serpent.hidden, isFalse);
+    });
+  });
+
   test('Escavador is untouchable underground and its pickaxe cracks', () {
     final battle = battleWith(
       [],

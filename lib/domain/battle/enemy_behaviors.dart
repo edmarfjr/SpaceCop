@@ -329,10 +329,18 @@ class DiggerBehavior extends EnemyBehavior {
     }
     switch (enemy.stage) {
       case _up:
+        // Rooted: it can't dig in, and tries again next tick.
+        if (enemy.has(Status.rooted)) return;
         enemy
           ..stage = _diggingIn
           ..timer = digTicks;
       case _diggingIn:
+        if (enemy.has(Status.rooted)) {
+          enemy
+            ..stage = _climbingOut
+            ..timer = digTicks;
+          return;
+        }
         enemy
           ..stage = _under
           ..hidden = true
@@ -1057,12 +1065,21 @@ class SentryBehavior extends EnemyBehavior {
         );
       case _up:
         if (enemy.attacking || enemy.timer-- > 0) return;
+        // Rooted: it can't sink, and tries again next tick.
+        if (enemy.has(Status.rooted)) return;
         enemy
           ..stage = _sinking
           ..timer = riseTicks;
       case _sinking:
         enemy.buried = 1 - --enemy.timer / riseTicks;
         if (enemy.timer > 0) return;
+        if (enemy.has(Status.rooted)) {
+          enemy
+            ..stage = _up
+            ..buried = 0
+            ..timer = 0;
+          return;
+        }
         enemy
           ..hidden = true
           ..stage = _hidden
@@ -1772,6 +1789,8 @@ class PredatorBehavior extends EnemyBehavior {
   void tick(EnemyFighter enemy, BattleState battle) {
     if (enemy.attacking || enemy.timer-- > 0) return;
     if (enemy.stage == _visible) {
+      // Rooted: it can't hide, and tries again next tick.
+      if (enemy.has(Status.rooted)) return;
       enemy
         ..stage = _hidden
         ..hidden = true
@@ -2712,9 +2731,10 @@ class SerpentBehavior extends EnemyBehavior {
     if (enemy.timer-- > 0) return;
     enemy.timer = attackEvery;
     switch (enemy.attackTimer++ % 3) {
-      case 0:
+      // Rooted, it can't dive: it throws sand instead.
+      case 0 when !enemy.has(Status.rooted):
         _dive(enemy, battle, again: enemy.stage == 1);
-      case 1:
+      case 0 || 1:
         _sand(enemy, battle);
       case _:
         _beam(enemy, battle);
