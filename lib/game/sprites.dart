@@ -353,6 +353,7 @@ abstract final class SpriteFiles {
     Events.clinic.title: 'events/enfermaria.png',
     Events.hangar.title: 'events/contrabando.png',
     Events.shredder.title: 'events/trituradorEvidencias.png',
+    Events.messHall.title: 'events/refeitorio.png',
     Events.mural.title: 'events/muralAncestrais.png',
     Events.altar.title: 'events/altarOferenda.png',
     Events.fountain.title: 'events/fonteLuminosa.png',
@@ -371,6 +372,8 @@ abstract final class SpriteFiles {
     Events.namelessAltar.title: 'events/altarInominavel.png',
     Events.survivor.title: 'events/ultimoSobrevivente.png',
     Events.fled.title: 'events/fugiram.png',
+    Events.rift.title: 'events/fendaReal.png',
+    Events.transmission.title: 'events/transmissao.png',
   };
 
   static const nodes = <NodeType, String>{
