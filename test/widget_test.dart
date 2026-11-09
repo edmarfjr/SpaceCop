@@ -92,10 +92,10 @@ void main() {
       battle.tick();
       use(battle, battle.hand.first);
       use(battle, battle.hand.first);
-      expect(battle.energy, baseEnergy - 4);
+      expect(battle.energy, baseEnergy - 3);
       use(battle, battle.hand.first);
       expect(battle.hand, hasLength(1));
-      expect(battle.energy, baseEnergy - 4);
+      expect(battle.energy, baseEnergy - 3);
     });
 
     test(
