@@ -59,6 +59,9 @@ abstract final class SpriteFiles {
     Enemies.etHealer: 'actors/inimigos2_etCura.png',
     Enemies.sentinel: 'actors/inimigos2_sentinelaAncestral.png',
     Enemies.scarab: 'actors/inimigos2_escaravelho.png',
+    Enemies.rooster: 'actors/inimigos_rooster.png',
+    Enemies.twoHead: 'actors/inimigos_2HeadGrunt.png',
+    Enemies.leaper: 'actors/saltador.png',
     Enemies.ruinGolem: 'actors/bosses_colosso.png',
     Enemies.priestess: 'actors/inimigos2_etShaman.png',
     Enemies.illusion: 'actors/inimigos2_etShaman.png',
@@ -100,6 +103,7 @@ abstract final class SpriteFiles {
     Enemies.argos,
     Enemies.highPriest,
     Enemies.serpent,
+    Enemies.twoHead,
   };
 
   /// Projectiles and effects, 16x16 frames side by side.
@@ -155,6 +159,7 @@ abstract final class SpriteFiles {
     ObstacleKind.medic: 'chips/droneCura.png',
     ObstacleKind.decoy: player,
     ObstacleKind.spear: 'obstacles/lanca.png',
+    ObstacleKind.dynamite: 'obstacles/dinamite.png',
   };
 
   static final chips = <String, String>{
@@ -232,6 +237,7 @@ abstract final class SpriteFiles {
     Chips.ricochet.id: 'chips/ricochete.png',
     Chips.homingRocket.id: 'chips/missilTeleguiado.png',
     Chips.c4.id: 'chips/c4.png',
+    Chips.tnt.id: 'chips/dinamite.png',
     Chips.hologram.id: 'chips/holograma.png',
     Chips.shoulderBash.id: 'chips/ombreiras.png',
     Chips.energyWhip.id: 'chips/chicote.png',

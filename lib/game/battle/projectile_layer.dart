@@ -81,7 +81,7 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
           );
     }
     for (final lob in battle.lobs) {
-      if (lob.to.y != row) continue;
+      if (lob.to.y != row || lob.lob == Lob.self) continue;
       final from = parent.cellCenter(lob.from.pos);
       final to = parent.cellCenter(lob.to);
       final t = 1 - lob.ticksLeft / lob.flightTicks;

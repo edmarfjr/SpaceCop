@@ -247,6 +247,28 @@ abstract final class Enemies {
     behavior: SentryBehavior(),
   );
 
+  /// Patrols the back column and charges down its row when lined up.
+  static const rooster = EnemyDef(
+    name: 'TecnoCocó',
+    kind: EnemyKind.machine,
+    hp: 40,
+    behavior: TankBehavior(
+      chargeOnly: true,
+      wait: true,
+      push: false,
+      chargeDamage: 15,
+    ),
+  );
+
+  /// First mission elite.
+  static const twoHead = EnemyDef(
+    name: 'Capanga de Duas Cabeças',
+    hp: 120,
+    shotDamage: 10,
+    shotStepTicks: 6,
+    behavior: TwoHeadBehavior(),
+  );
+
   /// The first mission's boss. Two panels wide: [pos] is the front one.
   static const tank = EnemyDef(
     name: 'Tanque de Guerra',
@@ -376,6 +398,12 @@ abstract final class Enemies {
     kind: EnemyKind.machine,
     hp: 15,
     behavior: TickBehavior(),
+  );
+
+  static const leaper = EnemyDef(
+    name: 'Saltador',
+    hp: 40,
+    behavior: LeaperBehavior(),
   );
 
   // Second mission elites.
@@ -595,6 +623,7 @@ abstract final class Enemies {
     etShieldBearer,
     etHealer,
     sentinel,
+    leaper,
   ];
 
   static const shadowBasics = [shadowGun, shadowFly, shadowJumper, shadowNest];
@@ -606,6 +635,7 @@ abstract final class Enemies {
     gruntGrenade,
     gruntArtillery,
     sentry,
+    rooster,
   ];
 }
 
@@ -613,7 +643,10 @@ abstract final class Encounters {
   /// Column the enemy may stand in, at least: the fixed and back-line ones
   /// stay at the back.
   static int _minX(EnemyDef def) => switch (def) {
-    Enemies.gruntArtillery || Enemies.cannon || Enemies.sentinel => 5,
+    Enemies.gruntArtillery ||
+    Enemies.cannon ||
+    Enemies.sentinel ||
+    Enemies.rooster => 5,
     Enemies.gruntDuck ||
     Enemies.sentry ||
     Enemies.bubbler ||
@@ -684,6 +717,9 @@ abstract final class Encounters {
         EnemySpawn(Enemies.prism, GridPos(5, 2)),
       ]),
       (_) => const Encounter([EnemySpawn(Enemies.lavaGuard, GridPos(5, 1))]),
+      (random) => Encounter([
+        EnemySpawn(Enemies.twoHead, GridPos(4, random.nextInt(gridRows))),
+      ]),
     ],
   };
 

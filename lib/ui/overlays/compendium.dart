@@ -246,6 +246,12 @@ class _CompendiumOverlayState extends State<CompendiumOverlay> {
       Rarity.rare,
     ),
     (
+      'Evento',
+      'Só dadas por eventos: não caem nem são vendidas.',
+      Relics.events,
+      null,
+    ),
+    (
       'Chefe',
       'Só nos espólios de um chefe: bônus forte com desvantagem.',
       Relics.boss,

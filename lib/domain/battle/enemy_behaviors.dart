@@ -980,6 +980,59 @@ class GruntGrenadeBehavior extends EnemyBehavior {
   }
 }
 
+/// Capanga de Duas Cabeças: wanders its side and, every [cycleTicks],
+/// fires a fast burst of 3 shots down its row if lined up with the player,
+/// or else lobs 2 grenades at random panels of the player's side, which
+/// catch fire (lava). Drawn by pose: 0 idle, [shootPose], [tossPose].
+class TwoHeadBehavior extends EnemyBehavior {
+  const TwoHeadBehavior();
+
+  static const moveTicks = 40;
+  static const cycleTicks = 3 * ticksPerSecond;
+  static const shotGapTicks = 5;
+  static const grenades = 2;
+  static const grenadeStagger = 8;
+  static const grenadeDamage = 10;
+
+  static const shootPose = 1;
+  static const tossPose = 2;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks ~/ 2;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    if (!enemy.attacking) enemy.pose = 0;
+    _wander(enemy, battle, moveTicks);
+    if (enemy.timer-- > 0) return;
+    enemy.timer = cycleTicks;
+    if (enemy.pos.y == battle.aimPos.y) {
+      enemy.pose = shootPose;
+      _burst(enemy, battle, gapTicks: shotGapTicks);
+      return;
+    }
+    enemy.pose = tossPose;
+    final cells = _side(battle, Team.player)..shuffle(battle.random);
+    for (final (i, cell) in cells.take(grenades).indexed) {
+      battle.schedule(
+        enemy,
+        [cell],
+        basicWarnTicks + i * grenadeStagger,
+        lob: Lob.ball,
+        () {
+          battle.strike(cell, grenadeDamage, Team.player, enemy.element);
+          if (battle.panelAt(cell).walkable) {
+            battle.setPanel(cell, PanelState.lava);
+          }
+        },
+      );
+    }
+  }
+}
+
 /// Capanga Artilharia: never moves; fires a missile at the player's panel,
 /// with a longer warning than the others.
 class GruntArtilleryBehavior extends EnemyBehavior {
@@ -1102,10 +1155,28 @@ class SentryBehavior extends EnemyBehavior {
 ///
 /// ET Montado ([chargeOnly]): only the charge, and it keeps trying to line
 /// up instead of falling back to missiles.
+///
+/// CyberGalo ([chargeOnly], [wait], no [push]): one panel, keeps patrolling
+/// its column once ready and charges only when the player walks into its
+/// row; the charge doesn't push.
 class TankBehavior extends EnemyBehavior {
-  const TankBehavior({this.chargeOnly = false});
+  const TankBehavior({
+    this.chargeOnly = false,
+    this.wait = false,
+    this.push = true,
+    this.chargeDamage = 30,
+  });
 
   final bool chargeOnly;
+
+  /// Ready but not lined up: keeps patrolling instead of seeking the row.
+  final bool wait;
+
+  /// Whether the charge pushes the player back a panel.
+  final bool push;
+
+  /// Whatever it runs over, the player included.
+  final int chargeDamage;
 
   static const moveTicks = 45;
 
@@ -1123,9 +1194,6 @@ class TankBehavior extends EnemyBehavior {
   /// Extra ticks spent on each panel while charging (1 = a panel every 2
   /// ticks).
   static const chargeStepTicks = 1;
-
-  /// Whatever it runs over, the player included.
-  static const chargeDamage = 30;
 
   /// Off the field between leaving on the left and coming back.
   static const awayTicks = 20;
@@ -1159,8 +1227,8 @@ class TankBehavior extends EnemyBehavior {
         _comeBack(enemy, battle);
         return;
     }
-    if (enemy.timer > 0) {
-      enemy.timer--;
+    if (enemy.timer > 0 || (wait && enemy.pos.y != battle.aimPos.y)) {
+      if (enemy.timer > 0) enemy.timer--;
       if (!enemy.attacking && enemy.moveTimer-- <= 0) {
         enemy.moveTimer = moveTicks;
         for (final dy in [1, -1]..shuffle(battle.random)) {
@@ -1210,8 +1278,9 @@ class TankBehavior extends EnemyBehavior {
     }
   }
 
-  /// Column of [pos] when the tank is back at the right edge.
-  static const _homeX = gridColumns - 2;
+  /// Column of [EnemyFighter.pos] when back at the right edge.
+  static int _homeX(EnemyFighter enemy) =>
+      gridColumns - 1 - enemy.def.footprint.map((o) => o.x).reduce(max);
 
   /// A stun before the charge starts calls it off; a charge already under
   /// way only pauses.
@@ -1239,9 +1308,8 @@ class TankBehavior extends EnemyBehavior {
     switch (battle.unitAt(cell)) {
       case final PlayerFighter player when enemy.stage != _chargingHit:
         enemy.stage = _chargingHit;
-        battle
-          ..strike(cell, chargeDamage, Team.player, enemy.element)
-          ..displace(player, -1, 0, 1);
+        battle.strike(cell, chargeDamage, Team.player, enemy.element);
+        if (push) battle.displace(player, -1, 0, 1);
       case PlayerFighter():
         break;
       case _?:
@@ -1256,7 +1324,7 @@ class TankBehavior extends EnemyBehavior {
   /// Moved back to the right while hidden, so the sprite doesn't glide
   /// across the arena when it reappears.
   void _leave(EnemyFighter enemy) => enemy
-    ..pos = GridPos(_homeX, enemy.pos.y)
+    ..pos = GridPos(_homeX(enemy), enemy.pos.y)
     ..hidden = true
     ..state = EnemyState.idle
     ..stage = _away
@@ -1266,16 +1334,18 @@ class TankBehavior extends EnemyBehavior {
   /// columns.
   void _comeBack(EnemyFighter enemy, BattleState battle) {
     for (final y in [enemy.pos.y, for (var y = 0; y < gridRows; y++) y]) {
-      final cell = GridPos(_homeX, y);
-      final free = [
-        cell,
-        cell + const GridPos(1, 0),
-      ].every((c) => battle.panelAt(c).walkable && battle.unitAt(c) == null);
+      final cell = GridPos(_homeX(enemy), y);
+      final free = enemy.def.footprint
+          .map((o) => cell + o)
+          .every((c) => battle.panelAt(c).walkable && battle.unitAt(c) == null);
       if (free) {
         enemy
           ..pos = cell
           ..hidden = false
-          ..stage = _ready;
+          ..stage = _ready
+          // Back in the player's row: without a fresh cycle it would charge
+          // again right away.
+          ..timer = attackEvery;
         return;
       }
     }
@@ -1690,6 +1760,103 @@ class ShadowJumperBehavior extends GruntMeleeBehavior {
   }
 }
 
+/// Saltador: wanders its side and, every [cycleTicks], leaps at the panel
+/// the player stands on at that moment, landing after a warning and hitting
+/// it ([Lob.self]: drawn flying in an arc). A player still there is knocked
+/// onto a free neighbouring panel. It stays there [landedTicks] (attack
+/// frame), or on the panel right of it if that one is still taken, then
+/// jumps back home.
+class LeaperBehavior extends EnemyBehavior {
+  const LeaperBehavior();
+
+  static const moveTicks = 40;
+  static const cycleTicks = 4 * ticksPerSecond;
+  static const landedTicks = ticksPerSecond;
+  static const damage = 20;
+
+  static const _neighbours = TickBehavior._neighbours;
+
+  // Phases, kept in [EnemyFighter.stage].
+  static const _wandering = 0;
+  static const _leaping = 1;
+  static const _landed = 2;
+
+  @override
+  void onBattleStart(EnemyFighter enemy) => enemy.timer = cycleTicks ~/ 2;
+
+  @override
+  int? attackCycle(EnemyFighter enemy) => cycleTicks;
+
+  @override
+  void tick(EnemyFighter enemy, BattleState battle) {
+    switch (enemy.stage) {
+      case _leaping:
+        return;
+      case _landed:
+        enemy.attackPose = enemy.timer;
+        if (enemy.timer-- > 0) return;
+        enemy
+          ..attackPose = 0
+          ..stage = _wandering
+          ..timer = cycleTicks;
+        final home = enemy.home;
+        final free = _freeEnemyPanels(battle);
+        final back = home != null && free.contains(home)
+            ? home
+            : free.isEmpty
+            ? null
+            : free[battle.random.nextInt(free.length)];
+        if (back != null) enemy.pos = back;
+        enemy.home = null;
+        return;
+    }
+    if (enemy.timer-- > 0) {
+      _wander(enemy, battle, moveTicks);
+      return;
+    }
+    final aim = battle.aimPos;
+    enemy
+      ..stage = _leaping
+      ..home = enemy.pos;
+    battle.schedule(enemy, [aim], basicWarnTicks, lob: Lob.self, () {
+      battle.strike(aim, damage, Team.player, enemy.element);
+      // The player still there is knocked onto a free neighbouring panel.
+      if (battle.unitAt(aim) case final PlayerFighter player) {
+        final steps = [
+          for (final d in _neighbours)
+            if (battle.canEnter(player, aim + d)) d,
+        ];
+        if (steps.isNotEmpty) {
+          final d = steps[battle.random.nextInt(steps.length)];
+          battle.displace(player, d.x, d.y, 1);
+        }
+      }
+      // Something still there: it lands on the panel right of it.
+      for (final spot in [aim, aim + const GridPos(1, 0)]) {
+        if (spot.inBounds &&
+            battle.unitAt(spot) == null &&
+            battle.panelAt(spot).walkable) {
+          enemy.pos = spot;
+          break;
+        }
+      }
+      enemy
+        ..stage = _landed
+        ..timer = landedTicks;
+    });
+  }
+
+  /// Stunned before leaping: it stays where it is.
+  @override
+  void onInterrupted(EnemyFighter enemy, BattleState battle) {
+    if (enemy.stage != _leaping) return;
+    enemy
+      ..stage = _wandering
+      ..home = null
+      ..timer = cycleTicks;
+  }
+}
+
 /// Ninho: never moves; every [cycleTicks] hatches a Carrapato in front of
 /// it (at most [maxTicks] alive), and stays solid for a moment after.
 class NestBehavior extends EnemyBehavior {
@@ -1725,14 +1892,25 @@ class NestBehavior extends EnemyBehavior {
   }
 }
 
-/// Carrapato: crawls one panel per [stepTicks] down its row toward the
-/// player, into their side. Next to anything in its way it stops and blows
-/// up after a short warning, then dies. Always solid while it crawls.
+/// Escaravelho and Carrapato: crawl one panel per [stepTicks] down their
+/// row toward the player, into their side. Next to the player (or what it
+/// aims at), or with anything else but an ally in the way, it stops, blinks
+/// ([EnemyFighter.fusing]) for [fuseTicks] and blows up in a cross around
+/// itself: the arms take half of [damage], rounded up. Then it dies. Always
+/// solid while it crawls.
 class TickBehavior extends EnemyBehavior {
   const TickBehavior();
 
   static const stepTicks = ticksPerSecond;
+  static const fuseTicks = ticksPerSecond;
   static const damage = 15;
+
+  static const _neighbours = [
+    GridPos(1, 0),
+    GridPos(-1, 0),
+    GridPos(0, 1),
+    GridPos(0, -1),
+  ];
 
   // Phases, kept in [EnemyFighter.stage].
   static const _exploding = 1;
@@ -1740,7 +1918,13 @@ class TickBehavior extends EnemyBehavior {
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
     enemy.materialTicks = 2;
-    if (enemy.stage == _exploding || enemy.moveTimer-- > 0) return;
+    if (enemy.stage == _exploding) return;
+    final aim = battle.aimPos;
+    if (_neighbours.any((d) => enemy.pos + d == aim)) {
+      _explode(enemy, battle);
+      return;
+    }
+    if (enemy.moveTimer-- > 0) return;
     enemy.moveTimer = stepTicks;
     final next = enemy.pos + const GridPos(-1, 0);
     if (!next.inBounds || !battle.panelAt(next).walkable) {
@@ -1753,9 +1937,23 @@ class TickBehavior extends EnemyBehavior {
       return;
     }
     if (blocker.team == Team.enemy) return;
-    enemy.stage = _exploding;
-    battle.schedule(enemy, [next], minWarnTicks, () {
-      battle.strike(next, damage, Team.player, enemy.element);
+    _explode(enemy, battle);
+  }
+
+  void _explode(EnemyFighter enemy, BattleState battle) {
+    final center = enemy.pos;
+    final arms = [
+      for (final d in _neighbours)
+        if (center + d case final cell when cell.inBounds) cell,
+    ];
+    enemy
+      ..stage = _exploding
+      ..fusing = true;
+    battle.schedule(enemy, [center, ...arms], fuseTicks, () {
+      battle.strike(center, damage, Team.player, enemy.element);
+      for (final cell in arms) {
+        battle.strike(cell, (damage + 1) ~/ 2, Team.player, enemy.element);
+      }
       enemy.hp = 0;
     });
   }

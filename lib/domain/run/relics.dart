@@ -359,7 +359,7 @@ abstract final class Relics {
   static const engineeringKit = RelicDef(
     id: 'engineering_kit',
     name: 'Kit de Engenharia',
-    description: 'Drone, Bobina Tesla e os escudos duram 50% mais.',
+    description: 'Seus equipamentos e escudos duram 50% mais.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
   );
@@ -470,8 +470,7 @@ abstract final class Relics {
     id: 'jump_pack',
     name: 'Propulsor de Salto',
     description:
-        'Nos próximos 3 andares, escolha qualquer nó do andar, fora do '
-        'caminho.',
+        '3 vezes na run, escolha qualquer nó do andar, fora do caminho.',
     kind: RelicKind.global,
     rarity: Rarity.rare,
     onPickup: _jumpPack,
@@ -570,7 +569,7 @@ abstract final class Relics {
   static const heavyExoskeleton = RelicDef(
     id: 'heavy_exoskeleton',
     name: 'Exoesqueleto Pesado',
-    description: '+1 de Energia base. Você se move 50% mais devagar.',
+    description: '+1 de Energia base. Cada passo seu leva 60% mais tempo.',
     kind: RelicKind.combat,
     onBattleStart: _extraEnergy,
   );
@@ -740,8 +739,7 @@ abstract final class Relics {
     id: 'elemental_amp',
     name: 'Amplificador Elemental',
     description:
-        'Status nos inimigos (Queimando, Molhado, Atordoado, Enraizado) '
-        'duram o dobro.',
+        'Status que você aplica nos inimigos duram o dobro.',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
   );
@@ -766,7 +764,10 @@ abstract final class Relics {
 
   /// The relic saved as [id]; null if it no longer exists.
   static RelicDef? byId(String id) =>
-      [...all, ...boss].where((r) => r.id == id).firstOrNull;
+      [...all, ...boss, ...events].where((r) => r.id == id).firstOrNull;
+
+  /// Only given by their events, never dropped or sold.
+  static const events = [decoder, superconductor, abyssLink, lastBlessing];
 
   static const all = [
     extraBattery,
@@ -780,7 +781,6 @@ abstract final class Relics {
     extendedMag,
     doubleCharge,
     shortFuse,
-    superconductor,
     capacitor,
     servoArm,
     monoBlade,
@@ -790,7 +790,6 @@ abstract final class Relics {
     tacticalPack,
     symbiote,
     phaseTuner,
-    decoder,
     luckyChip,
     medKit,
     helmet,
@@ -817,7 +816,5 @@ abstract final class Relics {
     incinerator,
     supplyCrate,
     printer3d,
-    abyssLink,
-    lastBlessing,
   ];
 }

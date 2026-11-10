@@ -444,6 +444,7 @@ const _foes = [
       (Enemies.gruntGrenade, 'Granada no seu painel, que vira Lava.'),
       (Enemies.gruntArtillery, 'Mísseis no seu painel. O aviso é longo.'),
       (Enemies.sentry, 'Sobe do chão, atira na linha e afunda.'),
+      (Enemies.rooster, 'No fundo. Investe (15) se você ficar na linha.'),
     ],
   ),
   (
@@ -453,6 +454,7 @@ const _foes = [
       (Enemies.digger, 'Cava, surge e fura seu painel.'),
       (Enemies.prism, 'Em dupla. Reflete tiros fora de linha.'),
       (Enemies.lavaGuard, 'Espalha Lava e varre sua linha com fogo.'),
+      (Enemies.twoHead, 'Na linha: rajada de 3. Fora: 2 granadas de Lava.'),
     ],
   ),
   (
@@ -479,7 +481,8 @@ const _foes = [
       (Enemies.etShieldBearer, 'Protege um aliado com o escudo.'),
       (Enemies.etHealer, 'Cura o aliado mais ferido. Atordoe-o.'),
       (Enemies.sentinel, 'Varre suas fileiras com laser.'),
-      (Enemies.scarab, 'Em trio. Rasteja e explode.'),
+      (Enemies.scarab, 'Em trio. Ao seu lado, pisca e explode em cruz.'),
+      (Enemies.leaper, 'Salta no seu painel (20). Saia dele.'),
     ],
   ),
   (
@@ -717,7 +720,7 @@ List<_Chapter> _book() => [
       (s) => _grid([for (final def in page) _cardEntry(s, def)]),
   ]),
   _Chapter('Relíquias', [
-    for (final page in _chunks(Relics.all, 6))
+    for (final page in _chunks([...Relics.all, ...Relics.events], 6))
       (s) => _grid([for (final relic in page) _relicEntry(s, relic)]),
     (s) => _grid([
       for (final relic in Relics.boss) _relicEntry(s, relic, boss: true),

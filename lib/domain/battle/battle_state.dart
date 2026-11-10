@@ -133,6 +133,9 @@ const int playerTossTicks = 9;
 /// How long a lobbed ball or pickaxe flies before it lands.
 const int lobFlightTicks = 18;
 
+/// Warning before the Morteiro's barrage lands on the back column.
+const int barrageWarnTicks = ticksPerSecond;
+
 /// How long a unit flashes after taking damage.
 const int hurtFlashTicks = 12;
 
@@ -203,6 +206,10 @@ enum ObstacleKind {
 
   /// A Lança stuck in an enemy panel: blocks enemies, not shots.
   spear,
+
+  /// The TNT's stick, lying on a panel: blocks nothing, nothing can hit
+  /// it, and it blows up when its fuse runs out.
+  dynamite,
 }
 
 /// Red outlines warn of damage, blue ones of terrain changes.
@@ -283,6 +290,9 @@ enum Lob {
 
   /// A ball leaving a smoke trail (Foguete Teleguiado).
   rocket,
+
+  /// The owner itself leaps along the arc (Saltador).
+  self,
 }
 
 /// An enemy attack waiting for its telegraph to run out.
@@ -454,6 +464,9 @@ class EnemyFighter extends Fighter {
   /// shots fly over it.
   bool burrowed = false;
 
+  /// About to blow itself up: drawn blinking (Escaravelho, Carrapato).
+  bool fusing = false;
+
   /// Ticks left taking double damage (Rei da Tribo's overheated staff).
   int exposedTicks = 0;
 
@@ -515,10 +528,14 @@ class Obstacle extends Fighter {
     super.team,
     super.element,
     this.ticksLeft = 0,
+    this.payload,
   }) : lifetime = ticksLeft,
        super(maxHp: hp);
 
   final ObstacleKind kind;
+
+  /// What a Dinamite blows up with when its fuse runs out.
+  final Projectile? payload;
 
   /// Ticks between a turret's shots: Fire turrets fire slower, but burn.
   int get fireEvery =>
@@ -977,6 +994,8 @@ class BattleState {
   /// Living, visible unit standing on [pos], of any team.
   Fighter? unitAt(GridPos pos) {
     for (final unit in units) {
+      // A Dinamite lies flat: it blocks nothing and can't be hit.
+      if (unit is Obstacle && unit.kind == ObstacleKind.dynamite) continue;
       if (!unit.isDead && !unit.hidden && unit.occupies(pos)) return unit;
     }
     return null;
@@ -1488,7 +1507,9 @@ class BattleState {
         );
         _toss(shot.pos, () => _impact(shot, Team.enemy));
       case ProjectileEffect(:final pattern, :final farBonus):
-        final far = _tossTarget();
+        // Mira Assistida sends the shot to its own target: the bonus and the
+        // tracer follow it.
+        final far = _homingCell ?? _tossTarget();
         if (def.fx == ChipFx.sniper) {
           zaps.add(Zap(far, style: ZapStyle.tracer));
         }
@@ -1510,10 +1531,12 @@ class BattleState {
         :final shieldTicks,
         :final crack,
         :final homing,
+        :final backColumn,
       ):
-        final target =
-            (homing ? weakestEnemy()?.pos : null) ??
-            player.pos + GridPos(distance, 0);
+        final target = backColumn
+            ? const GridPos(gridColumns - 1, 1)
+            : (homing ? weakestEnemy()?.pos : null) ??
+                  player.pos + GridPos(distance, 0);
         final shot = Projectile(
           team: Team.player,
           pos: target,
@@ -1525,9 +1548,9 @@ class BattleState {
           family: def.family,
           status: status,
           fx: def.fx,
-          halfSplash: true,
+          halfSplash: !backColumn,
         );
-        _toss(lob: def.fx == ChipFx.smoke ? Lob.rocket : Lob.ball, target, () {
+        void land() {
           if (def.fx == ChipFx.quake) {
             events.add(BattleEvent(BattleEventKind.quake));
           }
@@ -1562,7 +1585,23 @@ class BattleState {
               }
             }
           }
-        });
+        }
+
+        if (backColumn) {
+          schedule(
+            player,
+            [for (final offset in pattern) target + offset],
+            barrageWarnTicks,
+            land,
+            lob: Lob.ball,
+          );
+        } else {
+          _toss(
+            lob: def.fx == ChipFx.smoke ? Lob.rocket : Lob.ball,
+            target,
+            land,
+          );
+        }
       case CrackEffect() ||
           PushEffect() ||
           PullEffect() ||
@@ -1578,6 +1617,34 @@ class BattleState {
       case ChainScaleEffect():
         _fire(def, damage, status: status);
         if (def.fx == ChipFx.rings) rings.add(Ring(link));
+      case DynamiteEffect(:final distance, :final fuse):
+        final target = player.pos + GridPos(distance, 0);
+        final payload = Projectile(
+          team: Team.player,
+          pos: target,
+          dir: 1,
+          stepTicks: 0,
+          damage: damage,
+          pattern: const GrenadeEffect().pattern,
+          element: def.tint,
+          family: def.family,
+          status: status,
+          fx: def.fx,
+          halfSplash: true,
+        );
+        _toss(target, () {
+          if (!target.inBounds) return;
+          obstacles.add(
+            Obstacle(
+              ObstacleKind.dynamite,
+              pos: target,
+              hp: 1,
+              team: Team.player,
+              ticksLeft: fuse,
+              payload: payload,
+            ),
+          );
+        });
       case StickyBombEffect(:final delay):
         final victim = _targetAt(_tossTarget(), Team.enemy);
         if (victim != null) {
@@ -1787,7 +1854,8 @@ class BattleState {
         RowStrikeEffect() ||
         ChainScaleEffect() ||
         BounceEffect() ||
-        StickyBombEffect() => true,
+        StickyBombEffect() ||
+        DynamiteEffect() => true,
         _ => false,
       };
 
@@ -1872,8 +1940,8 @@ class BattleState {
     bool free(GridPos pos) =>
         pos.inBounds && panelAt(pos).walkable && unitAt(pos) == null;
     switch (kind) {
-      // Only stuck in the ground by the Lança's shot.
-      case ObstacleKind.spear:
+      // Only stuck in the ground by the Lança's shot, or thrown by the TNT.
+      case ObstacleKind.spear || ObstacleKind.dynamite:
         return;
       case ObstacleKind.rock:
         final pos = player.pos + const GridPos(1, 0);
@@ -2391,18 +2459,20 @@ class BattleState {
         hasRelic(Relics.armor)) {
       armorUsed = true;
       events.add(BattleEvent(BattleEventKind.blocked, unit: target));
+      // The hit still counts as taken, even with nothing lost.
+      _playerHurt();
       return;
     }
     if (target is PlayerFighter && total > 0) {
       if (hasRelic(Relics.helmet)) total = max(0, total - 1);
-      if (total > 0) _playerHurt();
+      _playerHurt();
     }
     target.takeDamage(total);
     if (total > 0) hits.add((target: target, amount: total));
   }
 
   /// The player relics that answer a hit: Placa de Absorção and Espinhos
-  /// Reativos.
+  /// Reativos. They answer hits the Armadura or Capacete brought to 0 too.
   void _playerHurt() {
     if (hasRelic(Relics.absorbPlate) && !plateUsed) {
       plateUsed = true;
@@ -2558,9 +2628,11 @@ class BattleState {
   /// Obstacles with a lifetime expire; every second turrets fire an Elec
   /// shot down their row and tesla coils zap the first enemy of theirs.
   void _updateObstacles() {
+    final blasts = <Projectile>[];
     for (final obstacle in obstacles) {
       if (obstacle.ticksLeft > 0 && --obstacle.ticksLeft == 0) {
         obstacle.hp = 0;
+        if (obstacle.payload case final blast?) blasts.add(blast);
       }
       final shooter =
           obstacle.kind == ObstacleKind.turret ||
@@ -2589,6 +2661,10 @@ class BattleState {
           status: obstacle.element == Element.fire ? Status.burning : null,
         ),
       );
+    }
+    // Dinamites whose fuse ran out blow up.
+    for (final blast in blasts) {
+      _impact(blast, Team.enemy);
     }
   }
 

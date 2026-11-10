@@ -167,6 +167,7 @@ class GrenadeEffect extends ChipEffect {
     this.shieldTicks = 0,
     this.crack = false,
     this.homing = false,
+    this.backColumn = false,
   });
 
   final int distance;
@@ -184,6 +185,10 @@ class GrenadeEffect extends ChipEffect {
 
   /// Lands on the enemy with the least HP instead (Foguete Teleguiado).
   final bool homing;
+
+  /// Lands on the middle of the back column instead, after a warning, and
+  /// every panel of [pattern] takes full damage (Morteiro).
+  final bool backColumn;
 }
 
 /// Projectile that, on hitting, also hits another enemy for the same
@@ -193,6 +198,16 @@ class BounceEffect extends ChipEffect {
   const BounceEffect({this.adjacent = false});
 
   final bool adjacent;
+}
+
+/// Thrown [distance] panels ahead, where it lies as a Dinamite: [fuse]
+/// later it blows up in a cross, half damage off the center (TNT).
+class DynamiteEffect extends ChipEffect {
+  /// [fuse] in ticks: 2 s.
+  const DynamiteEffect({this.distance = 3, this.fuse = 60});
+
+  final int distance;
+  final int fuse;
 }
 
 /// Sticks to the first enemy of the row; [delay] later it blows up in a

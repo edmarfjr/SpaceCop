@@ -79,11 +79,22 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     return _attacking && f is PlayerFighter && f.pose == ChipPose.shoot;
   }
 
-  /// White for 3 ticks, normal for 3, twice, starting on the hit.
+  /// White for 3 ticks, normal for 3, twice, starting on the hit. A fusing
+  /// enemy blinks the same way until it blows up.
   bool get _flashing {
-    final ticks = fighter.hurtTicks;
+    final f = fighter;
+    if (f is EnemyFighter && f.fusing) {
+      return (_clock / _fuseBlinkTime).floor().isEven;
+    }
+    // A Dinamite blinks faster as its fuse runs out, like the C4's light.
+    if (f case Obstacle(kind: ObstacleKind.dynamite, :final ticksLeft)) {
+      return (ticksLeft ~/ (ticksLeft ~/ 6).clamp(2, 10)).isOdd;
+    }
+    final ticks = f.hurtTicks;
     return ticks > 0 && ((hurtFlashTicks - ticks) ~/ 3).isEven;
   }
+
+  static const _fuseBlinkTime = 0.1;
 
   static final _hurtPaint = Paint()
     ..colorFilter = const ColorFilter.mode(Pico.white, BlendMode.srcATop);
@@ -142,9 +153,17 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   );
 
   /// Multi-cell enemies stand on their lowest row, centered on its cells.
+  /// One leaping ([Lob.self]) follows the lob's arc.
   Vector2 get _target {
     final f = fighter;
     if (f is! EnemyFighter) return parent.cellFeet(f.pos);
+    if (_leap case final leap?) {
+      return ProjectileLayer.lobAt(
+        parent.cellFeet(f.pos),
+        parent.cellFeet(leap.to),
+        1 - leap.ticksLeft / leap.flightTicks,
+      );
+    }
     final cells = f.cells.toList();
     final bottom = cells.map((c) => c.y).reduce(max);
     final feet = [
@@ -165,6 +184,13 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     return ProjectileLayer.priorityOf(row) - (barricade ? 1 : 0);
   }
 
+  LobView? get _leap {
+    for (final lob in parent.battle.lobs) {
+      if (lob.lob == Lob.self && identical(lob.from, fighter)) return lob;
+    }
+    return null;
+  }
+
   @override
   void onMount() {
     super.onMount();
@@ -176,7 +202,10 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   void update(double dt) {
     super.update(dt);
     _clock += dt;
-    position.lerp(_target, min(1, dt * 20));
+    // Mid-leap the arc is followed exactly; otherwise glide over.
+    _leap == null
+        ? position.lerp(_target, min(1, dt * 20))
+        : position.setFrom(_target);
     final rowPriority = _rowPriority;
     if (priority != rowPriority) priority = rowPriority;
   }
@@ -290,7 +319,8 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     }
     // Enemies show their life in the HUD, on the right; a Lança has none
     // worth showing.
-    if (fighter case Obstacle(:final kind) when kind != ObstacleKind.spear) {
+    if (fighter case Obstacle(:final kind)
+        when kind != ObstacleKind.spear && kind != ObstacleKind.dynamite) {
       _hpText.render(
         canvas,
         '${fighter.hp}',

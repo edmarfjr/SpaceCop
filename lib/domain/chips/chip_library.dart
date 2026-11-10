@@ -326,7 +326,7 @@ abstract final class Chips {
 
   static const bubblePush = ChipDef(
     id: 'bubble_push',
-    name: 'Bolha Empurradora',
+    name: 'Canhão d\'agua',
     description: 'Molha e empurra o alvo 1 painel.',
     cost: 1,
     family: ChipFamily.projectile,
@@ -681,13 +681,17 @@ abstract final class Chips {
     id: 'mortar',
     name: 'Morteiro',
     description:
-        'Lançado no 4º painel à frente: explode em cruz. Fora do centro, metade do dano. Uso único.',
+        'Bombardeia a coluna do fundo inteira, 1 s depois do aviso. Uso '
+        'único.',
     cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 20,
-    effect: GrenadeEffect(distance: 4),
+    effect: GrenadeEffect(
+      pattern: [GridPos(0, -1), GridPos(0, 0), GridPos(0, 1)],
+      backColumn: true,
+    ),
     pose: ChipPose.toss,
     exhaust: true,
     fx: ChipFx.quake,
@@ -745,7 +749,7 @@ abstract final class Chips {
     id: 'steady_beam',
     name: 'Feixe Contínuo',
     description: 'Rajada de 4 disparos na linha.',
-    cost: 2,
+    cost: 1,
     family: ChipFamily.energy,
     rarity: Rarity.rare,
     type: ChipType.attack,
@@ -921,7 +925,7 @@ abstract final class Chips {
     id: 'dome_generator',
     name: 'Gerador de Domo',
     description: 'Anula os 3 próximos danos. Dura até 10 s.',
-    cost: 4,
+    cost: 3,
     family: ChipFamily.equipment,
     rarity: Rarity.rare,
     type: ChipType.support,
@@ -975,7 +979,7 @@ abstract final class Chips {
     name: 'Pulso Ressonante',
     description:
         'Acerta o primeiro inimigo da linha: dano × a posição na corrente '
-        '(1ª, 2ª ou 3ª carta).',
+        '(1ª, 2ª ou 3ª carta), além do bônus normal da corrente.',
     cost: 1,
     family: ChipFamily.energy,
     rarity: Rarity.uncommon,
@@ -1075,8 +1079,25 @@ abstract final class Chips {
     family: ChipFamily.explosive,
     type: ChipType.attack,
     target: ChipTarget.row,
-    damage: 30,
+    damage: 20,
     effect: StickyBombEffect(3 * ticksPerSecond),
+    exhaust: true,
+    pose: ChipPose.toss,
+  );
+
+  static const tnt = ChipDef(
+    id: 'tnt',
+    name: 'TNT',
+    description:
+        'Lançada no 3º painel à frente: a dinamite fica no painel e explode '
+        'em cruz 2 s depois. Fora do centro, metade do dano. Uso único.',
+    cost: 2,
+    family: ChipFamily.explosive,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 25,
+    effect: DynamiteEffect(),
     exhaust: true,
     pose: ChipPose.toss,
   );
@@ -1130,7 +1151,7 @@ abstract final class Chips {
     id: 'energy_cannon',
     name: 'Canhão',
     description: 'Dispara um tiro de energia em linha reta.',
-    cost: 2,
+    cost: 1,
     family: ChipFamily.energy,
     type: ChipType.attack,
     target: ChipTarget.row,
@@ -1146,6 +1167,7 @@ abstract final class Chips {
         'está no segundo.',
     cost: 1,
     family: ChipFamily.melee,
+    rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 15,
@@ -1447,7 +1469,8 @@ abstract final class Chips {
       _up(ricochet, damage: 15),
       _up(voltaicArc, damage: 15),
       _up(homingRocket, damage: 20),
-      _up(c4, damage: 45),
+      _up(c4, damage: 25),
+      _up(tnt, damage: 35),
       _up(
         hologram,
         description:
@@ -1499,7 +1522,7 @@ abstract final class Chips {
     energyTank,
     powerGenerator,
     //cracker,
-    //bubblePush,
+    bubblePush,
     //crossFlame,
     //thunderLance,
     barrier,
@@ -1551,6 +1574,7 @@ abstract final class Chips {
     voltaicArc,
     homingRocket,
     c4,
+    tnt,
     assistedAim,
     hologram,
     spear,
@@ -1636,6 +1660,7 @@ abstract final class Chips {
       voltaicArc,
       homingRocket,
       c4,
+      tnt,
       assistedAim,
       hologram,
       spear,
