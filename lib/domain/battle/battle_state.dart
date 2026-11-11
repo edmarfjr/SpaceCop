@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../chips/battle_chip.dart';
+import '../chips/chip_library.dart';
 import '../deck/deck.dart';
 import '../element.dart';
 import '../grid.dart';
@@ -720,6 +721,7 @@ class BattleState {
     double bossHpCut = 0,
     bool openingBarrier = false,
     this.pauseOnNewHand = false,
+    int neutral = 0,
   }) : energyMax = baseEnergy + energyBaseBonus,
        player = PlayerFighter(
          pos: const GridPos(1, 1),
@@ -728,8 +730,14 @@ class BattleState {
        ),
        random = random ?? Random(),
        deck = Deck(deckCards, random: random) {
+    neutralColumns = neutral;
     for (final spawn in encounter.spawns) {
-      final enemy = _boostStatuses(EnemyFighter(spawn.def, spawn.pos));
+      // Encounters are laid out on the 6-column grid: the enemy side moves
+      // past the neutral columns.
+      final pos = spawn.pos.x >= playerColumns
+          ? spawn.pos + GridPos(neutralColumns, 0)
+          : spawn.pos;
+      final enemy = _boostStatuses(EnemyFighter(spawn.def, pos));
       spawn.def.behavior.onBattleStart(enemy);
       if (openingStunTicks > 0) {
         enemy.applyStatus(Status.stunned, openingStunTicks);
@@ -802,8 +810,9 @@ class BattleState {
   /// How long holes last. The Colossus stretches it in its second phase.
   int holeReturnTicks = holeTicks;
 
-  /// `panels[x][y]`.
-  final List<List<Panel>> panels = [
+  /// `panels[x][y]`. Late: built once the constructor has set
+  /// [neutralColumns].
+  late final List<List<Panel>> panels = [
     for (var x = 0; x < gridColumns; x++)
       [for (var y = 0; y < gridRows; y++) Panel(GridPos(x, y).homeSide)],
   ];
@@ -874,6 +883,34 @@ class BattleState {
 
   /// The next chip runs twice (Overclock).
   bool overclocked = false;
+
+  /// Uses so far this battle of each stacking card (Bala Acumulativa).
+  final Map<String, int> stackUses = {};
+
+  /// While positive, the next hit on the player is cancelled and answered
+  /// with [parryDamage] (Aparar).
+  int parryTicks = 0;
+  int parryDamage = 0;
+
+  /// While positive, the player takes half damage (Leitura de Padrão).
+  int guardTicks = 0;
+
+  /// The last card used, for the Cápsula de Reciclagem.
+  ChipCard? lastUsed;
+
+  /// The energy left carries to the next hand (Bateria Reserva).
+  bool carryEnergy = false;
+
+  /// Cards of the next hand cost this much less (Estabilizador), and of
+  /// the current hand.
+  int nextHandDiscount = 0;
+  int handDiscount = 0;
+
+  /// Panel that fills the gauge faster while the player stands on it, and
+  /// for how long (Placa de Recarga).
+  GridPos? chargePad;
+  int chargePadTicks = 0;
+  int chargePadPercent = 0;
 
   /// Carregador Estendido already refunded a Projétil in this hand.
   bool projectileRefunded = false;
@@ -948,8 +985,9 @@ class BattleState {
   bool canAfford(ChipCard card) => costOf(card) <= energy;
 
   /// What [card] costs now: 0 for the first one with the Coldre Rápido.
-  int costOf(ChipCard card) =>
-      hasRelic(Relics.quickHolster) && !holsterUsed ? 0 : card.def.cost;
+  int costOf(ChipCard card) => hasRelic(Relics.quickHolster) && !holsterUsed
+      ? 0
+      : max(0, card.def.cost - handDiscount);
 
   // ---------------------------------------------------------------- panels
 
@@ -1012,7 +1050,7 @@ class BattleState {
     return cells.every(
       (cell) =>
           cell.inBounds &&
-          (unit.team == null || ownerAt(cell) == unit.team) &&
+          canStand(unit.team, ownerAt(cell)) &&
           panelAt(cell).walkable &&
           switch (unitAt(cell)) {
             null => true,
@@ -1037,9 +1075,14 @@ class BattleState {
     for (final card in hand) {
       if (card.def.effect is WhisperEffect) damage(player, whisperDamage);
     }
-    final carried = hasRelic(Relics.capacitor)
+    final carried = carryEnergy
+        ? energy
+        : hasRelic(Relics.capacitor)
         ? min(energy, capacitorCarry)
         : 0;
+    carryEnergy = false;
+    handDiscount = nextHandDiscount;
+    nextHandDiscount = 0;
     energy = energyMax + carried;
     energyBonus = 0;
     projectileRefunded = false;
@@ -1070,7 +1113,10 @@ class BattleState {
     _gaugeProgress +=
         100 +
         gaugeSpeedBonus +
-        (gaugeBoosted ? 50 : 0) -
+        (gaugeBoosted ? 50 : 0) +
+        (chargePadTicks > 0 && player.pos == chargePad
+            ? chargePadPercent
+            : 0) -
         (hasRelic(Relics.neuralImplant) ? neuralGaugeSlow : 0);
     for (; _gaugeProgress >= 100; _gaugeProgress -= 100) {
       if (!gaugeFull) gauge++;
@@ -1310,9 +1356,7 @@ class BattleState {
         if (panel.ownerTimer > 0 && --panel.ownerTimer == 0) {
           panel.owner = pos.homeSide;
           final intruder = unitAt(pos);
-          if (intruder != null &&
-              intruder.team != null &&
-              intruder.team != panel.owner) {
+          if (intruder != null && !canStand(intruder.team, panel.owner)) {
             displace(intruder, intruder.team == Team.player ? -1 : 1, 0, 1);
           }
         }
@@ -1338,6 +1382,9 @@ class BattleState {
 
   void _updatePlayer(PlayerInput input) {
     if (player.barrierTicks > 0) player.barrierTicks--;
+    if (parryTicks > 0) parryTicks--;
+    if (guardTicks > 0) guardTicks--;
+    if (chargePadTicks > 0 && --chargePadTicks == 0) chargePad = null;
     if (player.has(Status.stunned)) return;
     if (player.attackCooldown > 0) {
       player.attackCooldown--;
@@ -1444,6 +1491,7 @@ class BattleState {
       if (def.exhaust) packUsed = true;
       deck.discard(card);
     }
+    if (def.effect is! RecycleEffect) lastUsed = card;
     selectedIndex = hand.isEmpty ? 0 : selectedIndex % hand.length;
     player.attackCooldown = playerAttackCooldown;
     for (final relic in relics) {
@@ -1482,9 +1530,12 @@ class BattleState {
     final bonus = spends
         ? damageBonus + (attackCharges > 0 ? chargeBonus : 0)
         : 0;
-    final base = def.effect is ChainScaleEffect
-        ? def.damage * link
-        : def.damage;
+    final base = switch (def.effect) {
+      ChainScaleEffect() => def.damage * link,
+      StackingShotEffect(:final step) =>
+        def.damage + step * (stackUses[def.id] ?? 0),
+      _ => def.damage,
+    };
     var damage = boosted(player, base + bonus + ammo);
     damage = (damage * chain).round();
     for (final relic in relics) {
@@ -1532,9 +1583,10 @@ class BattleState {
         :final crack,
         :final homing,
         :final backColumn,
+        :final implode,
       ):
         final target = backColumn
-            ? const GridPos(gridColumns - 1, 1)
+            ? GridPos(gridColumns - 1, 1)
             : (homing ? weakestEnemy()?.pos : null) ??
                   player.pos + GridPos(distance, 0);
         final shot = Projectile(
@@ -1566,7 +1618,19 @@ class BattleState {
               unit.shieldDown = max(unit.shieldDown, shieldTicks);
             }
           }
+          // Who is off the center, before the hit can push or kill them.
+          final pulled = [
+            if (implode)
+              for (final offset in pattern)
+                if (offset != const GridPos(0, 0))
+                  if (_targetAt(target + offset, Team.enemy) case final unit?)
+                    (unit, offset),
+          ];
           _impact(shot, Team.enemy);
+          for (final (unit, offset) in pulled) {
+            if (unit.isDead) continue;
+            displace(unit, -offset.x.sign, -offset.y.sign, 1, byPlayer: true);
+          }
           for (final unit in caught) {
             if (stunTicks > 0) unit.applyStatus(Status.stunned, stunTicks);
             if (wetTicks > 0) unit.applyStatus(Status.wet, wetTicks);
@@ -1738,7 +1802,7 @@ class BattleState {
           var to = player.pos;
           while (true) {
             final next = to + const GridPos(1, 0);
-            if (ownerAt(next) != Team.player || !canEnter(player, next)) break;
+            if (!canEnter(player, next)) break;
             to = next;
           }
           if (to != player.pos) {
@@ -1781,6 +1845,116 @@ class BattleState {
         }
       case ProjectileBonusEffect(:final amount):
         projectileBonus += amount;
+      case StackingShotEffect():
+        stackUses.update(def.id, (n) => n + 1, ifAbsent: () => 1);
+        _fire(def, damage, status: status);
+      case ExecuteEffect() ||
+          WetShockEffect() ||
+          ConductorEffect() ||
+          AnchorEffect():
+        _fire(def, damage, onHit: def.effect, status: status);
+      case KindStrikeEffect(:final kind):
+        for (final enemy in List.of(enemies)) {
+          if (enemy.isDead || enemy.hidden || enemy.def.kind != kind) continue;
+          zaps.add(Zap(enemy.pos));
+          strike(
+            enemy.pos,
+            damage,
+            Team.enemy,
+            def.tint,
+            family: def.family,
+            status: status,
+          );
+        }
+      case SweepEffect():
+        for (var y = 0; y < gridRows; y++) {
+          for (var x = player.pos.x + 1; x < gridColumns; x++) {
+            final cell = GridPos(x, y);
+            if (_targetAt(cell, Team.enemy) == null) continue;
+            zaps.add(Zap(cell, style: ZapStyle.tracer));
+            strike(
+              cell,
+              damage,
+              Team.enemy,
+              def.tint,
+              family: def.family,
+              status: status,
+            );
+            break;
+          }
+        }
+      case ColumnStrikeEffect(:final column):
+        for (var y = 0; y < gridRows; y++) {
+          strike(
+            GridPos(column, y),
+            damage,
+            Team.enemy,
+            def.tint,
+            family: def.family,
+            status: status,
+          );
+        }
+      case DetonateEffect():
+        for (final enemy in List.of(enemies)) {
+          if (enemy.isDead || enemy.hidden || !enemy.has(Status.burning)) {
+            continue;
+          }
+          enemy.statuses.remove(Status.burning);
+          flashes.add(HitFlash(enemy.pos, FlashKind.explosion, Element.fire));
+          this.damage(enemy, damage, element: def.tint, family: def.family);
+        }
+      case ParryEffect(:final ticks):
+        parryTicks = ticks;
+        parryDamage = damage;
+      case AddCardsEffect(:final chipId, :final count):
+        final added = Chips.byId(chipId);
+        if (added != null) {
+          for (var i = 0; i < count && hand.length <= maxHand; i++) {
+            final card = ChipCard(added);
+            temporary.add(card);
+            deck.addToHand(card);
+          }
+        }
+      case RecycleEffect():
+        if (lastUsed case final card?) deck.takeFromDiscard(card);
+      case CarryEnergyEffect():
+        carryEnergy = true;
+      case DiscountNextHandEffect(:final amount):
+        nextHandDiscount += amount;
+      case EnemyRowPanelEffect(:final state):
+        for (var x = 0; x < gridColumns; x++) {
+          final cell = GridPos(x, player.pos.y);
+          if (ownerAt(cell) == Team.enemy && panelAt(cell).walkable) {
+            setPanel(cell, state);
+          }
+        }
+      case RepairPanelsEffect():
+        for (var x = 0; x < gridColumns; x++) {
+          for (var y = 0; y < gridRows; y++) {
+            final cell = GridPos(x, y);
+            final state = panelAt(cell).state;
+            if (ownerAt(cell) == Team.player &&
+                (state == PanelState.cracked || state == PanelState.hole)) {
+              setPanel(cell, PanelState.normal);
+            }
+          }
+        }
+      case ChargePadEffect(:final ticks, :final percent):
+        chargePad = player.pos;
+        chargePadTicks = _lasting(ticks);
+        chargePadPercent = percent;
+      case PushAllEffect(:final steps):
+        final pushed = [
+          for (final enemy in enemies)
+            if (!enemy.isDead && !enemy.hidden) enemy,
+        ]..sort((a, b) => b.pos.x.compareTo(a.pos.x));
+        for (final enemy in pushed) {
+          displace(enemy, 1, 0, steps, byPlayer: true);
+        }
+      case GuardEffect(:final ticks):
+        guardTicks = ticks;
+      case EmergencyHealEffect(:final threshold, :final urgent, :final normal):
+        heal(player.hp < player.maxHp * threshold ? urgent : normal);
       // An empty case would fall through to the next one.
       case NoEffect() || WhisperEffect():
         break;
@@ -1832,7 +2006,12 @@ class BattleState {
     StatusShotEffect() ||
     BounceEffect() ||
     BurstEffect() ||
-    ChainScaleEffect() => true,
+    ChainScaleEffect() ||
+    StackingShotEffect() ||
+    ExecuteEffect() ||
+    WetShockEffect() ||
+    ConductorEffect() ||
+    AnchorEffect() => true,
     _ => false,
   };
 
@@ -1855,7 +2034,15 @@ class BattleState {
         ChainScaleEffect() ||
         BounceEffect() ||
         StickyBombEffect() ||
-        DynamiteEffect() => true,
+        DynamiteEffect() ||
+        StackingShotEffect() ||
+        ExecuteEffect() ||
+        WetShockEffect() ||
+        ConductorEffect() ||
+        AnchorEffect() ||
+        KindStrikeEffect() ||
+        SweepEffect() ||
+        ColumnStrikeEffect() => true,
         _ => false,
       };
 
@@ -1886,11 +2073,12 @@ class BattleState {
     );
   }
 
-  /// Takes the first column with an enemy-owned panel. Enemies standing in
+  /// Takes the first column with a panel not owned by the player (neutral
+  /// or enemy). Enemies standing in
   /// it take [hitDamage] and are pushed back; panels still occupied after
   /// the push stay the enemy's.
   void _stealArea(int ticks, int hitDamage) {
-    final x = _frontEnemyColumn();
+    final x = _frontStealColumn();
     if (x == null) return;
     for (var y = 0; y < gridRows; y++) {
       final unit = unitAt(GridPos(x, y));
@@ -1910,10 +2098,10 @@ class BattleState {
     }
   }
 
-  int? _frontEnemyColumn() {
+  int? _frontStealColumn() {
     for (var x = 0; x < gridColumns; x++) {
       for (var y = 0; y < gridRows; y++) {
-        if (ownerAt(GridPos(x, y)) == Team.enemy) return x;
+        if (ownerAt(GridPos(x, y)) != Team.player) return x;
       }
     }
     return null;
@@ -2044,7 +2232,7 @@ class BattleState {
         );
       case ObstacleKind.mine:
         final spots = [
-          for (var x = playerColumns; x < gridColumns; x++)
+          for (var x = enemyColumn0; x < gridColumns; x++)
             for (var y = 0; y < gridRows; y++)
               if (GridPos(x, y) case final pos
                   when panelAt(pos).walkable &&
@@ -2073,7 +2261,11 @@ class BattleState {
       :slash,
       :inflict,
       :tipPush,
+      :tipPull,
+      :recoil,
+      :lifesteal,
     ) = effect;
+    final hitsBefore = hits.length;
     final tip = player.pos + pattern.last;
     final struck = <Fighter>{};
     final front = player.pos + const GridPos(1, 0);
@@ -2113,6 +2305,21 @@ class BattleState {
       if (pushed > 0 && !unit.isDead) {
         displace(unit, 1, 0, pushed, byPlayer: true);
       }
+      if (tipPull > 0 && unit.occupies(tip) && !unit.isDead) {
+        displace(unit, -1, 0, tipPull, byPlayer: true);
+      }
+    }
+    if (lifesteal) {
+      var dealt = 0;
+      for (final hit in hits.skip(hitsBefore)) {
+        if (hit.target is EnemyFighter) dealt += hit.amount;
+      }
+      if (dealt > 0) heal(dealt ~/ 2);
+    }
+    if (recoil > 0 && !player.has(Status.rooted)) {
+      final step = GridPos(-recoil, 0);
+      final back = player.pos + step;
+      if (canEnter(player, back)) _moveUnit(player, back, step);
     }
     if (crack) {
       for (final offset in pattern) {
@@ -2205,9 +2412,7 @@ class BattleState {
     while (left > 0 || sliding) {
       final next = unit.pos + dir;
       final cells = _cellsAt(unit, next);
-      if (cells.any(
-        (c) => !c.inBounds || (unit.team != null && ownerAt(c) != unit.team),
-      )) {
+      if (cells.any((c) => !c.inBounds || !canStand(unit.team, ownerAt(c)))) {
         _collide(unit, null, byPlayer);
         return;
       }
@@ -2307,7 +2512,7 @@ class BattleState {
     while (_cellsAt(
       target,
       target.pos + GridPos(-distance - 1, 0),
-    ).every((c) => c.inBounds && ownerAt(c) == target.team)) {
+    ).every((c) => c.inBounds && canStand(target.team, ownerAt(c)))) {
       distance++;
     }
     if (distance == 0) {
@@ -2448,6 +2653,13 @@ class BattleState {
       }
     }
     if (target is EnemyFighter && target.exposedTicks > 0) total *= 2;
+    if (target is PlayerFighter && parryTicks > 0 && total > 0) {
+      parryTicks = 0;
+      events.add(BattleEvent(BattleEventKind.blocked, unit: target));
+      _counter();
+      return;
+    }
+    if (target is PlayerFighter && guardTicks > 0) total = (total + 1) ~/ 2;
     if (target is PlayerFighter && target.barrierTicks > 0) {
       if (--target.barrierCharges <= 0) target.barrierTicks = 0;
       events.add(BattleEvent(BattleEventKind.blocked, unit: target));
@@ -2745,12 +2957,19 @@ class BattleState {
       final target = _targetAt(cell, opponent);
       if (target != null && struck.add(target)) {
         final through = _passesThrough(target, shot.family);
+        final execute = switch (shot.onHit) {
+          ExecuteEffect(:final threshold, :final bonus)
+              when straight && target.hp < target.maxHp * threshold =>
+            bonus,
+          _ => 0,
+        };
         damage(
           target,
           (straight || !shot.halfSplash
                   ? shot.damage
                   : (shot.damage + 1) ~/ 2) +
-              _markBonus(target),
+              _markBonus(target) +
+              execute,
           element: shot.element,
           family: shot.family,
           kind: straight ? HitKind.straight : HitKind.spread,
@@ -2812,7 +3031,7 @@ class BattleState {
         final back = _cellsAt(
           target,
           target.pos + const GridPos(1, 0),
-        ).any((c) => !c.inBounds || ownerAt(c) != target.team);
+        ).any((c) => !c.inBounds || !canStand(target.team, ownerAt(c)));
         displace(target, 1, 0, 1, byPlayer: true);
         // Already at the back: the wall throws it 1 panel forward.
         final forward = target.pos + const GridPos(-1, 0);
@@ -2832,6 +3051,29 @@ class BattleState {
         if (panel != null && panelAt(target.pos).walkable) {
           setPanel(target.pos, panel);
         }
+      case WetShockEffect(:final stunTicks) when target.has(Status.wet):
+        target.applyStatus(Status.stunned, stunTicks);
+      case ConductorEffect() when target.has(Status.wet):
+        for (final enemy in List.of(enemies)) {
+          if (enemy == target ||
+              enemy.isDead ||
+              enemy.hidden ||
+              !enemy.has(Status.wet)) {
+            continue;
+          }
+          zaps.add(Zap(enemy.pos, from: target.pos));
+          strike(
+            enemy.pos,
+            shot.damage,
+            Team.enemy,
+            shot.element,
+            family: shot.family,
+          );
+        }
+      case AnchorEffect(:final ticks)
+          when target is EnemyFighter &&
+              target.def.kind == EnemyKind.ethereal:
+        target.materialTicks = max(target.materialTicks, ticks);
       default:
     }
   }
@@ -2863,6 +3105,24 @@ class BattleState {
       }
     }
     return _targetAt(pos, opponent);
+  }
+
+  /// Aparar's answer: the first enemy of the player's row takes
+  /// [parryDamage].
+  void _counter() {
+    for (var x = player.pos.x + 1; x < gridColumns; x++) {
+      final cell = GridPos(x, player.pos.y);
+      if (_targetAt(cell, Team.enemy) == null) continue;
+      flashes.add(HitFlash(cell, FlashKind.slash));
+      strike(
+        cell,
+        parryDamage,
+        Team.enemy,
+        Element.neutral,
+        family: ChipFamily.melee,
+      );
+      return;
+    }
   }
 
   /// A panel of the player's side, in their reach and empty: where a card

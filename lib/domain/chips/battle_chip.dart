@@ -1,4 +1,5 @@
 import '../battle/battle_state.dart' show ObstacleKind, Status;
+import '../battle/enemies.dart' show EnemyKind;
 import '../battle/panels.dart';
 import '../element.dart';
 import '../grid.dart';
@@ -126,6 +127,9 @@ class MeleeEffect extends ChipEffect {
     this.slash = false,
     this.inflict,
     this.tipPush = 0,
+    this.tipPull = 0,
+    this.recoil = 0,
+    this.lifesteal = false,
   });
 
   final List<GridPos> pattern;
@@ -135,6 +139,16 @@ class MeleeEffect extends ChipEffect {
   /// Panels pushed, only for whoever stands on the last panel of
   /// [pattern] (Arma de Haste).
   final int tipPush;
+
+  /// Panels pulled toward the user, only for whoever stands on the last
+  /// panel of [pattern] (Chicote de Energia).
+  final int tipPull;
+
+  /// Panels the user steps back after the blow (Salto Acrobático).
+  final int recoil;
+
+  /// The user heals half the damage dealt (Lâmina Vampírica).
+  final bool lifesteal;
   final bool crack;
 
   /// Given to whoever is hit, for its default time (Lâmina Térmica burns).
@@ -168,6 +182,7 @@ class GrenadeEffect extends ChipEffect {
     this.crack = false,
     this.homing = false,
     this.backColumn = false,
+    this.implode = false,
   });
 
   final int distance;
@@ -189,6 +204,10 @@ class GrenadeEffect extends ChipEffect {
   /// Lands on the middle of the back column instead, after a warning, and
   /// every panel of [pattern] takes full damage (Morteiro).
   final bool backColumn;
+
+  /// Whoever is caught off the center is pulled 1 panel toward it
+  /// (Granada de Gravidade).
+  final bool implode;
 }
 
 /// Projectile that, on hitting, also hits another enemy for the same
@@ -412,6 +431,162 @@ class SpawnObstacleEffect extends ChipEffect {
   /// Overrides the kind's default: rock HP, mine damage, or how many ticks
   /// a turret, reflector or tesla coil lasts.
   final int? amount;
+}
+
+/// Projectile dealing [bonus] more to a target under [threshold] of its
+/// max HP (Tiro de Execução).
+class ExecuteEffect extends ChipEffect {
+  const ExecuteEffect({this.threshold = 0.3, this.bonus = 20});
+
+  final double threshold;
+  final int bonus;
+}
+
+/// Projectile dealing [step] more for each time the card was used before
+/// in this battle (Bala Acumulativa).
+class StackingShotEffect extends ChipEffect {
+  const StackingShotEffect(this.step);
+
+  final int step;
+}
+
+/// Projectile that stuns a Wet target for [stunTicks] (Descarga
+/// Estática).
+class WetShockEffect extends ChipEffect {
+  const WetShockEffect(this.stunTicks);
+
+  final int stunTicks;
+}
+
+/// Projectile; on a Wet target the hit jumps to every other Wet enemy
+/// (Condutor).
+class ConductorEffect extends ChipEffect {
+  const ConductorEffect();
+}
+
+/// Projectile that keeps an Etéreo it hits solid for [ticks] (Ancoragem
+/// Quântica).
+class AnchorEffect extends ChipEffect {
+  const AnchorEffect(this.ticks);
+
+  final int ticks;
+}
+
+/// Instant hit on every enemy of [kind], anywhere (Sobrecarga de Rede).
+class KindStrikeEffect extends ChipEffect {
+  const KindStrikeEffect(this.kind);
+
+  final EnemyKind kind;
+}
+
+/// Instant hit on the first enemy of each row (Laser de Varredura).
+class SweepEffect extends ChipEffect {
+  const SweepEffect();
+}
+
+/// Instant hit on every panel of enemy column [column] (Melta).
+class ColumnStrikeEffect extends ChipEffect {
+  const ColumnStrikeEffect({this.column = 3});
+
+  final int column;
+}
+
+/// Every Burning enemy takes the card's damage and stops burning
+/// (Detonador).
+class DetonateEffect extends ChipEffect {
+  const DetonateEffect();
+}
+
+/// For [ticks], the next hit on the user is cancelled and the first enemy
+/// of their row takes the card's damage (Aparar).
+class ParryEffect extends ChipEffect {
+  const ParryEffect(this.ticks);
+
+  final int ticks;
+}
+
+/// [count] copies of the card [chipId] join the hand for this battle only
+/// (Kit de Munição).
+class AddCardsEffect extends ChipEffect {
+  const AddCardsEffect(this.chipId, this.count);
+
+  final String chipId;
+  final int count;
+}
+
+/// The last card used comes back from the discard pile to the hand
+/// (Cápsula de Reciclagem).
+class RecycleEffect extends ChipEffect {
+  const RecycleEffect();
+}
+
+/// The energy left at the end of this hand carries to the next (Bateria
+/// Reserva).
+class CarryEnergyEffect extends ChipEffect {
+  const CarryEnergyEffect();
+}
+
+/// Every card of the next hand costs [amount] less (Estabilizador).
+class DiscountNextHandEffect extends ChipEffect {
+  const DiscountNextHandEffect(this.amount);
+
+  final int amount;
+}
+
+/// The enemy panels of the user's row turn into [state] (Spray
+/// Congelante).
+class EnemyRowPanelEffect extends ChipEffect {
+  const EnemyRowPanelEffect(this.state);
+
+  final PanelState state;
+}
+
+/// Cracked panels and holes on the user's side turn back to normal
+/// (Plataforma de Reparo).
+class RepairPanelsEffect extends ChipEffect {
+  const RepairPanelsEffect();
+}
+
+/// The user's panel fills the gauge [percent]% faster while they stand on
+/// it, for [ticks] (Placa de Recarga).
+class ChargePadEffect extends ChipEffect {
+  const ChargePadEffect(this.ticks, {this.percent = 50});
+
+  final int ticks;
+  final int percent;
+}
+
+/// Every enemy is pushed [steps] panels back, back ones first (Ordem de
+/// Retirada).
+class PushAllEffect extends ChipEffect {
+  const PushAllEffect({this.steps = 1});
+
+  final int steps;
+}
+
+/// For [ticks], the damage the user takes is halved (Leitura de Padrão).
+class GuardEffect extends ChipEffect {
+  const GuardEffect(this.ticks);
+
+  final int ticks;
+}
+
+/// Heals [urgent] when the user has under [threshold] of their max HP,
+/// else [normal] (Seringa de Emergência).
+class EmergencyHealEffect extends ChipEffect {
+  const EmergencyHealEffect({
+    this.threshold = 0.3,
+    this.urgent = 25,
+    this.normal = 5,
+  });
+
+  final double threshold;
+
+  /// Healed under [threshold].
+  final int urgent;
+
+  /// Healed otherwise.
+  final int normal;
 }
 
 /// Does nothing when used, and hurts the player when drawn (Sussurro).

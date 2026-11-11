@@ -17,6 +17,7 @@ class ChipPicker extends StatelessWidget {
     this.onPick,
     this.onCancel,
     this.grouped = false,
+    this.selected = const {},
   });
 
   final String title;
@@ -30,6 +31,9 @@ class ChipPicker extends StatelessWidget {
   /// Groups equal chips into one bigger card with a count ("x4"). Picking
   /// a group picks its first copy.
   final bool grouped;
+
+  /// Cards drawn as picked (ungrouped view only).
+  final Set<ChipCard> selected;
 
   @override
   Widget build(BuildContext context) {
@@ -54,12 +58,23 @@ class ChipPicker extends StatelessWidget {
                     ]
                   : [
                       for (var i = 0; i < cards.length; i++)
-                        ChipCardView(
-                          def: cards[i].def,
-                          sprites: sprites,
-                          width: 40,
-                          autofocus: i == 0,
-                          onTap: pick == null ? null : () => pick(cards[i]),
+                        Container(
+                          // Picked cards get a yellow frame.
+                          foregroundDecoration: selected.contains(cards[i])
+                              ? BoxDecoration(
+                                  border: Border.all(
+                                    color: Pico.yellow,
+                                    width: 2,
+                                  ),
+                                )
+                              : null,
+                          child: ChipCardView(
+                            def: cards[i].def,
+                            sprites: sprites,
+                            width: 40,
+                            autofocus: i == 0,
+                            onTap: pick == null ? null : () => pick(cards[i]),
+                          ),
                         ),
                     ],
             ),

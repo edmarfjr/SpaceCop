@@ -1,4 +1,5 @@
 import '../battle/battle_state.dart';
+import '../battle/enemies.dart' show EnemyKind;
 import '../battle/panels.dart';
 import '../grid.dart';
 import 'battle_chip.dart';
@@ -71,14 +72,13 @@ abstract final class Chips {
   static const melta = ChipDef(
     id: 'melta',
     name: 'Melta',
-    description: 'Acerta as 3 colunas inimigas da sua linha.',
+    description: 'Acerta a coluna inimiga da frente, nas 3 linhas.',
     cost: 1,
     family: ChipFamily.energy,
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 10,
-    effect: RowStrikeEffect(),
-    fx: ChipFx.beam,
+    effect: ColumnStrikeEffect(),
   );
 
   static const missile = ChipDef(
@@ -150,14 +150,16 @@ abstract final class Chips {
   static const energyWhip = ChipDef(
     id: 'energy_whip',
     name: 'Chicote de Energia',
-    description: 'Golpeia os 2 painéis à frente na sua linha.',
+    description:
+        'Golpeia os 2 painéis à frente na sua linha e puxa 1 painel quem '
+        'está no segundo.',
     cost: 1,
     family: ChipFamily.melee,
     rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 15,
-    effect: MeleeEffect(pattern: [GridPos(1, 0), GridPos(2, 0)]),
+    effect: MeleeEffect(pattern: [GridPos(1, 0), GridPos(2, 0)], tipPull: 1),
     pose: ChipPose.melee,
     fx: ChipFx.bolt,
   );
@@ -1010,7 +1012,7 @@ abstract final class Chips {
     id: 'adrenaline',
     name: 'Adrenalina',
     description: 'Os 3 próximos ataques causam +5 de dano. Uso único.',
-    cost: 0,
+    cost: 1,
     family: ChipFamily.consumable,
     rarity: Rarity.uncommon,
     type: ChipType.support,
@@ -1096,7 +1098,7 @@ abstract final class Chips {
     rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.self,
-    damage: 25,
+    damage: 35,
     effect: DynamiteEffect(),
     exhaust: true,
     pose: ChipPose.toss,
@@ -1220,6 +1222,322 @@ abstract final class Chips {
       def.upgraded ? null : _upgrades[def.id];
 
   /// Copy of [base] marked as upgraded, with a "+" name and the changes.
+  // New cards: two per family short of 14, see the card review.
+
+  static const executionShot = ChipDef(
+    id: 'execution_shot',
+    name: 'Tiro de Execução',
+    description:
+        'Acerta o primeiro inimigo da linha; +20 se ele estiver abaixo de '
+        '30% da vida.',
+    cost: 1,
+    family: ChipFamily.projectile,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 10,
+    effect: ExecuteEffect(),
+  );
+
+  static const stackingRound = ChipDef(
+    id: 'stacking_round',
+    name: 'Bala Acumulativa',
+    description:
+        'Acerta o primeiro inimigo da linha. Cada uso nesta luta soma +5 '
+        'ao dano dos próximos.',
+    cost: 1,
+    family: ChipFamily.projectile,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 5,
+    effect: StackingShotEffect(5),
+  );
+
+  static const staticDischarge = ChipDef(
+    id: 'static_discharge',
+    name: 'Descarga Estática',
+    description:
+        'Acerta o primeiro inimigo da linha; se ele estiver Molhado, '
+        'atordoa por 1 s.',
+    cost: 1,
+    family: ChipFamily.energy,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 10,
+    effect: WetShockEffect(ticksPerSecond),
+  );
+
+  static const conductor = ChipDef(
+    id: 'conductor',
+    name: 'Condutor',
+    description:
+        'Acerta o primeiro inimigo da linha; se ele estiver Molhado, o '
+        'choque passa para todos os inimigos Molhados.',
+    cost: 2,
+    family: ChipFamily.energy,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 10,
+    effect: ConductorEffect(),
+    fx: ChipFx.bolt,
+  );
+
+  static const quantumAnchor = ChipDef(
+    id: 'quantum_anchor',
+    name: 'Ancoragem Quântica',
+    description:
+        'Acerta o primeiro inimigo da linha; um Etéreo atingido fica sólido '
+        'por 3 s.',
+    cost: 1,
+    family: ChipFamily.energy,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.row,
+    damage: 10,
+    effect: AnchorEffect(3 * ticksPerSecond),
+  );
+
+  static const networkSurge = ChipDef(
+    id: 'network_surge',
+    name: 'Sobrecarga de Rede',
+    description: 'Acerta todas as Máquinas da arena, em qualquer linha.',
+    cost: 2,
+    family: ChipFamily.energy,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    effect: KindStrikeEffect(EnemyKind.machine),
+  );
+
+  static const sweepLaser = ChipDef(
+    id: 'sweep_laser',
+    name: 'Laser de Varredura',
+    description: 'Acerta o primeiro inimigo de cada uma das 3 linhas.',
+    cost: 2,
+    family: ChipFamily.energy,
+    rarity: Rarity.rare,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 8,
+    effect: SweepEffect(),
+  );
+
+  static const detonator = ChipDef(
+    id: 'detonator',
+    name: 'Detonador',
+    description:
+        'Cada inimigo Queimando leva o dano da carta e deixa de queimar.',
+    cost: 1,
+    family: ChipFamily.explosive,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    effect: DetonateEffect(),
+    pose: ChipPose.toss,
+  );
+
+  static const gravityGrenade = ChipDef(
+    id: 'gravity_grenade',
+    name: 'Granada de Gravidade',
+    description:
+        'Lançada no 3º painel à frente: explode em cruz e puxa quem está '
+        'fora do centro 1 painel para ele. Fora do centro, metade do dano. '
+        'Uso único.',
+    cost: 2,
+    family: ChipFamily.explosive,
+    rarity: Rarity.rare,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 10,
+    effect: GrenadeEffect(implode: true),
+    exhaust: true,
+    pose: ChipPose.toss,
+    fx: ChipFx.blast,
+  );
+
+  static const parry = ChipDef(
+    id: 'parry',
+    name: 'Aparar',
+    description:
+        'Por 1 s, anula o próximo dano que você levaria e golpeia o '
+        'primeiro inimigo da sua linha.',
+    cost: 1,
+    family: ChipFamily.melee,
+    rarity: Rarity.uncommon,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 20,
+    effect: ParryEffect(ticksPerSecond),
+    pose: ChipPose.melee,
+  );
+
+  static const acrobaticLeap = ChipDef(
+    id: 'acrobatic_leap',
+    name: 'Salto Acrobático',
+    description: 'Golpeia o painel à frente e recua 1 painel.',
+    cost: 1,
+    family: ChipFamily.melee,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 10,
+    effect: MeleeEffect(pattern: [GridPos(1, 0)], recoil: 1),
+    pose: ChipPose.melee,
+  );
+
+  static const vampireBlade = ChipDef(
+    id: 'vampire_blade',
+    name: 'Lâmina Vampírica',
+    description: 'Golpeia o painel à frente e cura metade do dano causado.',
+    cost: 1,
+    family: ChipFamily.melee,
+    rarity: Rarity.rare,
+    type: ChipType.attack,
+    target: ChipTarget.self,
+    damage: 15,
+    effect: MeleeEffect(pattern: [GridPos(1, 0)], lifesteal: true),
+    pose: ChipPose.melee,
+  );
+
+  static const ammoKit = ChipDef(
+    id: 'ammo_kit',
+    name: 'Kit de Munição',
+    description: 'Põe 2 Tiros Rápidos na mão, só nesta luta. Uso único.',
+    cost: 1,
+    family: ChipFamily.consumable,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: AddCardsEffect('shot', 2),
+    exhaust: true,
+    pose: ChipPose.toss,
+  );
+
+  static const recycleCapsule = ChipDef(
+    id: 'recycle_capsule',
+    name: 'Cápsula de Reciclagem',
+    description: 'A última carta usada volta do descarte para a mão. Uso único.',
+    cost: 1,
+    family: ChipFamily.consumable,
+    rarity: Rarity.rare,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: RecycleEffect(),
+    exhaust: true,
+    pose: ChipPose.toss,
+  );
+
+  static const reserveBattery = ChipDef(
+    id: 'reserve_battery',
+    name: 'Bateria Reserva',
+    description: 'A Energia que sobrar desta mão passa para a próxima. Uso único.',
+    cost: 1,
+    family: ChipFamily.consumable,
+    rarity: Rarity.uncommon,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: CarryEnergyEffect(),
+    exhaust: true,
+    pose: ChipPose.toss,
+  );
+
+  static const stabilizer = ChipDef(
+    id: 'stabilizer',
+    name: 'Estabilizador',
+    description: 'As cartas da próxima mão custam 1 a menos. Uso único.',
+    cost: 1,
+    family: ChipFamily.consumable,
+    rarity: Rarity.uncommon,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: DiscountNextHandEffect(1),
+    exhaust: true,
+    pose: ChipPose.toss,
+  );
+
+  static const emergencySyringe = ChipDef(
+    id: 'emergency_syringe',
+    name: 'Seringa de Emergência',
+    description:
+        'Cura 25 de vida se você estiver abaixo de 30% da vida; senão, '
+        'cura 5. Uso único.',
+    cost: 1,
+    family: ChipFamily.consumable,
+    rarity: Rarity.uncommon,
+    type: ChipType.recovery,
+    target: ChipTarget.self,
+    effect: EmergencyHealEffect(),
+    exhaust: true,
+    pose: ChipPose.toss,
+  );
+
+  static const freezeSpray = ChipDef(
+    id: 'freeze_spray',
+    name: 'Spray Congelante',
+    description: 'Os 3 painéis inimigos da sua linha viram Gelo.',
+    cost: 1,
+    family: ChipFamily.equipment,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: EnemyRowPanelEffect(PanelState.ice),
+    pose: ChipPose.toss,
+  );
+
+  static const repairPlatform = ChipDef(
+    id: 'repair_platform',
+    name: 'Plataforma de Reparo',
+    description: 'Conserta os painéis rachados e os buracos do seu lado.',
+    cost: 1,
+    family: ChipFamily.equipment,
+    rarity: Rarity.uncommon,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: RepairPanelsEffect(),
+    pose: ChipPose.toss,
+  );
+
+  static const chargePad = ChipDef(
+    id: 'charge_pad',
+    name: 'Placa de Recarga',
+    description:
+        'Seu painel enche o gauge 50% mais rápido enquanto você estiver '
+        'nele, por 10 s.',
+    cost: 2,
+    family: ChipFamily.equipment,
+    rarity: Rarity.rare,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: ChargePadEffect(10 * ticksPerSecond),
+    pose: ChipPose.toss,
+  );
+
+  static const retreatOrder = ChipDef(
+    id: 'retreat_order',
+    name: 'Ordem de Retirada',
+    description: 'Empurra todos os inimigos 1 painel para trás.',
+    cost: 1,
+    family: ChipFamily.tactical,
+    rarity: Rarity.uncommon,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: PushAllEffect(),
+    pose: ChipPose.toss,
+  );
+
+  static const patternReading = ChipDef(
+    id: 'pattern_reading',
+    name: 'Leitura de Padrão',
+    description: 'Por 3 s, você leva metade do dano.',
+    cost: 1,
+    family: ChipFamily.tactical,
+    rarity: Rarity.rare,
+    type: ChipType.support,
+    target: ChipTarget.self,
+    effect: GuardEffect(3 * ticksPerSecond),
+    pose: ChipPose.toss,
+  );
+
   static ChipDef _up(
     ChipDef base, {
     int? damage,
@@ -1470,7 +1788,55 @@ abstract final class Chips {
       _up(voltaicArc, damage: 15),
       _up(homingRocket, damage: 20),
       _up(c4, damage: 25),
-      _up(tnt, damage: 35),
+      _up(tnt, damage: 45),
+      _up(executionShot, damage: 15),
+      _up(
+        stackingRound,
+        description:
+            'Acerta o primeiro inimigo da linha. Cada uso nesta luta soma +8 '
+            'ao dano dos próximos.',
+        effect: const StackingShotEffect(8),
+      ),
+      _up(staticDischarge, damage: 15),
+      _up(conductor, damage: 15),
+      _up(quantumAnchor, damage: 15),
+      _up(networkSurge, damage: 25),
+      _up(sweepLaser, damage: 12),
+      _up(detonator, damage: 25),
+      _up(gravityGrenade, damage: 15),
+      _up(parry, damage: 30),
+      _up(acrobaticLeap, damage: 15),
+      _up(vampireBlade, damage: 20),
+      _up(
+        ammoKit,
+        description: 'Põe 3 Tiros Rápidos na mão, só nesta luta. Uso único.',
+        effect: const AddCardsEffect('shot', 3),
+      ),
+      _up(recycleCapsule, cost: 0),
+      _up(reserveBattery, cost: 0),
+      _up(stabilizer, cost: 0),
+      _up(
+        emergencySyringe,
+        description:
+            'Cura 35 de vida se você estiver abaixo de 30% da vida; senão, '
+            'cura 8. Uso único.',
+        effect: const EmergencyHealEffect(urgent: 35, normal: 8),
+      ),
+      _up(freezeSpray, cost: 0),
+      _up(repairPlatform, cost: 0),
+      _up(
+        chargePad,
+        description:
+            'Seu painel enche o gauge 50% mais rápido enquanto você estiver '
+            'nele, por 15 s.',
+        effect: const ChargePadEffect(15 * ticksPerSecond),
+      ),
+      _up(retreatOrder, cost: 0),
+      _up(
+        patternReading,
+        description: 'Por 5 s, você leva metade do dano.',
+        effect: const GuardEffect(5 * ticksPerSecond),
+      ),
       _up(
         hologram,
         description:
@@ -1575,6 +1941,28 @@ abstract final class Chips {
     homingRocket,
     c4,
     tnt,
+    executionShot,
+    stackingRound,
+    staticDischarge,
+    conductor,
+    quantumAnchor,
+    networkSurge,
+    sweepLaser,
+    detonator,
+    gravityGrenade,
+    parry,
+    acrobaticLeap,
+    vampireBlade,
+    ammoKit,
+    recycleCapsule,
+    reserveBattery,
+    stabilizer,
+    emergencySyringe,
+    freezeSpray,
+    repairPlatform,
+    chargePad,
+    retreatOrder,
+    patternReading,
     assistedAim,
     hologram,
     spear,
@@ -1661,6 +2049,28 @@ abstract final class Chips {
       homingRocket,
       c4,
       tnt,
+      executionShot,
+      stackingRound,
+      staticDischarge,
+      conductor,
+      quantumAnchor,
+      networkSurge,
+      sweepLaser,
+      detonator,
+      gravityGrenade,
+      parry,
+      acrobaticLeap,
+      vampireBlade,
+      ammoKit,
+      recycleCapsule,
+      reserveBattery,
+      stabilizer,
+      emergencySyringe,
+      freezeSpray,
+      repairPlatform,
+      chargePad,
+      retreatOrder,
+      patternReading,
       assistedAim,
       hologram,
       spear,

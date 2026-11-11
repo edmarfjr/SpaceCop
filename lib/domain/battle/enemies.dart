@@ -681,7 +681,7 @@ abstract final class Encounters {
       GridPos pos;
       do {
         pos = GridPos(
-          minX + random.nextInt(gridColumns - minX),
+          minX + random.nextInt(baseColumns - minX),
           random.nextInt(gridRows),
         );
       } while (spawns.any((s) => s.pos == pos));

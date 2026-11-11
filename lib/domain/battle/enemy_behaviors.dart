@@ -68,6 +68,17 @@ List<GridPos> _side(BattleState battle, Team team) => [
       if (battle.ownerAt(GridPos(x, y)) == team) GridPos(x, y),
 ];
 
+/// Panels enemy attacks aim at: the player's side plus the neutral ones,
+/// where the player may also stand.
+List<GridPos> _playerZone(BattleState battle) => [
+  for (var x = 0; x < gridColumns; x++)
+    for (var y = 0; y < gridRows; y++)
+      if (_inPlayerZone(battle, GridPos(x, y))) GridPos(x, y),
+];
+
+bool _inPlayerZone(BattleState battle, GridPos cell) =>
+    battle.ownerAt(cell) != Team.enemy;
+
 /// Cracks [cells]; those already cracked collapse into holes, dropping
 /// whoever stands on them (see [BattleState.collapse]).
 void _crack(BattleState battle, List<GridPos> cells) {
@@ -190,7 +201,10 @@ class BubblerBehavior extends EnemyBehavior {
         const GridPos(0, -1),
       ]..shuffle(battle.random);
       for (final step in steps) {
-        if ((enemy.pos + step).x >= 4 && battle.tryMove(enemy, step)) break;
+        if ((enemy.pos + step).x > enemyColumn0 &&
+            battle.tryMove(enemy, step)) {
+          break;
+        }
       }
     }
     if (enemy.timer-- > 0) return;
@@ -457,7 +471,7 @@ class LavaGuardBehavior extends EnemyBehavior {
     if (enemy.timer-- <= 0) {
       enemy.timer = lavaEvery;
       final spots = [
-        for (final cell in _side(battle, Team.player))
+        for (final cell in _playerZone(battle))
           if (battle.panelAt(cell).state
               case PanelState.normal ||
                   PanelState.cracked ||
@@ -531,7 +545,7 @@ class ColossusBehavior extends EnemyBehavior {
     if (++enemy.timer < every) return;
     enemy.timer = 0;
     final cells = _column(battle.aimPos.x);
-    final fistAt = GridPos(playerColumns, battle.aimPos.y);
+    final fistAt = GridPos(enemyColumn0, battle.aimPos.y);
     battle.schedule(enemy, cells, ticksPerSecond, lob: Lob.ball, () {
       for (final cell in cells) {
         battle.strike(cell, damage, Team.player, enemy.element);
@@ -642,7 +656,7 @@ class MaestroBehavior extends EnemyBehavior {
       if (enemy.attackTimer >= notesReturn) _summonNotes(enemy, battle);
     } else if (enemy.attackTimer >= volleyEvery) {
       enemy.attackTimer = 0;
-      final cells = _side(battle, Team.player)..shuffle(battle.random);
+      final cells = _playerZone(battle)..shuffle(battle.random);
       final hit = cells.skip(3).toList();
       for (var i = 0; i < hit.length; i++) {
         final cell = hit[i];
@@ -662,7 +676,7 @@ class MaestroBehavior extends EnemyBehavior {
       ..attackTimer = 0
       ..invulnerable = true;
     final spots = [
-      for (final cell in _column(playerColumns))
+      for (final cell in _column(enemyColumn0))
         if (battle.panelAt(cell).walkable && battle.unitAt(cell) == null) cell,
     ]..shuffle(battle.random);
     for (final cell in spots.take(2)) {
@@ -1015,7 +1029,7 @@ class TwoHeadBehavior extends EnemyBehavior {
       return;
     }
     enemy.pose = tossPose;
-    final cells = _side(battle, Team.player)..shuffle(battle.random);
+    final cells = _playerZone(battle)..shuffle(battle.random);
     for (final (i, cell) in cells.take(grenades).indexed) {
       battle.schedule(
         enemy,
@@ -1099,7 +1113,7 @@ class SentryBehavior extends EnemyBehavior {
         if (enemy.timer-- > 0) return;
         // Someone stands on it, or the panel was taken: wait.
         if (battle.unitAt(enemy.pos) != null ||
-            battle.ownerAt(enemy.pos) != Team.enemy) {
+            !canStand(Team.enemy, battle.ownerAt(enemy.pos))) {
           return;
         }
         enemy
@@ -1254,7 +1268,7 @@ class TankBehavior extends EnemyBehavior {
       case 0:
         _burst(enemy, battle);
       case 1:
-        final cells = _side(battle, Team.player)..shuffle(battle.random);
+        final cells = _playerZone(battle)..shuffle(battle.random);
         for (final (i, cell) in cells.take(missiles).indexed) {
           battle.schedule(
             enemy,
@@ -1397,7 +1411,8 @@ class ShieldBearerBehavior extends EnemyBehavior {
         if (ally != enemy && !ally.def.frontShield && !ally.isDead)
           if (ally.pos + const GridPos(-1, 0) case final spot
               when spot == enemy.pos ||
-                  (battle.ownerAt(spot) == Team.enemy &&
+                  (spot.inBounds &&
+                      canStand(Team.enemy, battle.ownerAt(spot)) &&
                       battle.panelAt(spot).walkable &&
                       battle.unitAt(spot) == null))
             spot,
@@ -1475,7 +1490,7 @@ class SentinelBehavior extends EnemyBehavior {
     final row = enemy.stage % gridRows;
     enemy.stage++;
     final cells = [
-      for (final cell in _side(battle, Team.player))
+      for (final cell in _playerZone(battle))
         if (cell.y == row) cell,
     ];
     battle.schedule(enemy, cells, warnTicks, () {
@@ -1676,9 +1691,8 @@ class TribeKingBehavior extends EnemyBehavior {
   /// front column of the player's side to the back.
   void _crescent(EnemyFighter enemy, BattleState battle, int delay) {
     final free = battle.random.nextInt(gridRows);
-    final columns = {
-      for (final cell in _side(battle, Team.player)) cell.x,
-    }.toList()..sort((a, b) => b.compareTo(a));
+    final columns = {for (final cell in _playerZone(battle)) cell.x}.toList()
+      ..sort((a, b) => b.compareTo(a));
     for (final (i, x) in columns.indexed) {
       final cells = [
         for (var y = 0; y < gridRows; y++)
@@ -1698,9 +1712,8 @@ class TribeKingBehavior extends EnemyBehavior {
   }
 
   void _lightning(EnemyFighter enemy, BattleState battle) {
-    final cells = (_side(
+    final cells = (_playerZone(
       battle,
-      Team.player,
     )..shuffle(battle.random)).take(lightningBolts).toList();
     battle.schedule(enemy, cells, lightningWarn, () {
       for (final cell in cells) {
@@ -2288,7 +2301,7 @@ class VoidEyeBehavior extends EnemyBehavior {
       case 0:
         _gaze(enemy, battle, battle.aimPos, 0);
         if (enemy.stage == _awake) {
-          final side = _side(battle, Team.player);
+          final side = _playerZone(battle);
           _gaze(
             enemy,
             battle,
@@ -2297,9 +2310,8 @@ class VoidEyeBehavior extends EnemyBehavior {
           );
         }
       case 1:
-        final cells = (_side(
+        final cells = (_playerZone(
           battle,
-          Team.player,
         )..shuffle(battle.random)).take(shards);
         for (final (i, cell) in cells.indexed) {
           battle.schedule(
@@ -2333,7 +2345,7 @@ class VoidEyeBehavior extends EnemyBehavior {
   /// ticks after the usual warning.
   void _gaze(EnemyFighter enemy, BattleState battle, GridPos aim, int delay) {
     final cells = [
-      for (final cell in _side(battle, Team.player))
+      for (final cell in _playerZone(battle))
         if (cell.x == aim.x || cell.y == aim.y) cell,
     ];
     battle.schedule(enemy, cells, gazeWarn + delay, () {
@@ -2469,7 +2481,7 @@ class ColonelBehavior extends EnemyBehavior {
     enemy.stage = 1;
     final spots = [
       for (final cell in _column(enemy.pos.x - 1))
-        if (battle.ownerAt(cell) == Team.enemy &&
+        if (canStand(Team.enemy, battle.ownerAt(cell)) &&
             battle.panelAt(cell).walkable &&
             battle.unitAt(cell) == null)
           cell,
@@ -2484,13 +2496,13 @@ class ColonelBehavior extends EnemyBehavior {
   /// Rajada: column by column from the front, one row spared in each.
   void _sweep(EnemyFighter enemy, BattleState battle) {
     enemy.pose = shootPose;
-    final columns = {for (final c in _side(battle, Team.player)) c.x}.toList()
+    final columns = {for (final c in _playerZone(battle)) c.x}.toList()
       ..sort((a, b) => b.compareTo(a));
     for (final (i, x) in columns.indexed) {
       final spared = battle.random.nextInt(gridRows);
       final cells = [
         for (final cell in _column(x))
-          if (cell.y != spared && battle.ownerAt(cell) == Team.player) cell,
+          if (cell.y != spared && _inPlayerZone(battle, cell)) cell,
       ];
       final last = i == columns.length - 1;
       battle.schedule(enemy, cells, sweepWarn + i * sweepStagger, () {
@@ -2507,7 +2519,7 @@ class ColonelBehavior extends EnemyBehavior {
     enemy.pose = radioPose;
     final cells = [battle.aimPos];
     if (enemy.stage == 1) {
-      final others = _side(battle, Team.player)
+      final others = _playerZone(battle)
         ..remove(battle.aimPos)
         ..shuffle(battle.random);
       cells.addAll(others.take(1));
@@ -2532,7 +2544,7 @@ class ColonelBehavior extends EnemyBehavior {
         GridPos(0, -1),
       ])
         if (center + offset case final cell
-            when cell.inBounds && battle.ownerAt(cell) == Team.player)
+            when cell.inBounds && _inPlayerZone(battle, cell))
           cell,
     ];
     battle.warn(cross, molotovWarn, TelegraphKind.damage, enemy);
@@ -2624,7 +2636,7 @@ class ArgosBehavior extends EnemyBehavior {
 
   /// One random pattern of the player's side; [again] chains a second one.
   void _laser(EnemyFighter enemy, BattleState battle, {required bool again}) {
-    final side = _side(battle, Team.player);
+    final side = _playerZone(battle);
     final columns = {for (final c in side) c.x}.toList()
       ..shuffle(battle.random);
     final spared = battle.random.nextInt(gridRows);
@@ -2662,7 +2674,7 @@ class ArgosBehavior extends EnemyBehavior {
   /// Bloqueio: the front column of the player's side (two in alert, always
   /// leaving one); whoever stands there is pushed back.
   void _lock(EnemyFighter enemy, BattleState battle) {
-    final columns = {for (final c in _side(battle, Team.player)) c.x}.toList()
+    final columns = {for (final c in _playerZone(battle)) c.x}.toList()
       ..sort((a, b) => b.compareTo(a));
     if (columns.length < 2) return;
     final taken = columns.take(enemy.stage == 1 ? 2 : 1).toList();
@@ -2777,7 +2789,7 @@ class HighPriestBehavior extends EnemyBehavior {
 
   void _ritual(EnemyFighter enemy, BattleState battle) {
     final spots = [
-      for (final cell in _side(battle, Team.player))
+      for (final cell in _playerZone(battle))
         if (cell != battle.player.pos && battle.panelAt(cell).walkable) cell,
     ]..shuffle(battle.random);
     battle.runes.addAll(spots.take(runeCount + enemy.stage));
@@ -2789,14 +2801,14 @@ class HighPriestBehavior extends EnemyBehavior {
   void _ritualTick(EnemyFighter enemy, BattleState battle) {
     final left = --enemy.countdown;
     if (left == ritualWarn && battle.runes.isNotEmpty) {
-      battle.warn(_side(battle, Team.player), ritualWarn);
+      battle.warn(_playerZone(battle), ritualWarn);
     }
     if (enemy.stage == 1 && left % runeMoveTicks == 0) _moveRune(battle);
     if (left > 0) return;
     final lit = battle.runes.length;
     battle.runes.clear();
     if (lit > 0) {
-      for (final cell in _side(battle, Team.player)) {
+      for (final cell in _playerZone(battle)) {
         battle.strike(cell, runeDamage * lit, Team.player, enemy.element);
       }
     }
@@ -2819,7 +2831,7 @@ class HighPriestBehavior extends EnemyBehavior {
       ])
         if (rune + step case final to
             when to.inBounds &&
-                battle.ownerAt(to) == Team.player &&
+                _inPlayerZone(battle, to) &&
                 battle.panelAt(to).walkable &&
                 to != battle.player.pos &&
                 !battle.runes.contains(to))
@@ -2833,7 +2845,7 @@ class HighPriestBehavior extends EnemyBehavior {
 
   void _transmute(EnemyFighter enemy, BattleState battle) {
     final cells = [
-      for (final cell in _side(battle, Team.player))
+      for (final cell in _playerZone(battle))
         if (battle.panelAt(cell).walkable) cell,
     ]..shuffle(battle.random);
     final picked = cells.take(transmuteCells).toList();
@@ -2851,7 +2863,7 @@ class HighPriestBehavior extends EnemyBehavior {
   /// Troca de Lugar: the player lands on the warned panel, if still free.
   void _swap(EnemyFighter enemy, BattleState battle) {
     final free = [
-      for (final cell in _side(battle, Team.player))
+      for (final cell in _playerZone(battle))
         if (cell != battle.player.pos &&
             battle.panelAt(cell).walkable &&
             battle.unitAt(cell) == null)
@@ -2860,7 +2872,7 @@ class HighPriestBehavior extends EnemyBehavior {
     if (free.isEmpty) return;
     final to = free[battle.random.nextInt(free.length)];
     battle.schedule(enemy, [to], spellWarn, kind: TelegraphKind.terrain, () {
-      if (battle.ownerAt(to) == Team.player &&
+      if (_inPlayerZone(battle, to) &&
           battle.panelAt(to).walkable &&
           battle.unitAt(to) == null) {
         battle.player.pos = to;
@@ -2978,7 +2990,7 @@ class SerpentBehavior extends EnemyBehavior {
     for (final step in steps) {
       final to = from + step;
       if (to.inBounds &&
-          battle.ownerAt(to) == Team.enemy &&
+          canStand(Team.enemy, battle.ownerAt(to)) &&
           battle.panelAt(to).walkable &&
           battle.unitAt(to) == null) {
         return to;
@@ -3003,7 +3015,7 @@ class SerpentBehavior extends EnemyBehavior {
       ])
         if (enemy.pos + step case final to
             when to.inBounds &&
-                battle.ownerAt(to) == Team.enemy &&
+                canStand(Team.enemy, battle.ownerAt(to)) &&
                 battle.panelAt(to).walkable &&
                 battle.unitAt(to) == null)
           to,
@@ -3047,7 +3059,7 @@ class SerpentBehavior extends EnemyBehavior {
   }
 
   void _sand(EnemyFighter enemy, BattleState battle) {
-    final others = _side(battle, Team.player)
+    final others = _playerZone(battle)
       ..remove(battle.aimPos)
       ..shuffle(battle.random);
     final cells = [battle.aimPos, ...others.take(sandCells - 1)];
@@ -3063,7 +3075,7 @@ class SerpentBehavior extends EnemyBehavior {
   void _beam(EnemyFighter enemy, BattleState battle) {
     final cells = [
       for (final cell in _rowAhead(enemy))
-        if (battle.ownerAt(cell) == Team.player) cell,
+        if (_inPlayerZone(battle, cell)) cell,
     ];
     battle.schedule(enemy, cells, beamWarn, () {
       for (final cell in cells) {

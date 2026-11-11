@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import '../grid.dart';
 import 'battle_state.dart' show ticksPerSecond;
 
@@ -19,7 +21,22 @@ const int lavaDamage = 5;
 /// A Fire unit attacking from lava: +30%.
 const double terrainBoost = 1.3;
 
-/// One panel of the grid. The battle owns a 6x3 matrix of these.
+/// Chances, out of 10, of a battle having 0, 1 or 2 neutral columns
+/// between the sides.
+const neutralColumnOdds = [5, 3, 2];
+
+/// How many neutral columns the next battle has (see [neutralColumnOdds]).
+int rollNeutralColumns(Random random) {
+  var roll = random.nextInt(neutralColumnOdds.reduce((a, b) => a + b));
+  for (var i = 0; i < neutralColumnOdds.length; i++) {
+    roll -= neutralColumnOdds[i];
+    if (roll < 0) return i;
+  }
+  return 0;
+}
+
+/// One panel of the grid. The battle owns a matrix of these, 6 to 8
+/// columns by 3 rows.
 class Panel {
   Panel(this.owner);
 

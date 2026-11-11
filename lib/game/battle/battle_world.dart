@@ -11,6 +11,7 @@ import '../star_cop_game.dart';
 import '../../ui/feedback.dart';
 import '../../ui/theme.dart';
 import 'battle_sounds.dart';
+import 'scrolling_background.dart';
 import 'damage_text.dart';
 import 'fighter_component.dart';
 import 'grid_component.dart';
@@ -86,6 +87,7 @@ class BattleWorld extends World
 
   @override
   Future<void> onLoad() async {
+    await add(ScrollingBackground(game.sprites.battleBackground));
     _grid = GridComponent(
       battle: battle,
       sprites: game.sprites,

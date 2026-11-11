@@ -522,6 +522,20 @@ class DeckPickStep extends PickupStep {
   ];
 }
 
+/// Pick [count] cards of the deck together (all of it if smaller), then
+/// [apply] them.
+class DeckMultiPickStep extends PickupStep {
+  const DeckMultiPickStep(super.title, this.count, this.apply);
+
+  final int count;
+  final void Function(RunState run, List<ChipCard> cards) apply;
+
+  List<ChipCard> cards(RunState run) => List.of(run.deck);
+
+  /// How many must be picked: [count], or fewer in a small deck.
+  int needed(RunState run) => min(count, run.deck.length);
+}
+
 /// A card reward, like a battle's: one of [cards] for the deck, or none.
 class CardRewardStep extends PickupStep {
   const CardRewardStep(super.title, this.cards);

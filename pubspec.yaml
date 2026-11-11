@@ -63,6 +63,7 @@ flutter:
   # Game art, one file per element (see lib/game/sprites.dart).
   assets:
     - assets/images/actors/
+    - assets/images/backgrounds/
     - assets/images/chips/
     - assets/images/events/
     - assets/images/icons/

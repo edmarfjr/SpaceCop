@@ -292,7 +292,7 @@ class _MiniField extends StatelessWidget {
       child: Stack(
         children: [
           for (var y = 0; y < gridRows; y++) ...[
-            for (var x = 0; x < gridColumns; x++) ...[
+            for (var x = 0; x < baseColumns; x++) ...[
               Positioned(
                 left: x * 20,
                 top: _top + y * 14,
@@ -307,7 +307,9 @@ class _MiniField extends StatelessWidget {
                 left: x * 20,
                 top: _top + y * 14,
                 child: SheetSprite(
-                  sprite: sprites.panelFrame(GridPos(x, y).homeSide),
+                  sprite: sprites.panelFrame(
+                    x < playerColumns ? Team.player : Team.enemy,
+                  ),
                   scale: 1,
                 ),
               ),

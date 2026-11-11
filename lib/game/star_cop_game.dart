@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../domain/battle/battle_state.dart';
 import '../domain/battle/enemies.dart';
+import '../domain/battle/panels.dart' show rollNeutralColumns;
 import '../domain/chips/battle_chip.dart';
 import '../domain/map/run_map.dart';
 import '../domain/run/events.dart';
@@ -237,6 +238,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       bossHpCut: boss ? run.bossHpCut : 0,
       openingBarrier: boss && run.bossBarrier,
       pauseOnNewHand: true,
+      neutral: rollNeutralColumns(run.random),
     );
     run
       ..openingStunTicks = 0
@@ -290,7 +292,12 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     final pending = run.pending;
     while (pending.isNotEmpty) {
       final step = pending.first;
-      if (step is! DeckPickStep || step.cards(run).isNotEmpty) break;
+      final empty = switch (step) {
+        DeckPickStep() => step.cards(run).isEmpty,
+        DeckMultiPickStep() => step.needed(run) == 0,
+        CardRewardStep() => false,
+      };
+      if (!empty) break;
       pending.removeAt(0);
     }
     if (pending.isNotEmpty && !overlays.isActive(Overlays.pickup)) {
@@ -298,13 +305,16 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     }
   }
 
-  /// The current relic choice was made: [card] picked from the deck, or
-  /// [reward] (null skips it) taken from a card reward.
-  void resolvePickup({ChipCard? card, ChipDef? reward}) {
+  /// The current relic choice was made: [card] (or [cards]) picked from the
+  /// deck, or [reward] (null skips it) taken from a card reward.
+  void resolvePickup({ChipCard? card, List<ChipCard>? cards, ChipDef? reward}) {
     final step = run.pending.removeAt(0);
     switch (step) {
       case DeckPickStep():
         step.apply(run, card!);
+        GameAudio.instance.play(Sfx.confirm);
+      case DeckMultiPickStep():
+        step.apply(run, cards!);
         GameAudio.instance.play(Sfx.confirm);
       case CardRewardStep():
         if (reward != null) run.deck.add(ChipCard(reward));

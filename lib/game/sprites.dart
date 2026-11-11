@@ -140,6 +140,9 @@ abstract final class SpriteFiles {
   /// The menu's title, 160x160 frames: it plays once and stays on the last.
   static const titleFx = 'titleFx.png';
 
+  /// Battle background, a seamless tile scrolled diagonally.
+  static const battleBackground = 'backgrounds/bg_dataGrid.png';
+
   /// Battle buttons, top right: 8x8 icons.
   static const deckIcon = 'icons/deck.png';
   static const pauseIcon = 'icons/pause.png';
@@ -245,6 +248,25 @@ abstract final class SpriteFiles {
     Chips.spear.id: 'chips/lanca.png',
     Chips.energyCannon.id: 'chips/canhao.png',
     Chips.polearm.id: 'chips/armaHaste.png',
+    Chips.executionShot.id: 'chips/execucao.png',
+    Chips.stackingRound.id: 'chips/balaAcumulativa.png',
+    Chips.staticDischarge.id: 'chips/descargaEstatica.png',
+    Chips.conductor.id: 'chips/condutor.png',
+    Chips.quantumAnchor.id: 'chips/ancora.png',
+    Chips.sweepLaser.id: 'chips/laserVarredura.png',
+    Chips.detonator.id: 'chips/detonador.png',
+    Chips.gravityGrenade.id: 'chips/granadaGravidade.png',
+    Chips.parry.id: 'chips/aparar.png',
+    Chips.acrobaticLeap.id: 'chips/saltoAcrobatico.png',
+    Chips.vampireBlade.id: 'chips/laminaVampirica.png',
+    Chips.ammoKit.id: 'chips/kitMunicao.png',
+    Chips.recycleCapsule.id: 'chips/reciclagem.png',
+    Chips.reserveBattery.id: 'chips/bateriaReserva.png',
+    Chips.stabilizer.id: 'chips/estabilizador.png',
+    Chips.emergencySyringe.id: 'chips/seringaEmergancia.png',
+    Chips.repairPlatform.id: 'chips/plataformaReparo.png',
+    Chips.chargePad.id: 'chips/placaRecarga.png',
+    Chips.patternReading.id: 'chips/leituraPadrao.png',
   };
 
   /// Weapon in hand during a melee card's swing, pointing forward. The
@@ -267,6 +289,7 @@ abstract final class SpriteFiles {
   static const panelFrames = <Team, String>{
     Team.player: 'panels/panel_panelPlr.png',
     Team.enemy: 'panels/panel_panelEnemy.png',
+    Team.neutral: 'panels/panel_panelNeutro.png',
   };
 
   static const panels = <PanelState, String>{
@@ -422,6 +445,7 @@ abstract final class SpriteFiles {
     deckIcon,
     pauseIcon,
     titleFx,
+    battleBackground,
     ...enemies.values,
     ...obstacles.values,
     ...chips.values,
@@ -502,6 +526,7 @@ class GameSprites {
   late final Sprite deckIcon = _file(SpriteFiles.deckIcon);
   late final Sprite pauseIcon = _file(SpriteFiles.pauseIcon);
   late final List<Sprite> titleFx = _sheet(SpriteFiles.titleFx);
+  late final Image battleBackground = _images[SpriteFiles.battleBackground]!;
 
   /// Hits and area attacks, 4 frames played once.
   /// Energy shield loop; frame size read from the file's height.
@@ -531,11 +556,11 @@ class GameSprites {
   late final Sprite cut = _file(SpriteFiles.cut);
 
   /// The middle 16x24 of the slash: a Foice cut.
- // late final Sprite cut = Sprite(
- //   _images[SpriteFiles.slash]!,
- //   srcPosition: Vector2(0, 12),
- //   srcSize: Vector2(16, 24),
- // );
+  // late final Sprite cut = Sprite(
+  //   _images[SpriteFiles.slash]!,
+  //   srcPosition: Vector2(0, 12),
+  //   srcSize: Vector2(16, 24),
+  // );
 
   late final List<Sprite> smoke = [
     for (var i = 0; i < 2; i++) _frame(SpriteFiles.smoke, i, 16),

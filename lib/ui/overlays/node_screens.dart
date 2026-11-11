@@ -1113,6 +1113,57 @@ class _AnimatedTitleState extends State<_AnimatedTitle>
   }
 }
 
+/// Picks [DeckMultiPickStep.needed] cards of the deck: a tap toggles a
+/// card, "Confirmar" goes once enough are picked.
+class _MultiPick extends StatefulWidget {
+  const _MultiPick({
+    super.key,
+    required this.step,
+    required this.game,
+    required this.onDone,
+  });
+
+  final DeckMultiPickStep step;
+  final StarCopGame game;
+  final ValueChanged<List<ChipCard>> onDone;
+
+  @override
+  State<_MultiPick> createState() => _MultiPickState();
+}
+
+class _MultiPickState extends State<_MultiPick> {
+  final _picked = <ChipCard>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final run = widget.game.run;
+    final needed = widget.step.needed(run);
+    return _Panel(
+      title: 'Relíquia',
+      children: [
+        ChipPicker(
+          title: '${widget.step.title} (${_picked.length}/$needed)',
+          cards: widget.step.cards(run),
+          sprites: widget.game.sprites,
+          selected: _picked,
+          onPick: (card) => setState(() {
+            if (!_picked.remove(card) && _picked.length < needed) {
+              _picked.add(card);
+            }
+          }),
+        ),
+        const SizedBox(height: 4),
+        FilledButton(
+          onPressed: _picked.length == needed
+              ? withTap(() => widget.onDone(_picked.toList()))
+              : null,
+          child: const Text('Confirmar'),
+        ),
+      ],
+    );
+  }
+}
+
 class GameOverOverlay extends StatelessWidget {
   const GameOverOverlay({super.key, required this.game});
 
@@ -1162,6 +1213,13 @@ class _PickupOverlayState extends State<PickupOverlay> {
             onPick: (card) => setState(() => game.resolvePickup(card: card)),
           ),
         ],
+      ),
+      final DeckMultiPickStep step => _MultiPick(
+        // A new key per step, so a new choice starts with nothing picked.
+        key: ObjectKey(step),
+        step: step,
+        game: game,
+        onDone: (cards) => setState(() => game.resolvePickup(cards: cards)),
       ),
       final CardRewardStep step => CardReward(
         // A new key per step, so its cards don't keep the last one's focus.

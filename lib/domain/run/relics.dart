@@ -91,10 +91,14 @@ void _extraEnergy(BattleState battle) => battle.energyMax++;
 void _peekTop(BattleState battle) =>
     battle.peekOpen = battle.deck.peek(2).isNotEmpty;
 
-/// The player's front column in its row: the next panel ahead isn't
-/// theirs, even after Roubo de Área moved the line.
+/// The player's front column in its row: they can't step onto the next
+/// panel ahead (neutral ones count as theirs), even after Roubo de Área
+/// moved the line.
 int _frontLine(BattleState battle, ChipDef chip, int damage) =>
-    battle.ownerAt(battle.player.pos + const GridPos(1, 0)) != Team.player
+    !canStand(
+      Team.player,
+      battle.ownerAt(battle.player.pos + const GridPos(1, 0)),
+    )
     ? (damage * 1.2).round()
     : damage;
 
@@ -160,8 +164,6 @@ double _phaseTuner(
 void _armorPlate(BattleState battle) =>
     battle.spawnObstacle(ObstacleKind.barricade, null);
 
-bool _upgradeable(ChipDef def) => Chips.upgradeOf(def) != null;
-
 void _jumpPack(RunState run) => run.jumps += Relics.jumpCount;
 
 void _cloner(RunState run) => run.pending.add(
@@ -179,19 +181,17 @@ void _dataBank(RunState run) => run.pending.addAll([
     ),
 ]);
 
-void _dataForge(RunState run) => run.pending.addAll([
-  for (var i = 1; i <= 3; i++)
-    DeckPickStep(
-      'Forja de Dados: escolha uma carta para transformar ($i/3)',
-      (run, card) => run.replace(card, run.transformed(card.def)),
-    ),
-  for (var i = 1; i <= 3; i++)
-    DeckPickStep(
-      'Forja de Dados: escolha uma carta para melhorar ($i/3)',
-      (run, card) => run.upgrade(card),
-      pickable: _upgradeable,
-    ),
-]);
+void _dataForge(RunState run) => run.pending.add(
+  DeckMultiPickStep('Forja de Dados: escolha 3 cartas para transformar', 3, (
+    run,
+    cards,
+  ) {
+    for (final card in cards) {
+      final def = run.transformed(card.def);
+      run.replace(card, Chips.upgradeOf(def) ?? def);
+    }
+  }),
+);
 
 void _incinerator(RunState run) => run.pending.addAll([
   for (var i = 1; i <= 2; i++)
@@ -502,8 +502,8 @@ abstract final class Relics {
     id: 'data_forge',
     name: 'Forja de Dados',
     description:
-        'Ao pegar, transforme 3 cartas do deck em cartas aleatórias e '
-        'melhore outras 3.',
+        'Ao pegar, transforme 3 cartas do deck em cartas aleatórias já '
+        'melhoradas.',
     kind: RelicKind.global,
     rarity: Rarity.rare,
     onPickup: _dataForge,
