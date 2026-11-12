@@ -267,6 +267,9 @@ abstract final class SpriteFiles {
     Chips.repairPlatform.id: 'chips/plataformaReparo.png',
     Chips.chargePad.id: 'chips/placaRecarga.png',
     Chips.patternReading.id: 'chips/leituraPadrao.png',
+    Chips.networkSurge.id: 'chips/sobrecargaRede.png',
+    Chips.freezeSpray.id: 'chips/sprayCongelante.png',
+    Chips.retreatOrder.id: 'chips/ordemRetirada.png',
   };
 
   /// Weapon in hand during a melee card's swing, pointing forward. The
