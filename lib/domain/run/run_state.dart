@@ -30,12 +30,12 @@ const double actHeal = 0.75;
 /// Everything that persists between nodes of one run: HP, deck, map
 /// position. Battles copy from here and write HP back when they end.
 class RunState {
-  factory RunState({Random? random}) {
+  factory RunState({required List<ChipCard> deck, Random? random}) {
     random ??= Random();
     return RunState._(
       random,
       MapGenerator(random: random).generate(),
-      Chips.starterDeck(),
+      deck,
     ).._rollBoss();
   }
 

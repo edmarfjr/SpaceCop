@@ -1,35 +1,68 @@
 import 'package:flutter/material.dart';
 
 import '../../game/audio.dart';
+import '../../game/settings.dart';
 import '../../game/star_cop_game.dart';
 import '../feedback.dart';
 import '../theme.dart';
 import '../widgets/chip_picker.dart';
 
-/// Pause icon in battle: the sound settings, and a button to resume (a
-/// stray tap doesn't).
-class PauseOverlay extends StatefulWidget {
+/// Pause icon in battle: a button to resume (a stray tap doesn't) and one
+/// to the settings.
+class PauseOverlay extends StatelessWidget {
   const PauseOverlay({super.key, required this.game});
 
   final StarCopGame game;
 
   @override
-  State<PauseOverlay> createState() => _PauseOverlayState();
+  Widget build(BuildContext context) => ColoredBox(
+    color: Pico.black.withValues(alpha: 0.7),
+    child: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('PAUSA', style: GbText.title),
+          const SizedBox(height: 10),
+          FilledButton(
+            autofocus: true,
+            onPressed: withTap(game.closeMenus),
+            child: const Text('Continuar'),
+          ),
+          const SizedBox(height: 6),
+          FilledButton(
+            onPressed: withTap(game.openSettings),
+            child: const Text('Configurações'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
-class _PauseOverlayState extends State<PauseOverlay> {
+/// From the menu or the pause: sound volumes, mute and the language.
+class SettingsOverlay extends StatefulWidget {
+  const SettingsOverlay({super.key, required this.game});
+
+  final StarCopGame game;
+
+  @override
+  State<SettingsOverlay> createState() => _SettingsOverlayState();
+}
+
+class _SettingsOverlayState extends State<SettingsOverlay> {
   static const _volumeStep = 0.1;
 
   @override
   Widget build(BuildContext context) {
     final audio = GameAudio.instance;
+    final settings = GameSettings.instance;
     return ColoredBox(
-      color: Pico.black.withValues(alpha: 0.7),
+      color: Pico.darkBlue,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('PAUSA', style: GbText.title),
+            const Text('CONFIGURAÇÕES', style: GbText.title),
             const SizedBox(height: 10),
             _VolumeRow(
               label: 'Música',
@@ -56,11 +89,30 @@ class _PauseOverlayState extends State<PauseOverlay> {
               text: audio.muted ? 'Som: desligado' : 'Som: ligado',
               onTap: () => setState(audio.toggleMute),
             ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(
+                  width: 48,
+                  child: Text('Idioma', style: GbText.body),
+                ),
+                for (final language in GameLanguage.values)
+                  _TextButton(
+                    text: language.label,
+                    selected: language == settings.language.value,
+                    onTap: () {
+                      menuTapFeedback();
+                      setState(() => settings.setLanguage(language));
+                    },
+                  ),
+              ],
+            ),
             const SizedBox(height: 10),
             FilledButton(
               autofocus: true,
-              onPressed: withTap(widget.game.closeMenus),
-              child: const Text('Continuar'),
+              onPressed: withTap(widget.game.closeSettings),
+              child: const Text('Voltar'),
             ),
           ],
         ),
@@ -102,19 +154,31 @@ class _VolumeRow extends StatelessWidget {
   );
 }
 
-/// Yellow text with some room around it to tap.
+/// Yellow text with some room around it to tap; gray when [selected] is
+/// false (one option of a choice that isn't the current one).
 class _TextButton extends StatelessWidget {
-  const _TextButton({required this.text, required this.onTap});
+  const _TextButton({
+    required this.text,
+    required this.onTap,
+    this.selected = true,
+  });
 
   final String text;
   final VoidCallback onTap;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      child: Text(text, style: GbText.title.copyWith(color: Pico.yellow,fontSize: 14)),
+      child: Text(
+        text,
+        style: GbText.title.copyWith(
+          color: selected ? Pico.yellow : Pico.darkGray,
+          fontSize: 14,
+        ),
+      ),
     ),
   );
 }

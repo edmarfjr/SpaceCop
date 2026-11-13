@@ -146,6 +146,7 @@ abstract final class SpriteFiles {
   /// Battle buttons, top right: 8x8 icons.
   static const deckIcon = 'icons/deck.png';
   static const pauseIcon = 'icons/pause.png';
+  static const parryIcon = 'icons/parry.png';
 
   /// 32x32 frame every chip card is drawn on.
   static const chipFrame = 'chips/chip.png';
@@ -447,6 +448,7 @@ abstract final class SpriteFiles {
     attackSign,
     deckIcon,
     pauseIcon,
+    parryIcon,
     titleFx,
     battleBackground,
     ...enemies.values,
@@ -528,6 +530,7 @@ class GameSprites {
   ];
   late final Sprite deckIcon = _file(SpriteFiles.deckIcon);
   late final Sprite pauseIcon = _file(SpriteFiles.pauseIcon);
+  late final Sprite parryIcon = _file(SpriteFiles.parryIcon);
   late final List<Sprite> titleFx = _sheet(SpriteFiles.titleFx);
   late final Image battleBackground = _images[SpriteFiles.battleBackground]!;
 

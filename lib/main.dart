@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'game/audio.dart';
+import 'game/settings.dart';
 import 'game/star_cop_game.dart';
 import 'ui/overlays/battle_hud.dart';
 import 'ui/overlays/compendium.dart';
@@ -23,6 +24,7 @@ Future<void> main() async {
   // edge brings them back for a moment.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   await GameAudio.instance.init();
+  await GameSettings.instance.init();
   runApp(const StarCopApp());
 }
 
@@ -68,6 +70,7 @@ class _StarCopAppState extends State<StarCopApp> {
     Overlays.hud,
     Overlays.reward,
     Overlays.pause,
+    Overlays.settings,
     Overlays.deck,
     Overlays.map,
     Overlays.shop,
@@ -79,6 +82,7 @@ class _StarCopAppState extends State<StarCopApp> {
 
   static final _overlays = <String, Widget Function(StarCopGame)>{
     Overlays.menu: (game) => MenuOverlay(game: game),
+    Overlays.deckSelect: (game) => DeckSelectOverlay(game: game),
     Overlays.compendium: (game) => CompendiumOverlay(game: game),
     Overlays.manual: (game) => ManualOverlay(game: game),
     Overlays.pickup: (game) => PickupOverlay(game: game),
@@ -90,6 +94,7 @@ class _StarCopAppState extends State<StarCopApp> {
     Overlays.event: (game) => EventOverlay(game: game),
     Overlays.gameOver: (game) => GameOverOverlay(game: game),
     Overlays.pause: (game) => PauseOverlay(game: game),
+    Overlays.settings: (game) => SettingsOverlay(game: game),
     Overlays.deck: (game) => DeckOverlay(game: game),
   };
 }

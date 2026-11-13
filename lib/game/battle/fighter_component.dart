@@ -138,6 +138,8 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
   static const _obstacleFrameTime = 0.15;
   static final _lifeBack = Paint()..color = Pico.darkBlue;
   static final _lifeFill = Paint()..color = Pico.blue;
+  static final _enemyLifeFill = Paint()..color = Pico.red;
+  static final _enemyLifeBorder = Paint()..color = Pico.white;
 
   /// Visor de Combate: the bar beside an enemy filling up to its next
   /// attack, red once it is close.
@@ -317,8 +319,25 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
         size: sprites.muzzle.srcSize * _scale,
       );
     }
-    // Enemies show their life in the HUD, on the right; a Lança has none
-    // worth showing.
+    // Enemy life bar, under the feet. Parts (a boss's arms) have none of
+    // their own.
+    if (fighter case final EnemyFighter enemy when !enemy.def.part) {
+      final bar = Rect.fromLTWH(8, size.y + 2, size.x - 16, 3);
+      canvas
+        ..drawRect(bar.inflate(1), _enemyLifeBorder)
+        ..drawRect(bar, _lifeBack)
+        ..drawRect(
+          Rect.fromLTWH(
+            bar.left,
+            bar.top,
+            bar.width * (enemy.hp / enemy.maxHp).clamp(0, 1),
+            bar.height,
+          ),
+          _enemyLifeFill,
+        );
+    }
+    // Obstacles show their life as a number; a Lança has none worth
+    // showing.
     if (fighter case Obstacle(:final kind)
         when kind != ObstacleKind.spear && kind != ObstacleKind.dynamite) {
       _hpText.render(
@@ -364,13 +383,16 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
       }
     }
     // Active statuses, in a row above the head.
-    final count = fighter.statuses.length;
+    // Aparar shows as one more icon while its window is open.
+    final icons = [
+      for (final status in fighter.statuses.keys) sprites.status(status),
+      if (fighter is PlayerFighter && parent.battle.parryTicks > 0)
+        sprites.parryIcon,
+    ];
     // 8 px per icon, 1 px gap between them.
-    var x = (size.x - (count * 9 - 1)) / 2;
-    for (final status in fighter.statuses.keys) {
-      sprites
-          .status(status)
-          .render(canvas, position: Vector2(x, 6), size: Vector2.all(8));
+    var x = (size.x - (icons.length * 9 - 1)) / 2;
+    for (final icon in icons) {
+      icon.render(canvas, position: Vector2(x, 6), size: Vector2.all(8));
       x += 9;
     }
   }

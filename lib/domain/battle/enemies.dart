@@ -281,7 +281,7 @@ abstract final class Enemies {
     behavior: TankBehavior(),
   );
 
-   /// Another boss of the first mission.
+  /// Another boss of the first mission.
   static const colonel = EnemyDef(
     name: 'Coronel Inimigo',
     hp: 200,
@@ -652,7 +652,7 @@ abstract final class Encounters {
     Enemies.bubbler ||
     Enemies.etHealer ||
     Enemies.shadowNest => 4,
-    _ => playerColumns,
+    _ => enemyColumn0,
   };
 
   /// One or two basic enemies of [act] on distinct cells, each one [draw]n
@@ -681,7 +681,7 @@ abstract final class Encounters {
       GridPos pos;
       do {
         pos = GridPos(
-          minX + random.nextInt(baseColumns - minX),
+          minX + random.nextInt(gridColumns - minX),
           random.nextInt(gridRows),
         );
       } while (spawns.any((s) => s.pos == pos));

@@ -75,7 +75,7 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
       (shot.fx == ChipFx.spear ? sprites.spear : sprites.shot[_frame ~/ 6 % 2])
           .render(
             canvas,
-            position: parent.cellCenter(shot.pos),
+            position: parent.cellCenter(shot.pos) + Vector2(0, -8),
             size: _size,
             anchor: Anchor.center,
           );

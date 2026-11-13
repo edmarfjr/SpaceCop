@@ -270,7 +270,7 @@ abstract final class Relics {
     id: 'chain_trigger',
     name: 'Gatilho de Corrente',
     description:
-        'Corrente de 3 completa: o próximo gauge enche 50% mais rápido.',
+        'Corrente de 3 completa: a próxima recarga é 50% mais rápida.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
     onChainComplete: _fastGauge,
@@ -280,7 +280,7 @@ abstract final class Relics {
     id: 'ice_boots',
     name: 'Botas de Gelo',
     description:
-        'Você não desliza no Gelo e não abre Buraco ao sair do Rachado.',
+        'Você não desliza no Gelo e não abre Buracos.',
     kind: RelicKind.combat,
   );
 
@@ -295,7 +295,7 @@ abstract final class Relics {
   static const extendedMag = RelicDef(
     id: 'extended_mag',
     name: 'Carregador Estendido',
-    description: 'A 1ª carta de Projétil de cada mão devolve a Energia gasta.',
+    description: 'A 1ª carta de Projétil de cada turno devolve a Energia gasta.',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
     onChipUsed: _refundProjectile,
@@ -321,7 +321,7 @@ abstract final class Relics {
   static const superconductor = RelicDef(
     id: 'superconductor',
     name: 'Bobina Supercondutora',
-    description: 'Energia em alvo Molhado também atordoa por 1 s.',
+    description: 'Energia em alvo Molhado atordoa por 1 segundo.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
     onHit: _superconduct,
@@ -332,7 +332,7 @@ abstract final class Relics {
     id: 'capacitor',
     name: 'Capacitor',
     description:
-        'Na recarga, até 2 de Energia que sobrou passam para a mão nova.',
+        'Na recarga, até 2 de Energia restantes passam para o próximo turno.',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
   );
@@ -341,7 +341,7 @@ abstract final class Relics {
   static const servoArm = RelicDef(
     id: 'servo_arm',
     name: 'Servo-braço',
-    description: 'Golpes de Corpo-a-corpo empurram o alvo 1 painel.',
+    description: 'Cartas Corpo-a-corpo empurram o alvo.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
   );
@@ -349,7 +349,7 @@ abstract final class Relics {
   static const monoBlade = RelicDef(
     id: 'mono_blade',
     name: 'Lâmina Monomolecular',
-    description: 'Corpo-a-corpo causa +50% de dano em alvo atordoado.',
+    description: 'Cartas Corpo-a-corpo causa +50% de dano em alvo atordoado.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
     modifyHit: _monoBlade,
@@ -359,7 +359,7 @@ abstract final class Relics {
   static const engineeringKit = RelicDef(
     id: 'engineering_kit',
     name: 'Kit de Engenharia',
-    description: 'Seus equipamentos e escudos duram 50% mais.',
+    description: 'Seus equipamentos duram 50% mais.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
   );
@@ -387,7 +387,7 @@ abstract final class Relics {
     name: 'Mochila Tática',
     description:
         'A 1ª carta de uso único de cada luta vai para o descarte em vez de '
-        'sair.',
+        'exaurir.',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
   );
@@ -403,7 +403,7 @@ abstract final class Relics {
   static const phaseTuner = RelicDef(
     id: 'phase_tuner',
     name: 'Sintonizador de Fase',
-    description: 'Projéteis acertam Etéreos em fase com 50% do dano.',
+    description: 'Projéteis acertam Inimigos Etéreos em fase com 50% do dano.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
     modifyHit: _phaseTuner,
@@ -470,7 +470,7 @@ abstract final class Relics {
     id: 'jump_pack',
     name: 'Propulsor de Salto',
     description:
-        '3 vezes na run, escolha qualquer nó do andar, fora do caminho.',
+        'Ignore caminhos das proximas salas por 3 vezes.',
     kind: RelicKind.global,
     rarity: Rarity.rare,
     onPickup: _jumpPack,
@@ -502,8 +502,7 @@ abstract final class Relics {
     id: 'data_forge',
     name: 'Forja de Dados',
     description:
-        'Ao pegar, transforme 3 cartas do deck em cartas aleatórias já '
-        'melhoradas.',
+        'Ao pegar, transforme 3 cartas do deck em cartas melhoradas aleatórias.',
     kind: RelicKind.global,
     rarity: Rarity.rare,
     onPickup: _dataForge,
@@ -535,7 +534,7 @@ abstract final class Relics {
     id: 'printer_3d',
     name: 'Impressora 3D',
     description:
-        'No início de cada luta, ganhe uma carta aleatória só para ela; '
+        'No início de cada luta, ganhe uma carta aleatória temporária; '
         'ela se exaure ao ser usada.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
@@ -617,7 +616,7 @@ abstract final class Relics {
   static const medKit = RelicDef(
     id: 'med_kit',
     name: 'Kit Médico',
-    description: 'Cura 6 HP ao fim de cada luta vencida.',
+    description: 'Cura 6 HP ao fim de cada luta.',
     kind: RelicKind.global,
   );
 
@@ -642,7 +641,7 @@ abstract final class Relics {
   static const humidifier = RelicDef(
     id: 'humidifier',
     name: 'Umidificador',
-    description: 'Os inimigos começam cada luta Molhados.',
+    description: 'Os inimigos começam as lutas Molhados.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
     onBattleStart: _humidifier,
@@ -661,7 +660,7 @@ abstract final class Relics {
   static const reactiveSpikes = RelicDef(
     id: 'reactive_spikes',
     name: 'Espinhos Reativos',
-    description: 'Quando você sofre dano, inimigos colados em você levam 5.',
+    description: 'Quando você sofre dano, inimigos adjacentes a você levam 5 de dano.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
   );
@@ -670,7 +669,7 @@ abstract final class Relics {
   static const routeRadar = RelicDef(
     id: 'route_radar',
     name: 'Radar de Rota',
-    description: 'Nós "?" nunca escondem combates.',
+    description: 'Salas "?" não escondem mais combates.',
     kind: RelicKind.global,
     rarity: Rarity.uncommon,
   );
@@ -690,7 +689,7 @@ abstract final class Relics {
   static const abyssLink = RelicDef(
     id: 'abyss_link',
     name: 'Elo do Abismo',
-    description: 'Cartas de uso único causam +10 de dano.',
+    description: 'Cartas de ataque de uso único causam +10 de dano.',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
     modifyDamage: _abyssLink,
@@ -701,7 +700,7 @@ abstract final class Relics {
   static const lastBlessing = RelicDef(
     id: 'last_blessing',
     name: 'Bênção do Último',
-    description: 'Uma vez por run, ao morrer, fica com 1 HP. Depois se apaga.',
+    description: 'Uma vez por partida, ao morrer, fica com 1 HP. Depois se apaga.',
     kind: RelicKind.combat,
     rarity: Rarity.uncommon,
   );
@@ -711,7 +710,7 @@ abstract final class Relics {
     id: 'phoenix_core',
     name: 'Núcleo Fênix',
     description:
-        'Uma vez por run, ao morrer, revive com 30% do HP. Depois se apaga.',
+        'Uma vez por partida, ao morrer, revive com 30% do HP. Depois se apaga.',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
   );
@@ -720,7 +719,7 @@ abstract final class Relics {
   static const escortDrone = RelicDef(
     id: 'escort_drone',
     name: 'Drone de Escolta',
-    description: 'A cada 5 s, dispara 5 de dano no primeiro inimigo da linha.',
+    description: 'A cada 5 segundos, cause 5 de dano no primeiro inimigo da linha.',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
   );
@@ -729,7 +728,7 @@ abstract final class Relics {
   static const doubleTrigger = RelicDef(
     id: 'double_trigger',
     name: 'Gatilho Duplo',
-    description: 'A cada 8 cartas usadas, a próxima roda duas vezes.',
+    description: 'A cada 8 cartas usadas, a próxima é usada duas vezes.',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
   );
@@ -739,7 +738,7 @@ abstract final class Relics {
     id: 'elemental_amp',
     name: 'Amplificador Elemental',
     description:
-        'Status que você aplica nos inimigos duram o dobro.',
+        'Status causados aos inimigos duram o dobro.',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
   );
@@ -748,7 +747,7 @@ abstract final class Relics {
   static const absorbPlate = RelicDef(
     id: 'absorb_plate',
     name: 'Placa de Absorção',
-    description: 'Ao sofrer dano, ganha 1 de Energia (uma vez por mão).',
+    description: 'Ao sofrer dano, ganha 1 de Energia (uma vez por turno).',
     kind: RelicKind.combat,
     rarity: Rarity.rare,
   );

@@ -112,7 +112,7 @@ class BattleWorld extends World
 
   /// The damage number over [target]; hurting the player also shakes the
   /// screen and vibrates.
-  void _showHit(Fighter target, int amount) {
+  void _showHit(Fighter target, int amount, double multiplier) {
     final view = _views[target];
     final head = view == null
         ? _grid.cellCenter(target.pos)
@@ -121,7 +121,7 @@ class BattleWorld extends World
       DamageText(
         amount,
         position: head + Vector2(_random.nextDouble() * 8 - 4, 0),
-        color: target is PlayerFighter ? Pico.red : Pico.white,
+        color: target is PlayerFighter ? Pico.red : multiplier == 1 ? Pico.white :  multiplier > 1 ? Pico.yellow : Pico.lightGray,
       ),
     );
     if (target is PlayerFighter) {
@@ -169,7 +169,7 @@ class BattleWorld extends World
         PlayerInput(dx: dx, dy: dy, useChip: useChip, cycleChip: _cyclePressed),
       );
       for (final hit in battle.hits) {
-        _showHit(hit.target, hit.amount);
+        _showHit(hit.target, hit.amount, hit.multiplier);
       }
       _sounds.afterTick(battle);
       if (battle.events.any((e) => e.kind == BattleEventKind.quake)) {

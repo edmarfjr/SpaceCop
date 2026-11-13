@@ -53,6 +53,12 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     ..strokeWidth = 2
     ..style = PaintingStyle.stroke;
 
+  /// Laser de Varredura: a white core with red edges.
+  static final _laserEdge = Paint()
+    ..color = Pico.red
+    ..strokeWidth = 6
+    ..style = PaintingStyle.stroke;
+
   static final _red = Paint()..color = Pico.red;
   static final _white = Paint()..color = Pico.white;
   static final _blue = Paint()..color = Pico.blue;
@@ -163,6 +169,12 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
           ShieldLinkLayer.drawBolt(canvas, from, to, shape);
         case ZapStyle.tracer:
           canvas.drawLine(Offset(from.x, from.y), Offset(to.x, to.y), _tracer);
+        case ZapStyle.laser:
+          final a = Offset(from.x, from.y);
+          final b = Offset(to.x, to.y);
+          canvas
+            ..drawLine(a, b, _laserEdge)
+            ..drawLine(a, b, _tracer);
         case ZapStyle.chain:
           _drawChain(canvas, from, to);
         case ZapStyle.tractor:
@@ -384,6 +396,7 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     void band(double half, Paint paint) {
       final h = snap(half * swell);
       if (h <= 0) return;
+      canvas.drawCircle(Offset(hand.x, snap(y)), h, paint);
       canvas.drawRect(
         Rect.fromLTRB(hand.x, snap(y) - h, end, snap(y) + h),
         paint,

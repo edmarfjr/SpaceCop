@@ -99,51 +99,68 @@ class _RewardOverlayState extends State<RewardOverlay> {
 
   Widget _list() {
     final spoils = game.spoils;
-    return _Panel(
-      title: 'Espólios!',
-      children: [
-        Container(
-          width: 200,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Pico.black,
-            border: Border.all(color: Pico.lightGray, width: 0.5),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (spoils.isEmpty)
-                Text(
-                  'Nada mais a ser pego.',
-                  textAlign: TextAlign.center,
-                  style: GbText.small.copyWith(color: Pico.darkGray),
-                ),
-              for (final (i, spoil) in spoils.indexed)
-                Padding(
-                  padding: EdgeInsets.only(top: i == 0 ? 0 : 3),
-                  child: _spoilButton(spoil, autofocus: i == 0),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisSize: MainAxisSize.min,
+    // Title pinned to the top, buttons to the bottom; the box stays centered
+    // between them and scrolls if the spoils outgrow the space.
+    return ColoredBox(
+      color: Pico.darkBlue,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Column(
           children: [
-            TextButton(
-              onPressed: withTap(game.showDeck),
-              child: const Text('Ver deck'),
+            Text('', style: GbText.small, textAlign: TextAlign.center),
+            Text('Espólios!', style: GbText.title, textAlign: TextAlign.center),
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Container(
+                    width: 200,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Pico.black,
+                      border: Border.all(color: Pico.lightGray, width: 0.5),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (spoils.isEmpty)
+                          Text(
+                            'Nada mais a ser pego.',
+                            textAlign: TextAlign.center,
+                            style: GbText.small.copyWith(color: Pico.darkGray),
+                          ),
+                        for (final (i, spoil) in spoils.indexed)
+                          Padding(
+                            padding: EdgeInsets.only(top: i == 0 ? 0 : 3),
+                            child: _spoilButton(spoil, autofocus: i == 0),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(width: 8),
-            TextButton(
-              autofocus: spoils.isEmpty,
-              onPressed: withTap(game.finishNode),
-              child: Text(spoils.isEmpty ? 'Continuar' : 'Pular recompensas'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: withTap(game.showDeck),
+                  child: const Text('Ver deck'),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  autofocus: spoils.isEmpty,
+                  onPressed: withTap(game.finishNode),
+                  child: Text(
+                    spoils.isEmpty ? 'Continuar' : 'Pular recompensas',
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -1055,8 +1072,129 @@ class MenuOverlay extends StatelessWidget {
         onPressed: withTap(game.openManual),
         child: const Text('Manual'),
       ),
+      const SizedBox(height: 6),
+      FilledButton(
+        onPressed: withTap(game.openSettings),
+        child: const Text('Configurações'),
+      ),
     ],
   );
+}
+
+/// After "Novo jogo": pick one of [Chips.starterDecks] to start the run with.
+class DeckSelectOverlay extends StatefulWidget {
+  const DeckSelectOverlay({super.key, required this.game});
+
+  final StarCopGame game;
+
+  @override
+  State<DeckSelectOverlay> createState() => _DeckSelectOverlayState();
+}
+
+class _DeckSelectOverlayState extends State<DeckSelectOverlay> {
+  int _index = 0;
+
+  /// Tapping a deck focuses it too, so the focus frame marks the deck shown.
+  final _focus = [for (final _ in Chips.starterDecks) FocusNode()];
+
+  StarCopGame get game => widget.game;
+
+  @override
+  void dispose() {
+    for (final node in _focus) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final deck = Chips.starterDecks[_index];
+    return _Panel(
+      title: 'Escolha seu deck',
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (i, option) in Chips.starterDecks.indexed) ...[
+              if (i > 0) const SizedBox(width: 4),
+              OutlinedButton(
+                autofocus: i == 0,
+                focusNode: _focus[i],
+                onFocusChange: (focused) {
+                  if (focused) setState(() => _index = i);
+                },
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: i == _index ? Pico.forest : Pico.black,
+                  padding: buttonPadding,
+                ),
+                onPressed: withTap(() {
+                  _focus[i].requestFocus();
+                  setState(() => _index = i);
+                }),
+                child: Text(option.name, style: GbText.small),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(deck.tagline, style: GbText.small, textAlign: TextAlign.center),
+        const SizedBox(height: 4),
+        Flexible(
+          child: SingleChildScrollView(
+            child: Wrap(
+              spacing: 3,
+              runSpacing: 3,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final (def, count) in deck.cards)
+                  Stack(
+                    children: [
+                      ChipCardView(
+                        def: def,
+                        sprites: game.sprites,
+                        width: 36,
+                        focusable: false,
+                      ),
+                      if (count > 1)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: ColoredBox(
+                            color: Pico.black,
+                            child: Text(
+                              'x$count',
+                              style: GbText.small.copyWith(
+                                color: Pico.yellow,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              onPressed: withTap(game.backToMenu),
+              child: const Text('Voltar'),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: withTap(() => game.startRunWith(deck)),
+              child: const Text('Começar'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 /// The menu's title: plays [frames] once as the menu opens, then holds the

@@ -72,13 +72,13 @@ abstract final class Chips {
   static const melta = ChipDef(
     id: 'melta',
     name: 'Melta',
-    description: 'Acerta a coluna inimiga da frente, nas 3 linhas.',
+    description: 'Acerta toda a linha à sua frente.',
     cost: 1,
     family: ChipFamily.energy,
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 10,
-    effect: ColumnStrikeEffect(),
+    effect: RowStrikeEffect.ahead(),
   );
 
   static const missile = ChipDef(
@@ -420,8 +420,8 @@ abstract final class Chips {
     id: 'area_steal',
     name: 'Avanço',
     description:
-        'A coluna inimiga da frente é sua por 10 s. Quem estiver nela leva 5 '
-        'e é empurrado.',
+        'Empurra a área neutra 1 coluna para a frente por 10 s. Quem estiver '
+        'na coluna tomada leva 5 e é empurrado. Usar de novo soma o tempo.',
     cost: 2,
     family: ChipFamily.tactical,
     rarity: Rarity.rare,
@@ -647,7 +647,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 12,
     effect: RowStrikeEffect(),
-    fx: ChipFx.beam,
+    fx: ChipFx.tracer,
   );
 
   static const tranqDart = ChipDef(
@@ -745,6 +745,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 10,
     effect: StatusShotEffect(Status.wet, wetTicks, panel: PanelState.ice),
+    fx: ChipFx.beam,
   );
 
   static const steadyBeam = ChipDef(
@@ -1241,10 +1242,10 @@ abstract final class Chips {
 
   static const stackingRound = ChipDef(
     id: 'stacking_round',
-    name: 'Bala Acumulativa',
+    name: 'Tiro Contínuo',
     description:
         'Acerta o primeiro inimigo da linha. Cada uso nesta luta soma +5 '
-        'ao dano dos próximos.',
+        'em todas as copias desta carta.',
     cost: 1,
     family: ChipFamily.projectile,
     type: ChipType.attack,
@@ -1362,7 +1363,7 @@ abstract final class Chips {
     id: 'parry',
     name: 'Aparar',
     description:
-        'Por 1 s, anula o próximo dano que você levaria e golpeia o '
+        'Por 3 s, anula o próximo dano que você levaria e golpeia o '
         'primeiro inimigo da sua linha.',
     cost: 1,
     family: ChipFamily.melee,
@@ -1370,7 +1371,7 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 20,
-    effect: ParryEffect(ticksPerSecond),
+    effect: ParryEffect(ticksPerSecond * 3),
     pose: ChipPose.melee,
   );
 
@@ -1416,8 +1417,9 @@ abstract final class Chips {
 
   static const recycleCapsule = ChipDef(
     id: 'recycle_capsule',
-    name: 'Cápsula de Reciclagem',
-    description: 'A última carta usada volta do descarte para a mão. Uso único.',
+    name: 'Reciclagem',
+    description:
+        'A última carta usada volta do descarte para a mão. Uso único.',
     cost: 1,
     family: ChipFamily.consumable,
     rarity: Rarity.rare,
@@ -1431,7 +1433,8 @@ abstract final class Chips {
   static const reserveBattery = ChipDef(
     id: 'reserve_battery',
     name: 'Bateria Reserva',
-    description: 'A Energia que sobrar desta mão passa para a próxima. Uso único.',
+    description:
+        'A Energia que sobrar desta mão passa para a próxima. Uso único.',
     cost: 1,
     family: ChipFamily.consumable,
     rarity: Rarity.uncommon,
@@ -1474,7 +1477,7 @@ abstract final class Chips {
 
   static const freezeSpray = ChipDef(
     id: 'freeze_spray',
-    name: 'Spray Congelante',
+    name: 'Nitrogenio Líquido',
     description: 'Os 3 painéis inimigos da sua linha viram Gelo.',
     cost: 1,
     family: ChipFamily.equipment,
@@ -1487,7 +1490,7 @@ abstract final class Chips {
   static const repairPlatform = ChipDef(
     id: 'repair_platform',
     name: 'Plataforma de Reparo',
-    description: 'Conserta os painéis rachados e os buracos do seu lado.',
+    description: 'Restaura os painéis do seu lado.',
     cost: 1,
     family: ChipFamily.equipment,
     rarity: Rarity.uncommon,
@@ -1514,7 +1517,7 @@ abstract final class Chips {
 
   static const retreatOrder = ChipDef(
     id: 'retreat_order',
-    name: 'Ordem de Retirada',
+    name: 'Intimidar',
     description: 'Empurra todos os inimigos 1 painel para trás.',
     cost: 1,
     family: ChipFamily.tactical,
@@ -1528,13 +1531,13 @@ abstract final class Chips {
   static const patternReading = ChipDef(
     id: 'pattern_reading',
     name: 'Leitura de Padrão',
-    description: 'Por 3 s, você leva metade do dano.',
+    description: 'Por 5 s, você leva metade do dano.',
     cost: 1,
     family: ChipFamily.tactical,
     rarity: Rarity.rare,
     type: ChipType.support,
     target: ChipTarget.self,
-    effect: GuardEffect(3 * ticksPerSecond),
+    effect: GuardEffect(5 * ticksPerSecond),
     pose: ChipPose.toss,
   );
 
@@ -1646,8 +1649,9 @@ abstract final class Chips {
       _up(
         areaSteal,
         description:
-            'A coluna inimiga da frente é sua por 15 s. Quem estiver nela leva '
-            '10 e é empurrado.',
+            'Empurra a área neutra 1 coluna para a frente por 15 s. Quem '
+            'estiver na coluna tomada leva 10 e é empurrado. Usar de novo soma '
+            'o tempo.',
         effect: const AreaStealEffect(15 * ticksPerSecond, hitDamage: 10),
       ),
       _up(
@@ -1794,7 +1798,7 @@ abstract final class Chips {
         stackingRound,
         description:
             'Acerta o primeiro inimigo da linha. Cada uso nesta luta soma +8 '
-            'ao dano dos próximos.',
+            'em todas as copias desta carta.',
         effect: const StackingShotEffect(8),
       ),
       _up(staticDischarge, damage: 15),
@@ -1804,7 +1808,7 @@ abstract final class Chips {
       _up(sweepLaser, damage: 12),
       _up(detonator, damage: 25),
       _up(gravityGrenade, damage: 15),
-      _up(parry, damage: 30),
+      _up(parry, damage: 40),
       _up(acrobaticLeap, damage: 15),
       _up(vampireBlade, damage: 20),
       _up(
@@ -1834,8 +1838,8 @@ abstract final class Chips {
       _up(retreatOrder, cost: 0),
       _up(
         patternReading,
-        description: 'Por 5 s, você leva metade do dano.',
-        effect: const GuardEffect(5 * ticksPerSecond),
+        description: 'Por 8 s, você leva metade do dano.',
+        effect: const GuardEffect(8 * ticksPerSecond),
       ),
       _up(
         hologram,
@@ -2087,12 +2091,68 @@ abstract final class Chips {
   static ChipDef? byId(String id, {bool upgraded = false}) =>
       upgraded ? _upgrades[id] : _byId[id];
 
-  static List<ChipCard> starterDeck() => [
-    for (var i = 0; i < 2; i++) ChipCard(shot), //ChipCard(shot),
-    for (var i = 0; i < 2; i++) ChipCard(vShot), //ChipCard(vShot),
-    for (var i = 0; i < 2; i++) ChipCard(shotgun), //ChipCard(shotgun),
-    for (var i = 0; i < 2; i++) ChipCard(cannon), //ChipCard(cannon),
-    for (var i = 0; i < 2; i++) ChipCard(baton), //ChipCard(cannon),
-    //ChipCard(smokeGrenade),
+  /// The decks a new run can start with, picked after "Novo jogo".
+  static const starterDecks = [
+    StarterDeck(
+      name: 'Projéteis',
+      tagline: 'Encare seus inimigos com puro poder de fogo.',
+      cards: [
+        (shot, 2),
+        (cannon, 2),
+        (shotgun, 2),
+        (incendiaryRound, 1),
+        (laserSight, 1),
+        (smg, 1),
+        (piercingShot, 1),
+      ],
+    ),
+    StarterDeck(
+      name: 'Corpo-a-corpo',
+      tagline:
+          'Enfrente seus inimigos cara a cara.',
+      cards: [
+        (dagger, 2),
+        (baton, 2),
+        (areaSteal, 1),
+        (shoulderBash, 1),
+        (acrobaticLeap, 1),
+        (hook, 1),
+        (dash, 1),
+        (energyWhip, 1),
+      ],
+    ),
+    StarterDeck(
+      name: 'Energia',
+      tagline: 'Cause dano em área e atrapalhe seus inimigos.',
+      cards: [
+        (energyCannon, 2),
+        (vShot, 2),
+        (melta, 1),
+        (voltaicArc, 1),
+        (staticDischarge, 1),
+        (bubblePush, 1),
+        (freezeRay, 1),
+        (conductor, 1),
+      ],
+    ),
+  ];
+}
+
+/// One of the decks a new run can start with: each card and its copies.
+class StarterDeck {
+  const StarterDeck({
+    required this.name,
+    required this.tagline,
+    required this.cards,
+  });
+
+  final String name;
+  final String tagline;
+  final List<(ChipDef, int)> cards;
+
+  /// Fresh copies for a new run.
+  List<ChipCard> build() => [
+    for (final (def, count) in cards)
+      for (var i = 0; i < count; i++) ChipCard(def),
   ];
 }

@@ -41,12 +41,15 @@ class BattleHud extends StatelessWidget {
             width: _gridLeft - 6,
             child: _PlayerStatus(battle: battle),
           ),
-          Positioned(
-            top: 26,
-            left: _gridLeft + _gridWidth + 4,
-            right: 2,
-            child: IgnorePointer(child: _EnemyBars(battle: battle)),
-          ),
+          // Old layout: enemy names and life bars on the right of the grid.
+          // The life bar is now drawn under each enemy's sprite
+          // (FighterComponent).
+          // Positioned(
+          //   top: 26,
+          //   left: _gridLeft + _gridWidth + 4,
+          //   right: 2,
+          //   child: IgnorePointer(child: _EnemyBars(battle: battle)),
+          // ),
           Positioned(
             top: 14,
             left: _gridLeft,
@@ -229,6 +232,9 @@ class _PlayerStatus extends StatelessWidget {
 
 /// Right of the grid: each enemy's name, kind and life bar. Enemies sharing
 /// a name are numbered ("Capanga Atirador 2").
+///
+/// Unused for now: the life bar moved under the enemy's sprite.
+// ignore: unused_element
 class _EnemyBars extends StatelessWidget {
   const _EnemyBars({required this.battle});
 

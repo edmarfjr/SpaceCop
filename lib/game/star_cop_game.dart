@@ -5,8 +5,8 @@ import 'package:flutter/widgets.dart';
 
 import '../domain/battle/battle_state.dart';
 import '../domain/battle/enemies.dart';
-import '../domain/battle/panels.dart' show rollNeutralColumns;
 import '../domain/chips/battle_chip.dart';
+import '../domain/chips/chip_library.dart';
 import '../domain/map/run_map.dart';
 import '../domain/run/events.dart';
 import '../domain/run/relics.dart';
@@ -21,6 +21,7 @@ import 'sprites.dart';
 /// Flutter overlays over an empty world.
 enum GamePhase {
   menu,
+  deckSelect,
   compendium,
   manual,
   map,
@@ -36,6 +37,7 @@ enum GamePhase {
 /// Overlay keys registered in `GameWidget.overlayBuilderMap`.
 abstract final class Overlays {
   static const menu = 'menu';
+  static const deckSelect = 'deckSelect';
   static const compendium = 'compendium';
   static const manual = 'manual';
 
@@ -55,8 +57,12 @@ abstract final class Overlays {
   static const pause = 'pause';
   static const deck = 'deck';
 
+  /// Sound and language, on top of the menu or the pause.
+  static const settings = 'settings';
+
   static String forPhase(GamePhase phase) => switch (phase) {
     GamePhase.menu => menu,
+    GamePhase.deckSelect => deckSelect,
     GamePhase.compendium => compendium,
     GamePhase.manual => manual,
     GamePhase.map => map,
@@ -139,6 +145,13 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     overlays.removeAll([Overlays.pause, Overlays.deck]);
   }
 
+  void openSettings() => overlays.add(Overlays.settings);
+
+  void closeSettings() {
+    GameAudio.instance.play(Sfx.cancel);
+    overlays.remove(Overlays.settings);
+  }
+
   BattleWorld? get battleWorld =>
       world is BattleWorld ? world as BattleWorld : null;
 
@@ -153,10 +166,14 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     _goTo(GamePhase.menu);
   }
 
-  void startNewRun() {
+  /// Menu: pick the starting deck first; the saved run stays until one is
+  /// picked.
+  void startNewRun() => _goTo(GamePhase.deckSelect);
+
+  void startRunWith(StarterDeck deck) {
     savedRun = null;
     RunSave.clear();
-    run = RunState();
+    run = RunState(deck: deck.build());
     _goTo(GamePhase.map);
   }
 
@@ -238,7 +255,6 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       bossHpCut: boss ? run.bossHpCut : 0,
       openingBarrier: boss && run.bossBarrier,
       pauseOnNewHand: true,
-      neutral: rollNeutralColumns(run.random),
     );
     run
       ..openingStunTicks = 0
@@ -416,6 +432,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     overlays.add(Overlays.forPhase(next));
     phase.value = next;
     if (next != GamePhase.menu &&
+        next != GamePhase.deckSelect &&
         next != GamePhase.compendium &&
         next != GamePhase.manual) {
       checkPickups();
@@ -426,6 +443,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     }
     GameAudio.instance.music(switch (next) {
       GamePhase.menu ||
+      GamePhase.deckSelect ||
       GamePhase.compendium ||
       GamePhase.manual ||
       GamePhase.map ||

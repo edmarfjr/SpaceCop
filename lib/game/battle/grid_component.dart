@@ -26,10 +26,8 @@ class GridComponent extends PositionComponent {
   final GameSprites sprites;
 
   /// Top-left of the grid in the battle screen: centered horizontally
-  /// (384px wide view; 72 for the plain 6 columns), between the status and
-  /// the hand. Depends on the battle's neutral columns.
-  static Vector2 get origin =>
-      Vector2((384 - cellSize.x * gridColumns) / 2, 40);
+  /// ((384 - 240) / 2), between the status and the hand.
+  static final Vector2 origin = Vector2(72, 40);
 
   /// Cart cells are 20x14 at 128px; doubled for a 256px-wide view.
   static final Vector2 cellSize = Vector2(40, 28);
@@ -90,12 +88,42 @@ class GridComponent extends PositionComponent {
               );
         }
         if (battle.chargePad == pos) {
-          final glow = 0.25 + 0.2 * (_clock * 4 % 2 < 1 ? 1 : 0);
-          _pad.color = Pico.green.withValues(alpha: glow);
-          canvas.drawRect(
-            Rect.fromLTWH(topLeft.x, topLeft.y, panelSize.x, panelSize.y),
-            _pad,
+          // Placa de Recarga: a pulsing green ring on the panel.
+          final center = Offset(
+            topLeft.x + panelSize.x / 2,
+            topLeft.y + panelSize.y / 2 - 6,
           );
+          final pulse = _clock * 4 % 2 < 1;
+          canvas
+            ..drawOval(
+              Rect.fromCenter(center: center, width: 30, height: 18), 
+              _pad
+                ..style = PaintingStyle.fill
+                ..color = Pico.green.withValues(alpha: pulse ? 0.35 : 0.2),
+            )
+            ..drawOval(
+              Rect.fromCenter(center: center, width: 30, height: 18), 
+              _pad
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 2
+                ..color = Pico.green,
+            );
+          /*  ..drawCircle(
+              center,
+              10,
+              _pad
+                ..style = PaintingStyle.fill
+                ..color = Pico.green.withValues(alpha: pulse ? 0.35 : 0.2),
+            )
+            ..drawCircle(
+              center,
+              10,
+              _pad
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 2
+                ..color = Pico.green,
+            );
+            */
         }
         if (battle.runes.contains(pos)) {
           sprites.rune[_clock ~/ _runeFrameTime % sprites.rune.length].render(

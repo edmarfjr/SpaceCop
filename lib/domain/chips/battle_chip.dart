@@ -347,7 +347,11 @@ class RepeatNextEffect extends ChipEffect {
 class RowStrikeEffect extends ChipEffect {
   const RowStrikeEffect({this.fromColumn = 3, this.panel});
 
-  final int fromColumn;
+  /// The whole row ahead of the player (Melta).
+  const RowStrikeEffect.ahead() : fromColumn = null, panel = null;
+
+  /// First column hit; null: the one in front of the player.
+  final int? fromColumn;
 
   /// The first enemy's panel turns into this (Laser de Fusão: Lava).
   final PanelState? panel;
@@ -482,13 +486,6 @@ class KindStrikeEffect extends ChipEffect {
 /// Instant hit on the first enemy of each row (Laser de Varredura).
 class SweepEffect extends ChipEffect {
   const SweepEffect();
-}
-
-/// Instant hit on every panel of enemy column [column] (Melta).
-class ColumnStrikeEffect extends ChipEffect {
-  const ColumnStrikeEffect({this.column = 3});
-
-  final int column;
 }
 
 /// Every Burning enemy takes the card's damage and stops burning

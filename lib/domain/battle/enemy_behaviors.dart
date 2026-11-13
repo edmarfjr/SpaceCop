@@ -201,7 +201,7 @@ class BubblerBehavior extends EnemyBehavior {
         const GridPos(0, -1),
       ]..shuffle(battle.random);
       for (final step in steps) {
-        if ((enemy.pos + step).x > enemyColumn0 &&
+        if ((enemy.pos + step).x >= enemyColumn0 &&
             battle.tryMove(enemy, step)) {
           break;
         }
@@ -319,6 +319,9 @@ class DiggerBehavior extends EnemyBehavior {
   static const upTicks = ticksPerSecond;
   static const digTicks = 10;
 
+  /// The pickaxe hurts whoever stands on the panel it lands on.
+  static const pickaxeDamage = 10;
+
   // Phases, kept in [EnemyFighter.stage].
   static const _up = 0;
   static const _diggingIn = 1;
@@ -390,14 +393,10 @@ class DiggerBehavior extends EnemyBehavior {
           ..buried = 0
           ..timer = upTicks;
         final aim = battle.aimPos;
-        battle.schedule(
-          enemy,
-          [aim],
-          upTicks,
-          () => _crack(battle, [aim]),
-          kind: TelegraphKind.terrain,
-          lob: Lob.pickaxe,
-        );
+        battle.schedule(enemy, [aim], upTicks, () {
+          battle.strike(aim, pickaxeDamage, Team.player, enemy.element);
+          _crack(battle, [aim]);
+        }, lob: Lob.pickaxe);
     }
   }
 }

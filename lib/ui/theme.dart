@@ -71,7 +71,7 @@ abstract final class GbText {
 }
 
 /// Size of the virtual screen used by the menus.
-const Size virtualScreen = Size(256, 192);
+const Size virtualScreen = Size(384, 192);
 
 /// Wide virtual screen of the battle and the map, same as the Flame camera
 /// (2:1, close to a phone held sideways).
