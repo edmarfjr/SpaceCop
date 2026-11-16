@@ -168,7 +168,8 @@ class _ChipCardViewState extends State<ChipCardView> {
                 ),
               at(
                 _description,
-                Center(
+                Container(
+                  alignment: Alignment.topCenter,
                   child: fitted(
                     def.description,
                     2 * scale,

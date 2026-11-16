@@ -11,6 +11,7 @@ import '../../domain/run/events.dart';
 import '../../domain/run/relics.dart';
 import '../../domain/run/run_state.dart';
 import '../../game/audio.dart';
+import '../../game/sprites.dart';
 import '../../game/star_cop_game.dart';
 import '../feedback.dart';
 import '../theme.dart';
@@ -1107,94 +1108,290 @@ class _DeckSelectOverlayState extends State<DeckSelectOverlay> {
     super.dispose();
   }
 
+  /// Card width in the list: twice the frame, so the art stays pixel-sharp.
+  static const _cardWidth = 64.0;
+  static const _cardGap = 2.0;
+  static const _boxPadding = 3.0;
+  static const _boxWidth = _cardWidth * 3 + _cardGap * 2 + _boxPadding * 2 + 2;
+
   @override
   Widget build(BuildContext context) {
     final deck = Chips.starterDecks[_index];
-    return _Panel(
-      title: 'Escolha seu deck',
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
+    return ColoredBox(
+      color: Pico.darkBlue,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Column(
           children: [
-            for (final (i, option) in Chips.starterDecks.indexed) ...[
-              if (i > 0) const SizedBox(width: 4),
-              OutlinedButton(
-                autofocus: i == 0,
-                focusNode: _focus[i],
-                onFocusChange: (focused) {
-                  if (focused) setState(() => _index = i);
-                },
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: i == _index ? Pico.forest : Pico.black,
-                  padding: buttonPadding,
-                ),
-                onPressed: withTap(() {
-                  _focus[i].requestFocus();
-                  setState(() => _index = i);
-                }),
-                child: Text(option.name, style: GbText.small),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(deck.tagline, style: GbText.small, textAlign: TextAlign.center),
-        const SizedBox(height: 4),
-        Flexible(
-          child: SingleChildScrollView(
-            child: Wrap(
-              spacing: 3,
-              runSpacing: 3,
-              alignment: WrapAlignment.center,
-              children: [
-                for (final (def, count) in deck.cards)
-                  Stack(
-                    children: [
-                      ChipCardView(
-                        def: def,
-                        sprites: game.sprites,
-                        width: 36,
-                        focusable: false,
-                      ),
-                      if (count > 1)
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: ColoredBox(
-                            color: Pico.black,
-                            child: Text(
-                              'x$count',
-                              style: GbText.small.copyWith(
-                                color: Pico.yellow,
-                                fontWeight: FontWeight.bold,
-                              ),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(deck.name, style: GbText.title),
+                        const SizedBox(height: 2),
+                        Text(deck.tagline, style: GbText.small),
+                        const SizedBox(height: 4),
+                        Expanded(
+                          child: Center(
+                            child: _DeckShowcase(
+                              sprites: game.sprites,
+                              style: _DeckAttack.values[_index],
                             ),
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 4),
+                  Container(
+                    width: _boxWidth,
+                    padding: const EdgeInsets.all(_boxPadding),
+                    decoration: BoxDecoration(
+                      color: Pico.midnight,
+                      border: Border.all(color: Pico.white),
+                    ),
+                    child: SingleChildScrollView(
+                      // A new deck starts its list from the top.
+                      key: ValueKey(_index),
+                      child: Wrap(
+                        spacing: _cardGap,
+                        runSpacing: _cardGap,
+                        children: [
+                          for (final (def, count) in deck.cards)
+                            Stack(
+                              children: [
+                                ChipCardView(
+                                  def: def,
+                                  sprites: game.sprites,
+                                  width: _cardWidth,
+                                  focusable: false,
+                                ),
+                                if (count > 1)
+                                  Positioned(
+                                    right: 0,
+                                    bottom: 0,
+                                    child: ColoredBox(
+                                      color: Pico.black,
+                                      child: Text(
+                                        'x$count',
+                                        style: GbText.small.copyWith(
+                                          color: Pico.yellow,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: withTap(game.backToMenu),
+                      child: const Text('Voltar'),
+                    ),
+                  ),
+                ),
+                for (final (i, option) in Chips.starterDecks.indexed) ...[
+                  if (i > 0) const SizedBox(width: 4),
+                  Tooltip(
+                    message: option.name,
+                    child: OutlinedButton(
+                      autofocus: i == 0,
+                      focusNode: _focus[i],
+                      onFocusChange: (focused) {
+                        if (focused) setState(() => _index = i);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Pico.black,
+                        padding: const EdgeInsets.all(2),
+                        side: BorderSide(
+                          color: i == _index ? Pico.yellow : Pico.lightGray,
+                        ),
+                      ),
+                      onPressed: withTap(() {
+                        _focus[i].requestFocus();
+                        setState(() => _index = i);
+                      }),
+                      child: SheetSprite(
+                        sprite: game.sprites.chip(option.cards.first.$1),
+                        scale: 1,
+                      ),
+                    ),
+                  ),
+                ],
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton(
+                      onPressed: withTap(() => game.startRunWith(deck)),
+                      child: const Text('Começar'),
+                    ),
+                  ),
+                ),
               ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextButton(
-              onPressed: withTap(game.backToMenu),
-              child: const Text('Voltar'),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              onPressed: withTap(() => game.startRunWith(deck)),
-              child: const Text('Começar'),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
+}
+
+/// How the player attacks in the deck select's showcase, one per deck of
+/// [Chips.starterDecks], in order.
+enum _DeckAttack { shoot, melee, laser }
+
+/// The deck select's illustration: the player standing, then attacking
+/// with the deck's kind of card, looped. Drawn like the battle's
+/// FighterComponent, at twice its scale.
+class _DeckShowcase extends StatefulWidget {
+  const _DeckShowcase({required this.sprites, required this.style});
+
+  final GameSprites sprites;
+  final _DeckAttack style;
+
+  /// Art pixel size on screen.
+  static const scale = 3.0;
+
+  /// The box, in art pixels: room past the player for the weapon and beam.
+  static const box = Size(40, 24);
+
+  @override
+  State<_DeckShowcase> createState() => _DeckShowcaseState();
+}
+
+class _DeckShowcaseState extends State<_DeckShowcase>
+    with SingleTickerProviderStateMixin {
+  /// Standing for the first half, attacking for the second.
+  late final AnimationController _loop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _loop.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    color: Pico.darkBlue,
+    child: AnimatedBuilder(
+      animation: _loop,
+      builder: (context, _) => CustomPaint(
+        size: _DeckShowcase.box * _DeckShowcase.scale,
+        painter: _ShowcasePainter(
+          sprites: widget.sprites,
+          style: widget.style,
+          t: _loop.value,
+        ),
+      ),
+    ),
+  );
+}
+
+class _ShowcasePainter extends CustomPainter {
+  _ShowcasePainter({
+    required this.sprites,
+    required this.style,
+    required this.t,
+  });
+
+  final GameSprites sprites;
+  final _DeckAttack style;
+
+  /// Where in the loop, 0 to 1.
+  final double t;
+
+  static final _pixel = Paint()..filterQuality = FilterQuality.none;
+
+  /// The player's left edge in the box, in art pixels.
+  static const _left = 4.0;
+
+  /// The fist in the swing frame, as in FighterComponent.
+  static const _fist = Offset(22, 9);
+
+  /// Gun barrel tip: the beam starts right on it, no muzzle flash between.
+  static const _hand = Offset(23, 9);
+
+  /// Laser layers: outer, middle and inner, with their half heights.
+  static final _beam = [
+    (Paint()..color = Pico.royal, 4.0),
+    (Paint()..color = Pico.blue, 2.5),
+    (Paint()..color = Pico.white, 1.0),
+  ];
+
+  void _draw(Canvas canvas, Sprite sprite, Offset at) => canvas.drawImageRect(
+    sprite.image,
+    sprite.src,
+    at & sprite.src.size,
+    _pixel,
+  );
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas
+      ..save()
+      ..scale(_DeckShowcase.scale)
+      ..translate(_left, 0);
+    final attack = t >= 0.5;
+    if (!attack) {
+      _draw(canvas, sprites.playerIdle, Offset.zero);
+      canvas.restore();
+      return;
+    }
+    switch (style) {
+      case _DeckAttack.shoot:
+        _draw(canvas, sprites.playerAttack, Offset.zero);
+        // The flash only for the first moments of the shot.
+        if (t < 0.65) _draw(canvas, sprites.muzzle, const Offset(21.5, 5.5));
+      case _DeckAttack.melee:
+        _draw(canvas, sprites.playerMelee, Offset.zero);
+        final dagger = sprites.weapon(Chips.dagger)!;
+        _draw(
+          canvas,
+          dagger,
+          _fist - Offset(0, (dagger.src.height ~/ 2).toDouble()),
+        );
+      case _DeckAttack.laser:
+        _draw(canvas, sprites.playerAttack, Offset.zero);
+        // Swells in, flickers, thins out, like the battle's beams.
+        final age = (t - 0.5) / 0.5;
+        final swell = min(1.0, min(age, 1 - age) * 6 + 0.2);
+        final flicker = (t * 40).floor().isEven ? 0.5 : 0.0;
+        final end = _DeckShowcase.box.width - _left;
+        for (final (i, (paint, half)) in _beam.indexed) {
+          final h = (half + (i < 2 ? flicker : 0)) * swell;
+          canvas
+            ..drawCircle(_hand, h, paint)
+            ..drawRect(
+              Rect.fromLTRB(_hand.dx, _hand.dy - h, end, _hand.dy + h),
+              paint,
+            );
+        }
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_ShowcasePainter old) =>
+      old.t != t || old.style != style;
 }
 
 /// The menu's title: plays [frames] once as the menu opens, then holds the

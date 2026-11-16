@@ -1028,7 +1028,7 @@ abstract final class Chips {
     name: 'Ricochete',
     description:
         'Acerta o primeiro inimigo da linha e quica em outro inimigo '
-        'qualquer.',
+        'aleatorio.',
     cost: 1,
     family: ChipFamily.projectile,
     rarity: Rarity.uncommon,
@@ -1043,8 +1043,7 @@ abstract final class Chips {
     id: 'voltaic_arc',
     name: 'Arco Voltaico',
     description:
-        'Acerta o primeiro inimigo da linha e salta para um inimigo ao lado '
-        'dele.',
+        'Acerta o primeiro inimigo da linha e salta para um inimigo adjacente',
     cost: 1,
     family: ChipFamily.energy,
     type: ChipType.attack,
@@ -1059,7 +1058,7 @@ abstract final class Chips {
     name: 'Foguete Teleguiado',
     description:
         'Cai no inimigo com menos vida, em qualquer linha: explode em cruz. '
-        'Fora do centro, metade do dano. Uso único.',
+        'Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,

@@ -30,7 +30,7 @@ class GridComponent extends PositionComponent {
   static final Vector2 origin = Vector2(72, 40);
 
   /// Cart cells are 20x14 at 128px; doubled for a 256px-wide view.
-  static final Vector2 cellSize = Vector2(40, 28);
+  static final Vector2 cellSize = Vector2(40, 32);
 
   /// Panels are taller than a cell (cart: 20x20 over a 14px row step), so
   /// each row overlaps the one behind it for a pseudo-3D look.
