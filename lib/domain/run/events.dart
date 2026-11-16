@@ -590,7 +590,8 @@ Encounter _totemGuards(RunState run) => const Encounter([
 EventFollowUp? _destroyTotem(RunState run, ChipCard? _) =>
     const StartFight(elite: false, encounter: _totemGuards, onWin: relicChoice);
 
-EventFollowUp? _askOracle(RunState run, ChipCard? _) => relicChoice(run);
+EventFollowUp? _askOracle(RunState run, ChipCard? _) =>
+    CardChoice('Escolha uma carta', run.rollRewards(3));
 
 EventFollowUp? _kneel(RunState run, ChipCard? _) {
   run
@@ -1321,7 +1322,7 @@ abstract final class Events {
     options: [
       EventOption(
         label: 'Perguntar sobre o futuro',
-        reward: '1 relíquia entre 2',
+        reward: '1 carta entre 3',
         apply: _askOracle,
       ),
       EventOption(
