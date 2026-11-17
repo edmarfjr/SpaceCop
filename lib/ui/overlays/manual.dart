@@ -107,8 +107,7 @@ class _ManualOverlayState extends State<ManualOverlay> {
       canRequestFocus: false,
       skipTraversal: true,
       onKeyEvent: _onKey,
-      child: ColoredBox(
-        color: Pico.darkBlue,
+      child: Scanlines(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
           child: Column(

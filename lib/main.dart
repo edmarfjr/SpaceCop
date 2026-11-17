@@ -78,6 +78,7 @@ class _StarCopAppState extends State<StarCopApp> {
     Overlays.compendium,
     Overlays.manual,
     Overlays.pickup,
+    Overlays.jackIn,
   };
 
   static final _overlays = <String, Widget Function(StarCopGame)>{
@@ -96,5 +97,6 @@ class _StarCopAppState extends State<StarCopApp> {
     Overlays.pause: (game) => PauseOverlay(game: game),
     Overlays.settings: (game) => SettingsOverlay(game: game),
     Overlays.deck: (game) => DeckOverlay(game: game),
+    Overlays.jackIn: (game) => JackInOverlay(game: game),
   };
 }

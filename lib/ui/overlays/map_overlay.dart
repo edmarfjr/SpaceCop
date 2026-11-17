@@ -254,6 +254,9 @@ class _MapOverlayState extends State<MapOverlay> {
                     height: height,
                     child: Stack(
                       children: [
+                        const Positioned.fill(
+                          child: CustomPaint(painter: _GridPainter()),
+                        ),
                         Positioned.fill(
                           child: CustomPaint(
                             painter: _EdgePainter(
@@ -428,6 +431,8 @@ class _NodeButtonState extends State<_NodeButton>
       width: MapOverlay._nodeSize,
       height: MapOverlay._nodeSize,
       decoration: BoxDecoration(
+        // Black behind the icon, so the grid doesn't cross it.
+        color: Pico.black,
         borderRadius: BorderRadius.circular(2),
         border: Border.all(color: border, width: 1),
       ),
@@ -535,6 +540,123 @@ class _EdgePainter extends CustomPainter {
   @override
   bool shouldRepaint(_EdgePainter oldDelegate) =>
       oldDelegate.map != map || oldDelegate.current != current;
+}
+
+/// Battle Network's jack-in, over a battle that just started: 12 bands in
+/// two colors cover the screen with the word in the middle, then withdraw
+/// to alternating sides, in 8 steps with no easing, like pixel art. The
+/// battle waits for the player meanwhile. Skipped when the system asks
+/// for less motion.
+class JackInOverlay extends StatefulWidget {
+  const JackInOverlay({super.key, required this.game});
+
+  final StarCopGame game;
+
+  @override
+  State<JackInOverlay> createState() => _JackInOverlayState();
+}
+
+class _JackInOverlayState extends State<JackInOverlay>
+    with SingleTickerProviderStateMixin {
+  static const _bands = 12;
+  static const _steps = 8;
+
+  /// The word holds for the first part, then the bands withdraw.
+  static const _hold = 0.4;
+
+  late final AnimationController _play =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 900),
+      )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) widget.game.endJackIn();
+      });
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.of(context).disableAnimations) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => widget.game.endJackIn(),
+      );
+    } else if (!_play.isAnimating && !_play.isCompleted) {
+      _play.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _play.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (light, dark, word) = widget.game.jackIn;
+    // Absorbs taps and swipes until the battle shows.
+    return AbsorbPointer(
+      child: AnimatedBuilder(
+        animation: _play,
+        builder: (context, _) {
+          final t = _play.value;
+          // Covered while holding; then 1 → 0 in whole steps.
+          final cover = t < _hold
+              ? 1.0
+              : 1 - ((t - _hold) / (1 - _hold) * _steps).ceil() / _steps;
+          return LayoutBuilder(
+            builder: (context, box) {
+              final band = box.maxHeight / _bands;
+              return Stack(
+                children: [
+                  for (var i = 0; i < _bands; i++)
+                    Positioned(
+                      top: i * band,
+                      height: band,
+                      width: box.maxWidth * cover,
+                      // Even bands withdraw to the left, odd ones right.
+                      left: i.isEven ? 0 : box.maxWidth * (1 - cover),
+                      child: ColoredBox(color: i.isEven ? light : dark),
+                    ),
+                  if (t < _hold)
+                    Center(
+                      child: Text(
+                        word,
+                        style: GbText.title.copyWith(
+                          color: Pico.midnight,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// The map's background: a [mapGrid] line every [mapGridStep] px, like the
+/// battle's data grid.
+class _GridPainter extends CustomPainter {
+  const _GridPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = mapGrid
+      ..isAntiAlias = false;
+    for (var x = 0.0; x < size.width; x += mapGridStep) {
+      canvas.drawRect(Rect.fromLTWH(x, 0, 1, size.height), paint);
+    }
+    for (var y = 0.0; y < size.height; y += mapGridStep) {
+      canvas.drawRect(Rect.fromLTWH(0, y, size.width, 1), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GridPainter oldDelegate) => false;
 }
 
 /// Name and what a node holds, for the legend and a held node.

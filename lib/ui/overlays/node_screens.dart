@@ -31,8 +31,7 @@ class _Panel extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: Pico.darkBlue,
+  Widget build(BuildContext context) => Scanlines(
     child: Center(
       child: Padding(
         padding: const EdgeInsets.all(4),
@@ -40,7 +39,16 @@ class _Panel extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             header ??
-                Text(title, style: GbText.title, textAlign: TextAlign.center),
+                // System heading: a PET title bar, in capitals.
+                Container(
+                  color: petTitleBar,
+                  padding: const EdgeInsets.fromLTRB(8, 2, 8, 1),
+                  child: Text(
+                    title.toUpperCase(),
+                    style: GbText.title,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
             const SizedBox(height: 6),
             for (final child in children)
               child is ChipPicker ? Flexible(child: child) : child,
@@ -130,8 +138,7 @@ class _RewardOverlayState extends State<RewardOverlay> {
     final spoils = game.spoils;
     // Title pinned to the top, buttons to the bottom; the box stays centered
     // between them and scrolls if the spoils outgrow the space.
-    return ColoredBox(
-      color: Pico.darkBlue,
+    return Scanlines(
       child: Padding(
         padding: const EdgeInsets.all(4),
         child: Column(
@@ -579,8 +586,7 @@ class _ShopOverlayState extends State<ShopOverlay> {
         color: run.credits < cost ? Pico.red : Pico.yellow,
       ),
     );
-    return ColoredBox(
-      color: Pico.darkBlue,
+    return Scanlines(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
         child: Column(
@@ -826,8 +832,7 @@ class _EventScene extends StatelessWidget {
   final Sprite? picture;
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: Pico.darkBlue,
+  Widget build(BuildContext context) => Scanlines(
     child: Column(
       children: [
         Container(
@@ -1122,8 +1127,7 @@ class _RelicChoiceState extends State<RelicChoice> {
   Widget build(BuildContext context) {
     final relics = widget.relics;
     final selected = relics[_selected];
-    return ColoredBox(
-      color: Pico.darkBlue,
+    return Scanlines(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
         child: Column(
@@ -1248,39 +1252,69 @@ class MenuOverlay extends StatelessWidget {
   final StarCopGame game;
 
   @override
-  Widget build(BuildContext context) => _Panel(
-    header: _AnimatedTitle(frames: game.sprites.titleFx),
-    children: [
-      if (game.savedRun != null) ...[
-        FilledButton(
-          autofocus: true,
-          onPressed: withTap(game.continueRun),
-          child: const Text('Continuar'),
+  Widget build(BuildContext context) {
+    final buttons = [
+      if (game.savedRun != null) ('Continuar', game.continueRun),
+      ('Novo jogo', game.startNewRun),
+      ('Compêndio', game.openCompendium),
+      ('Manual', game.openManual),
+      ('Configurações', game.openSettings),
+    ];
+    return Stack(
+      children: [
+        _Panel(
+          header: _AnimatedTitle(frames: game.sprites.titleFx),
+          children: [
+            // The options in a PET window.
+            Container(
+              width: 104,
+              decoration: petWindow,
+              clipBehavior: Clip.hardEdge,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    color: petTitleBar,
+                    padding: const EdgeInsets.fromLTRB(4, 1, 4, 0),
+                    child: const Text('> MENU', style: GbText.small),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final (i, (label, action)) in buttons.indexed) ...[
+                          if (i > 0) const SizedBox(height: 3),
+                          FilledButton(
+                            autofocus: i == 0,
+                            onPressed: withTap(action),
+                            child: Text(label),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
+        // The policewoman beside the window, standing on a platform.
+        Positioned(
+          left: 56,
+          bottom: 40,
+          child: IgnorePointer(
+            child: Column(
+              children: [
+                SheetSprite(sprite: game.sprites.playerIdle, scale: 3),
+                Container(width: 72, height: 4, color: petTitleBar),
+              ],
+            ),
+          ),
+        ),
       ],
-      FilledButton(
-        autofocus: game.savedRun == null,
-        onPressed: withTap(game.startNewRun),
-        child: const Text('Novo jogo'),
-      ),
-      const SizedBox(height: 6),
-      FilledButton(
-        onPressed: withTap(game.openCompendium),
-        child: const Text('Compêndio'),
-      ),
-      const SizedBox(height: 6),
-      FilledButton(
-        onPressed: withTap(game.openManual),
-        child: const Text('Manual'),
-      ),
-      const SizedBox(height: 6),
-      FilledButton(
-        onPressed: withTap(game.openSettings),
-        child: const Text('Configurações'),
-      ),
-    ],
-  );
+    );
+  }
 }
 
 /// After "Novo jogo": pick one of [Chips.starterDecks] to start the run with.
@@ -1318,8 +1352,7 @@ class _DeckSelectOverlayState extends State<DeckSelectOverlay> {
   @override
   Widget build(BuildContext context) {
     final deck = Chips.starterDecks[_index];
-    return ColoredBox(
-      color: Pico.darkBlue,
+    return Scanlines(
       child: Padding(
         padding: const EdgeInsets.all(4),
         child: Column(
@@ -1491,8 +1524,7 @@ class _DeckShowcaseState extends State<_DeckShowcase>
   }
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: Pico.darkBlue,
+  Widget build(BuildContext context) => Scanlines(
     child: AnimatedBuilder(
       animation: _loop,
       builder: (context, _) => CustomPaint(
@@ -1740,7 +1772,7 @@ class GameOverOverlay extends StatelessWidget {
         ],
       ),
     );
-    return ColoredBox(
+    return Scanlines(
       color: Pico.midnight,
       child: Column(
         children: [

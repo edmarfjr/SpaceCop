@@ -16,6 +16,7 @@ import 'audio.dart';
 import 'battle/battle_world.dart';
 import 'run_save.dart';
 import 'sprites.dart';
+import '../ui/theme.dart' show Pico;
 
 /// Top-level screens. Only [battle] uses the Flame world; the others are
 /// Flutter overlays over an empty world.
@@ -59,6 +60,9 @@ abstract final class Overlays {
 
   /// Sound and language, on top of the menu or the pause.
   static const settings = 'settings';
+
+  /// Over a battle that just started: the jack-in bands withdraw.
+  static const jackIn = 'jackIn';
 
   static String forPhase(GamePhase phase) => switch (phase) {
     GamePhase.menu => menu,
@@ -283,7 +287,18 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       GamePhase.battle,
       world: BattleWorld(battle: battle, onFinished: _onBattleFinished),
     );
+    jackIn = boss
+        ? (Pico.red, Pico.burgundy, run.boss.name.toUpperCase())
+        : _eliteFight || run.current?.type == NodeType.elite
+        ? (Pico.orange, Pico.pumpkin, 'ELITE')
+        : (Pico.blue, Pico.royal, 'JACK IN');
+    overlays.add(Overlays.jackIn);
   }
+
+  /// The jack-in's two band colors and its word, for the battle starting.
+  (Color, Color, String) jackIn = (Pico.blue, Pico.royal, 'JACK IN');
+
+  void endJackIn() => overlays.remove(Overlays.jackIn);
 
   void _onBattleFinished(BattleState battle) {
     run.endBattle(

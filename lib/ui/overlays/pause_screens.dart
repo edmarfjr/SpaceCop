@@ -150,8 +150,7 @@ class _SettingsOverlayState extends State<SettingsOverlay> {
   Widget build(BuildContext context) {
     final audio = GameAudio.instance;
     final settings = GameSettings.instance;
-    return ColoredBox(
-      color: Pico.darkBlue,
+    return Scanlines(
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

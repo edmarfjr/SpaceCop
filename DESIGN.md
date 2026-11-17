@@ -96,9 +96,21 @@ ou tamanhos direto nos widgets: crie um token.
 
 Use só as 32 cores de `Pico`, a paleta do Picotron (as 16 do PICO-8 mais
 16 próprias), inclusive no que o Flame desenha:
-- Fundo dos menus: `Pico.darkBlue`.
+- Fundo dos menus: `Pico.darkBlue` com scanlines (`Scanlines`: uma linha
+  `Pico.midnight` a 35% a cada 2 px). O fim de run usa `Pico.midnight`.
+- Títulos de tela (`_Panel`) ficam numa barra `Pico.royal`, em maiúsculas.
+- O menu principal põe as opções numa janela PET ("> MENU") e a policial
+  (3×) à esquerda, sobre uma plataforma `Pico.royal`.
+- O mapa tem fundo preto com uma grade `Pico.royal` a 35% a cada 16 px;
+  os nós têm fundo preto para a grade não cruzar o ícone.
+- Jack-in: ao entrar numa batalha, 12 faixas em duas cores cobrem a tela
+  com a palavra no meio (0,36 s) e recuam para lados alternados em 8
+  passos (0,54 s). Batalha: `Pico.blue`/`Pico.royal`, "JACK IN"; elite:
+  `Pico.orange`/`Pico.pumpkin`, "ELITE"; chefe: `Pico.red`/`Pico.burgundy`,
+  o nome do chefe. Toques são ignorados durante; com "reduzir movimento"
+  no sistema, não aparece.
 - Texto: `Pico.white`.
-- Destaque e foco: `Pico.yellow`.
+- Destaque: `Pico.yellow`. Foco: `focusFill` (`Pico.blue`).
 - Ataque: `Pico.red`. Suporte: `Pico.orange`. Recuperação: `Pico.green`.
 - Energia: `Pico.blue`.
 - Raridade (`rarityColor`): Comum `Pico.lightGray`, Incomum `Pico.blue`,
@@ -164,8 +176,11 @@ Tamanhos em px virtuais, dentro da tela:
 - Todo menu é jogado por toque. Teclado (setas, Enter, Esc) também funciona
   pelo foco do Flutter: as setas movem o foco, Enter confirma e Esc volta,
   onde houver para onde voltar.
-- O foco é uma borda `Pico.yellow` de 1,5 px em volta do item. O overlay de
-  foco do Material não aparece nessa escala e não é usado.
+- Botões são PET: fundo `Pico.midnight`, borda `Pico.lavender` de 0,5 px e
+  dois cantos cortados. O foco é o cursor do Battle Network: o botão
+  preenchido de `Pico.blue`, texto `Pico.midnight` e borda branca de 1,5 px.
+  Cartas e nós do mapa seguem com a borda `Pico.yellow`. O overlay de foco
+  do Material não aparece nessa escala e não é usado.
 - Na batalha:
   - Deslizar o dedo em qualquer lugar fora da mão e dos ícones move uma casa na direção dominante.
     Continuar arrastando sem soltar move mais uma casa a cada ~18 px

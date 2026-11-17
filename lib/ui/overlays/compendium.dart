@@ -64,8 +64,7 @@ class _CompendiumOverlayState extends State<CompendiumOverlay> {
   }
 
   @override
-  Widget build(BuildContext context) => ColoredBox(
-    color: Pico.darkBlue,
+  Widget build(BuildContext context) => Scanlines(
     child: Padding(
       padding: const EdgeInsets.fromLTRB(6, 4, 6, 4),
       child: Column(

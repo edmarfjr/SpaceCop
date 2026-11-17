@@ -115,6 +115,48 @@ const petTitleBar = Pico.royal;
 /// A PET window's border when the player is hurt or low on HP.
 const petAlert = Pico.red;
 
+/// A focused button's fill, the Battle Network cursor (text turns
+/// [Pico.midnight] on it).
+const focusFill = Pico.blue;
+
+/// The scanlines over the menus' background: one dark line every 2 px.
+const scanline = Color(0x59111D35); // Pico.midnight at 35%
+
+/// The map's background grid, every [mapGridStep] px.
+const mapGrid = Color(0x59065AB5); // Pico.royal at 35%
+const double mapGridStep = 16;
+
+/// Fills its box with [color] and draws the [scanline]s over it.
+class Scanlines extends StatelessWidget {
+  const Scanlines({super.key, this.color = Pico.darkBlue, required this.child});
+
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    color: color,
+    child: CustomPaint(painter: const _ScanlinePainter(), child: child),
+  );
+}
+
+class _ScanlinePainter extends CustomPainter {
+  const _ScanlinePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = scanline
+      ..isAntiAlias = false;
+    for (var y = 0.0; y < size.height; y += 2) {
+      canvas.drawRect(Rect.fromLTWH(0, y, size.width, 1), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ScanlinePainter oldDelegate) => false;
+}
+
 /// Width of the focus border.
 const double focusBorder = 1.5;
 
@@ -135,27 +177,36 @@ ThemeData screenTheme(ThemeData base) {
     // Compact density would take 4 px off [buttonPadding] on each side.
     visualDensity: VisualDensity.standard,
     textStyle: const WidgetStatePropertyAll(GbText.body),
+    // PET buttons: two cut corners, like the windows.
     shape: const WidgetStatePropertyAll(
-      RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(2)),
+      BeveledRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topRight: Radius.circular(3),
+          bottomLeft: Radius.circular(3),
+        ),
       ),
     ),
     side: WidgetStateProperty.resolveWith(
       (states) => BorderSide(
         color: states.contains(WidgetState.focused)
-            ? Pico.yellow
-            : Pico.lightGray,
+            ? Pico.white
+            : states.contains(WidgetState.disabled)
+            ? Pico.darkGray
+            : Pico.lavender,
         width: states.contains(WidgetState.focused) ? focusBorder : 0.5,
       ),
     ),
+    // Focus is the Battle Network cursor: the button filled in blue.
     foregroundColor: WidgetStateProperty.resolveWith(
-      (states) =>
-          states.contains(WidgetState.disabled) ? Pico.darkGray : Pico.white,
+      (states) => states.contains(WidgetState.disabled)
+          ? Pico.darkGray
+          : states.contains(WidgetState.focused)
+          ? Pico.midnight
+          : Pico.white,
     ),
     backgroundColor: WidgetStateProperty.resolveWith(
-      (states) => states.contains(WidgetState.focused)
-          ? Pico.darkPurple
-          : Colors.transparent,
+      (states) =>
+          states.contains(WidgetState.focused) ? focusFill : Pico.midnight,
     ),
     overlayColor: const WidgetStatePropertyAll(Colors.transparent),
   );
