@@ -47,6 +47,26 @@ void main() {
     expect(battle.deck.discardPile, hasLength(1));
   });
 
+  test('killed enemies are counted for the run report', () {
+    final battle = BattleState(
+      playerHp: 100,
+      playerMaxHp: 100,
+      deckCards: [ChipCard(Chips.shot)],
+      encounter: const Encounter([
+        EnemySpawn(Enemies.mobileCannon, GridPos(3, 1)),
+        EnemySpawn(Enemies.mobileCannon, GridPos(4, 1)),
+      ]),
+      random: Random(1),
+    );
+    battle.tick();
+    battle.enemies.first.takeDamage(999);
+    battle.tick();
+    expect(battle.enemiesDefeated, 1);
+    battle.enemies.first.takeDamage(999);
+    battle.tick();
+    expect(battle.enemiesDefeated, 2);
+  });
+
   test('map paths never leave the grid and floor 0 is reachable', () {
     final map = MapGenerator(random: Random(7)).generate();
     expect(map.startNodes, isNotEmpty);

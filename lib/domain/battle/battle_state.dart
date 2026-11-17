@@ -929,9 +929,9 @@ class BattleState {
   final Map<String, int> cardUses = {};
 
   /// Enemies killed this battle (parts of a bigger one don't count), for
-  /// the run's report.
-  int get enemiesDefeated =>
-      enemies.where((e) => e.isDead && !e.def.part).length;
+  /// the run's report. Counted as they die, since the dead are dropped
+  /// from [enemies] on the same tick.
+  int enemiesDefeated = 0;
 
   /// The Núcleo Fênix brought the player back; the run drops it.
   bool phoenixUsed = false;
@@ -1188,6 +1188,8 @@ class BattleState {
     for (final enemy in enemies) {
       if (enemy.isDead) {
         events.add(BattleEvent(BattleEventKind.death, unit: enemy));
+        // Counted now: the dead leave [enemies] right below.
+        if (!enemy.def.part) enemiesDefeated++;
       }
     }
     enemies.removeWhere((e) => e.isDead);
