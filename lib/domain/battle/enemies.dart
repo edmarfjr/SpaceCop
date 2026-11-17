@@ -641,12 +641,10 @@ abstract final class Enemies {
 
 abstract final class Encounters {
   /// Column the enemy may stand in, at least: the fixed and back-line ones
-  /// stay at the back.
+  /// stay at the back. The Capanga Artilharia stands anywhere, so it
+  /// doesn't wall in the CyberGalo patrolling the back column.
   static int _minX(EnemyDef def) => switch (def) {
-    Enemies.gruntArtillery ||
-    Enemies.cannon ||
-    Enemies.sentinel ||
-    Enemies.rooster => 5,
+    Enemies.cannon || Enemies.sentinel || Enemies.rooster => 5,
     Enemies.gruntDuck ||
     Enemies.sentry ||
     Enemies.bubbler ||

@@ -1244,8 +1244,16 @@ class TankBehavior extends EnemyBehavior {
       if (enemy.timer > 0) enemy.timer--;
       if (!enemy.attacking && enemy.moveTimer-- <= 0) {
         enemy.moveTimer = moveTicks;
-        for (final dy in [1, -1]..shuffle(battle.random)) {
-          if (battle.tryMove(enemy, GridPos(0, dy))) break;
+        final dys = [1, -1]..shuffle(battle.random);
+        // Walled in on its column (a fixed enemy above or below): steps
+        // diagonally instead, back toward the right edge first.
+        final steps = [
+          for (final dy in dys) GridPos(0, dy),
+          for (final dx in [1, -1])
+            for (final dy in dys) GridPos(dx, dy),
+        ];
+        for (final step in steps) {
+          if (battle.tryMove(enemy, step)) break;
         }
       }
       return;

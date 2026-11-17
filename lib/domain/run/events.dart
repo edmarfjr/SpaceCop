@@ -14,6 +14,9 @@ enum EventPick {
 
   /// One chip of the deck, passed to [EventOption.apply].
   deckChip,
+
+  /// Like [deckChip], but picked on the campfire's upgrade screen.
+  upgrade,
 }
 
 /// What happens after an option applies, besides going back to the map.
@@ -68,9 +71,12 @@ class StartFight extends EventFollowUp {
 
 /// Pick one card of the deck that passes [pickable], then [apply] it.
 class PickCard extends EventFollowUp {
-  const PickCard(this.title, this.apply, {this.pickable});
+  const PickCard(this.title, this.apply, {this.pickable, this.upgrade = false});
 
   final String title;
+
+  /// Picked on the campfire's upgrade screen.
+  final bool upgrade;
   final bool Function(ChipDef def)? pickable;
   final EventFollowUp? Function(RunState run, ChipCard picked) apply;
 
@@ -96,7 +102,7 @@ class EventOption {
   final String reward;
   final EventPick pick;
 
-  /// With [EventPick.deckChip], which cards may be picked (all if null).
+  /// With a deck pick, which cards may be picked (all if null).
   final bool Function(ChipDef def)? pickable;
 
   /// Créditos the option needs; [apply] pays them.
@@ -113,7 +119,7 @@ class EventOption {
       run.credits >= price &&
       (pick == EventPick.none || pickableCards(run).isNotEmpty);
 
-  /// [picked] is set when [pick] is [EventPick.deckChip].
+  /// [picked] is set when [pick] isn't [EventPick.none].
   final EventFollowUp? Function(RunState run, ChipCard? picked) apply;
 }
 
@@ -229,9 +235,8 @@ EventFollowUp? _forceVault(RunState run, ChipCard? _) {
   return null;
 }
 
-bool _explosive(ChipDef def) =>
-    def.family == ChipFamily.explosive;
-    
+bool _explosive(ChipDef def) => def.family == ChipFamily.explosive;
+
 EventFollowUp? _blowVault(RunState run, ChipCard? picked) {
   run.deck.remove(picked);
   run.gainCredits(150);
@@ -252,6 +257,7 @@ EventFollowUp? _hardPractice(RunState run, ChipCard? picked) {
   return PickCard(
     'Escolha a segunda carta',
     _upgradeSecond,
+    upgrade: true,
     pickable: _upgradeableAttack,
   );
 }
@@ -422,6 +428,7 @@ EventFollowUp? _offerCard(RunState run, ChipCard? picked) {
   return const PickCard(
     'Escolha a carta a melhorar',
     _upgradeSecond,
+    upgrade: true,
     pickable: _upgradeable,
   );
 }
@@ -545,6 +552,7 @@ EventFollowUp? _forge(RunState run, ChipCard? picked) {
   return const PickCard(
     'Escolha a segunda carta',
     _upgradeSecond,
+    upgrade: true,
     pickable: _upgradeable,
   );
 }
@@ -954,7 +962,7 @@ abstract final class Events {
       EventOption(
         label: 'Interrogar',
         reward: 'Melhora 1 carta',
-        pick: EventPick.deckChip,
+        pick: EventPick.upgrade,
         pickable: _upgradeable,
         apply: _upgradePicked,
       ),
@@ -1012,7 +1020,7 @@ abstract final class Events {
         label: 'Treinar a pontaria',
         cost: '−10 HP',
         reward: 'Melhora 1 carta de ataque',
-        pick: EventPick.deckChip,
+        pick: EventPick.upgrade,
         pickable: _upgradeableAttack,
         apply: _practice,
       ),
@@ -1020,7 +1028,7 @@ abstract final class Events {
         label: 'Treino intenso',
         cost: '−20 HP',
         reward: 'Melhora 2 cartas de ataque',
-        pick: EventPick.deckChip,
+        pick: EventPick.upgrade,
         pickable: _upgradeableAttack,
         apply: _hardPractice,
       ),
@@ -1040,7 +1048,7 @@ abstract final class Events {
       EventOption(
         label: 'Pedir cobertura',
         reward: 'Recupera 30% do HP e melhora 1 carta',
-        pick: EventPick.deckChip,
+        pick: EventPick.upgrade,
         pickable: _upgradeable,
         apply: _cover,
       ),
@@ -1300,7 +1308,7 @@ abstract final class Events {
         label: 'Forjar',
         cost: '−10 HP',
         reward: 'Melhora 2 cartas',
-        pick: EventPick.deckChip,
+        pick: EventPick.upgrade,
         pickable: _upgradeable,
         apply: _forge,
       ),
@@ -1562,7 +1570,7 @@ abstract final class Events {
         label: 'Fechar a fenda',
         cost: '−$_closeRiftHp HP',
         reward: 'Melhora 1 carta',
-        pick: EventPick.deckChip,
+        pick: EventPick.upgrade,
         pickable: _upgradeable,
         apply: _closeRift,
       ),

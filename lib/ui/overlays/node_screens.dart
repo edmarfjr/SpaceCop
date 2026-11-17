@@ -254,6 +254,45 @@ class CardReward extends StatelessWidget {
   );
 }
 
+/// The upgrade screen, shared by the campfire and the events: each of
+/// [cards] shown as it will be once upgraded; [onPick] gets the deck card.
+class UpgradePicker extends StatelessWidget {
+  const UpgradePicker({
+    super.key,
+    required this.game,
+    required this.cards,
+    required this.onPick,
+    this.title = 'Escolha a carta a melhorar',
+    this.onCancel,
+  });
+
+  final StarCopGame game;
+  final List<ChipCard> cards;
+  final ValueChanged<ChipCard> onPick;
+  final String title;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final previews = [
+      for (final card in cards) ChipCard(Chips.upgradeOf(card.def)!),
+    ];
+    return _Panel(
+      title: 'Melhorar carta',
+      children: [
+        ChipPicker(
+          title: title,
+          cards: previews,
+          sprites: game.sprites,
+          grouped: true,
+          onPick: (preview) => onPick(cards[previews.indexOf(preview)]),
+          onCancel: onCancel,
+        ),
+      ],
+    );
+  }
+}
+
 /// Campfire: rest, or upgrade one card instead.
 class RestOverlay extends StatefulWidget {
   const RestOverlay({super.key, required this.game});
@@ -273,23 +312,11 @@ class _RestOverlayState extends State<RestOverlay> {
   Widget build(BuildContext context) {
     final upgradeable = game.run.upgradeable;
     if (_upgrading) {
-      // The picker shows each card as it will be once upgraded.
-      final previews = [
-        for (final card in upgradeable) ChipCard(Chips.upgradeOf(card.def)!),
-      ];
-      return _Panel(
-        title: 'Melhorar carta',
-        children: [
-          ChipPicker(
-            title: 'Escolha a carta a melhorar',
-            cards: previews,
-            sprites: game.sprites,
-            grouped: true,
-            onPick: (preview) =>
-                game.upgradeHere(upgradeable[previews.indexOf(preview)]),
-            onCancel: () => setState(() => _upgrading = false),
-          ),
-        ],
+      return UpgradePicker(
+        game: game,
+        cards: upgradeable,
+        onPick: game.upgradeHere,
+        onCancel: () => setState(() => _upgrading = false),
       );
     }
     return _Panel(
@@ -837,6 +864,15 @@ class _EventOverlayState extends State<EventOverlay> {
       );
     }
     final pick = game.eventPick;
+    if (pick != null && pick.upgrade) {
+      return UpgradePicker(
+        game: game,
+        title: pick.title,
+        cards: pick.cards(game.run),
+        onPick: game.resolvePick,
+        onCancel: game.finishNode,
+      );
+    }
     if (pick != null) {
       return _Panel(
         title: event?.title ?? '',
@@ -855,6 +891,14 @@ class _EventOverlayState extends State<EventOverlay> {
     }
     if (event == null) return const SizedBox.shrink();
     final picking = _picking;
+    if (picking != null && picking.pick == EventPick.upgrade) {
+      return UpgradePicker(
+        game: game,
+        cards: picking.pickableCards(game.run),
+        onPick: (card) => game.resolveEvent(picking, card),
+        onCancel: () => setState(() => _picking = null),
+      );
+    }
     if (picking != null) {
       return _Panel(
         title: picking.label,
@@ -883,7 +927,7 @@ class _EventOverlayState extends State<EventOverlay> {
             autofocus: i == 0,
             onPressed: !option.available(game.run)
                 ? null
-                : () => option.pick == EventPick.deckChip
+                : () => option.pick != EventPick.none
                       ? setState(() => _picking = option)
                       : game.resolveEvent(option),
           ),
@@ -1390,8 +1434,7 @@ class _ShowcasePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ShowcasePainter old) =>
-      old.t != t || old.style != style;
+  bool shouldRepaint(_ShowcasePainter old) => old.t != t || old.style != style;
 }
 
 /// The menu's title: plays [frames] once as the menu opens, then holds the
@@ -1436,10 +1479,11 @@ class _AnimatedTitleState extends State<_AnimatedTitle>
         child: AnimatedBuilder(
           animation: _play,
           builder: (context, _) => SheetSprite(
-            sprite: frames[min(
-              frames.length - 1,
-              (_play.value * frames.length).floor(),
-            )],
+            sprite:
+                frames[min(
+                  frames.length - 1,
+                  (_play.value * frames.length).floor(),
+                )],
             scale: 1,
           ),
         ),
