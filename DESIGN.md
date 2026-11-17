@@ -1,4 +1,4 @@
-# DESIGN — StarCop
+# DESIGN — StarCop's Raid
 
 Jogo para celular em **paisagem**, controlado por toque e gestos, sem
 controles na tela. Tudo usa a paleta do **Picotron**, a mesma das artes.

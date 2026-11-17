@@ -1060,7 +1060,7 @@ class LoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _Panel(
-    title: 'STAR COP',
+    title: "STARCOP'S RAID",
     children: [
       const SizedBox(height: 10),
       const Text('Carregando...', style: GbText.body),

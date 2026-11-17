@@ -1,4 +1,4 @@
-# StarCop
+# StarCop's Raid
 
 Roguelike de cartas para celular, em paisagem: mapa no estilo Slay the Spire
 e batalhas em tempo real numa grade 6×3. A jogadora é uma policial espacial;
