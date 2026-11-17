@@ -96,6 +96,25 @@ Color familyColor(ChipFamily family) => switch (family) {
   ChipFamily.tactical => Pico.pink,
 };
 
+/// PET window, the sci-fi box of the battle HUD: [Pico.midnight] inside, a
+/// [Pico.royal] frame and two cut corners.
+const petWindow = ShapeDecoration(
+  color: Pico.midnight,
+  shape: BeveledRectangleBorder(
+    side: BorderSide(color: Pico.royal),
+    borderRadius: BorderRadius.only(
+      topRight: Radius.circular(4),
+      bottomLeft: Radius.circular(4),
+    ),
+  ),
+);
+
+/// Title bar on top of a [petWindow].
+const petTitleBar = Pico.royal;
+
+/// A PET window's border when the player is hurt or low on HP.
+const petAlert = Pico.red;
+
 /// Width of the focus border.
 const double focusBorder = 1.5;
 

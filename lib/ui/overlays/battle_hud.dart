@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame/components.dart' show Sprite;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,11 +37,27 @@ class BattleHud extends StatelessWidget {
         children: [
           // Behind everything else, so the chips and icons get their taps.
           Positioned.fill(child: _SwipeArea(world: world)),
+          // The column left of the grid: status, selected card, piles.
           Positioned(
             top: 2,
             left: 2,
             width: _gridLeft - 6,
-            child: _PlayerStatus(battle: battle),
+            child: IgnorePointer(child: _PlayerStatus(battle: battle)),
+          ),
+          Positioned(
+            top: 41,
+            bottom: 50,
+            left: 2,
+            width: _gridLeft - 6,
+            child: IgnorePointer(
+              child: _CardSlot(battle: battle, sprites: game.sprites),
+            ),
+          ),
+          Positioned(
+            bottom: 2,
+            left: 2,
+            width: _gridLeft - 6,
+            child: IgnorePointer(child: _Piles(battle: battle)),
           ),
           // Old layout: enemy names and life bars on the right of the grid.
           // The life bar is now drawn under each enemy's sprite
@@ -85,6 +103,18 @@ class BattleHud extends StatelessWidget {
             right: 2,
             child: _Hand(world: world, sprites: game.sprites),
           ),
+          // Under a quarter of the max HP, the screen's edge pulses red.
+          if (battle.player.hp * 4 < battle.player.maxHp &&
+              (battle.ticks ~/ ticksPerSecond).isEven)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: petAlert, width: 2),
+                  ),
+                ),
+              ),
+            ),
           // The battle waits for this choice, so it covers everything.
           if (battle.peekCards.isNotEmpty)
             Positioned.fill(
@@ -192,60 +222,313 @@ class HudIconButton extends StatelessWidget {
   );
 }
 
-/// Top left corner: HP and Energy on a line, the gauge under them.
-class _PlayerStatus extends StatelessWidget {
+/// Top left corner, a PET window: HP big, Energy under it, the gauge
+/// last. Hurt, the HP shakes in red and the HP lost rises over it; under a
+/// quarter of the max HP, the number blinks red.
+class _PlayerStatus extends StatefulWidget {
   const _PlayerStatus({required this.battle});
 
   final BattleState battle;
 
+  @override
+  State<_PlayerStatus> createState() => _PlayerStatusState();
+}
+
+class _PlayerStatusState extends State<_PlayerStatus> {
   /// Half a blink of the full gauge, in ticks.
   static const _gaugeBlinkTicks = ticksPerSecond ~/ 8;
 
+  /// Half a blink of the HP when low, in ticks.
+  static const _lowBlinkTicks = ticksPerSecond ~/ 3;
+
+  /// How long the HP lost stays up, in ticks.
+  static const _lossTicks = ticksPerSecond;
+
+  late int _lastHp = widget.battle.player.hp;
+
+  /// HP lost by the last hits close together, and when the last one landed.
+  int _lost = 0;
+  int _lostAt = -_lossTicks;
+
+  BattleState get battle => widget.battle;
+
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Row(
-          children: [
-            Text(
-              'HP ${battle.player.hp}',
-              style: GbText.body.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 6),
-            _RamBar(battle: battle),
-          ],
-        ),
-      ),
-      const SizedBox(height: 2),
-      Row(
+  void didUpdateWidget(_PlayerStatus old) {
+    super.didUpdateWidget(old);
+    final hp = battle.player.hp;
+    if (hp < _lastHp) {
+      final chained = battle.ticks - _lostAt < _lossTicks;
+      _lost = (chained ? _lost : 0) + _lastHp - hp;
+      _lostAt = battle.ticks;
+    }
+    _lastHp = hp;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final player = battle.player;
+    final hurt = player.hurtTicks > 0;
+    final low = player.hp * 4 < player.maxHp;
+    final sinceLoss = battle.ticks - _lostAt;
+    final hpColor = hurt || (low && (battle.ticks ~/ _lowBlinkTicks).isEven)
+        ? Pico.red
+        : Pico.white;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(4, 2, 4, 3),
+      decoration: hurt || low ? _alertWindow : petWindow,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Text(
-            'CARGA',
-            style: GbText.small.copyWith(
-              color: battle.gaugeFull ? Pico.yellow : Pico.lightGray,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    'HP ',
+                    style: GbText.small.copyWith(color: Pico.lightGray),
+                  ),
+                  Transform.translate(
+                    // Shakes a pixel every other tick while hurt.
+                    offset: Offset(hurt && player.hurtTicks.isOdd ? 1 : 0, 0),
+                    child: Text(
+                      '${player.hp}',
+                      style: GbText.title.copyWith(color: hpColor),
+                    ),
+                  ),
+                  Text(
+                    '/${player.maxHp}',
+                    style: GbText.small.copyWith(color: Pico.lightGray),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 1),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: _RamBar(battle: battle),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Text(
+                    'CARGA',
+                    style: GbText.small.copyWith(
+                      color: battle.gaugeFull ? Pico.yellow : Pico.lightGray,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Expanded(
+                    child: LinearProgressIndicator(
+                      value: battle.gauge / gaugeTicks,
+                      minHeight: 5,
+                      // Full: blinks yellow and white, 4 times a second.
+                      color: !battle.gaugeFull
+                          ? Pico.red
+                          : (battle.ticks ~/ _gaugeBlinkTicks).isEven
+                          ? Pico.yellow
+                          : Pico.white,
+                      backgroundColor: Pico.chocolate,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(width: 3),
-          Expanded(
-            child: LinearProgressIndicator(
-              value: battle.gauge / gaugeTicks,
-              minHeight: 5,
-              // Full: blinks yellow and white, 4 times a second.
-              color: !battle.gaugeFull
-                  ? Pico.red
-                  : (battle.ticks ~/ _gaugeBlinkTicks).isEven
-                  ? Pico.yellow
-                  : Pico.white,
-              backgroundColor: Pico.chocolate,
+          if (_lost > 0 && sinceLoss < _lossTicks)
+            Positioned(
+              right: 0,
+              // Rises 6 px over its second on screen.
+              top: -sinceLoss * 6 / _lossTicks,
+              child: Text(
+                '-$_lost',
+                style: GbText.body.copyWith(color: Pico.red),
+              ),
             ),
-          ),
         ],
       ),
-    ],
+    );
+  }
+
+  /// [petWindow] with the [petAlert] frame.
+  static const _alertWindow = ShapeDecoration(
+    color: Pico.midnight,
+    shape: BeveledRectangleBorder(
+      side: BorderSide(color: petAlert),
+      borderRadius: BorderRadius.only(
+        topRight: Radius.circular(4),
+        bottomLeft: Radius.circular(4),
+      ),
+    ),
   );
+}
+
+/// Under the status, a PET window with the selected card in full: art,
+/// name, cost, damage, family and description, which the 36 px cards of
+/// the hand are too small to show.
+class _CardSlot extends StatelessWidget {
+  const _CardSlot({required this.battle, required this.sprites});
+
+  final BattleState battle;
+  final GameSprites sprites;
+
+  /// The art window, in virtual px.
+  static const _art = Size(40, 26);
+
+  @override
+  Widget build(BuildContext context) {
+    final card = battle.selectedChip;
+    return Container(
+      decoration: petWindow,
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: petTitleBar,
+            padding: const EdgeInsets.fromLTRB(4, 1, 4, 0),
+            child: const Text('CARTA', style: GbText.small),
+          ),
+          if (card == null)
+            Padding(
+              padding: const EdgeInsets.all(4),
+              child: Text(
+                'Sem cartas na mão.',
+                style: GbText.small.copyWith(color: Pico.lightGray),
+              ),
+            )
+          else ...[
+            Center(
+              child: Container(
+                margin: const EdgeInsets.only(top: 3, bottom: 2),
+                width: _art.width,
+                height: _art.height,
+                color: Pico.black,
+                alignment: Alignment.center,
+                child: _drawArt(sprites.chip(card.def)),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      card.def.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GbText.small.copyWith(color: Pico.yellow),
+                    ),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${battle.costOf(card)} EN',
+                            style: TextStyle(
+                              color: battle.canAfford(card)
+                                  ? Pico.blue
+                                  : Pico.darkGray,
+                            ),
+                          ),
+                          if (card.def.damage > 0)
+                            TextSpan(
+                              text: ' · ${card.def.damage} DANO',
+                              style: const TextStyle(color: Pico.red),
+                            ),
+                        ],
+                      ),
+                      style: GbText.small,
+                    ),
+                    Text(
+                      card.def.family.label,
+                      style: GbText.small.copyWith(
+                        color: familyColor(card.def.family),
+                      ),
+                    ),
+                    // Takes what is left of the slot: as many whole lines
+                    // as fit, the last one ending in "..." if cut.
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, box) => Text(
+                          card.def.description,
+                          maxLines: max(
+                            1,
+                            box.maxHeight ~/
+                                (GbText.small.fontSize! * GbText.small.height!),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          style: GbText.small.copyWith(color: Pico.lightGray),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Whole scales keep the pixels square: 16 px art at 1x, 8 px icons at
+  /// 2x; bigger art shrinks to fit.
+  Widget _drawArt(Sprite art) {
+    final fit = min(
+      _art.width / art.srcSize.x,
+      (_art.height - 2) / art.srcSize.y,
+    );
+    return SheetSprite(
+      sprite: art,
+      scale: fit >= 1 ? fit.floorToDouble() : fit,
+    );
+  }
+}
+
+/// Bottom left, a PET window with the draw and discard piles. When the
+/// next hand will need the discard pile, it says it gets shuffled back.
+class _Piles extends StatelessWidget {
+  const _Piles({required this.battle});
+
+  final BattleState battle;
+
+  @override
+  Widget build(BuildContext context) {
+    final deck = battle.deck;
+    final reshuffles =
+        deck.drawPile.length < handSize && deck.discardPile.isNotEmpty;
+    Widget row(String label, int count) => Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: GbText.small.copyWith(color: Pico.lightGray),
+          ),
+        ),
+        Text('$count', style: GbText.small),
+      ],
+    );
+    return Container(
+      decoration: petWindow,
+      padding: const EdgeInsets.fromLTRB(4, 2, 4, 3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          row('COMPRA', deck.drawPile.length),
+          row('DESCARTE', deck.discardPile.length),
+          if (reshuffles)
+            Text(
+              'Embaralha na próxima mão',
+              style: GbText.small.copyWith(color: Pico.yellow),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Right of the grid: each enemy's name, kind and life bar. Enemies sharing
@@ -340,6 +623,22 @@ class _Hand extends StatelessWidget {
   Widget build(BuildContext context) {
     final battle = world.battle;
     final selected = battle.selectedChip;
+    // Empty until the gauge fills and deals a new hand: say so, instead of
+    // leaving the corner blank.
+    if (battle.hand.isEmpty) {
+      return Container(
+        width: 112,
+        height: 54,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(border: Border.all(color: Pico.yellow)),
+        child: Text(
+          'MÃO VAZIA\nnova mão quando a CARGA encher',
+          textAlign: TextAlign.center,
+          style: GbText.small.copyWith(color: Pico.yellow),
+        ),
+      );
+    }
     return Row(
       children: [
         for (final card in battle.hand)
@@ -350,15 +649,21 @@ class _Hand extends StatelessWidget {
                 tapFeedback();
                 world.pressChip(card);
               },
-              child: ChipCardView(
-                def: card.def,
-                sprites: sprites,
-                // 54 px tall: fits between the grid (bottom at y 136) and
-                // the bottom edge.
-                width: 36,
-                focusable: false,
-                selected: card == selected,
-                dimmed: !battle.canAfford(card),
+              // The card shown in the slot: yellow outline.
+              child: Container(
+                foregroundDecoration: card == selected
+                    ? BoxDecoration(border: Border.all(color: Pico.yellow))
+                    : null,
+                child: ChipCardView(
+                  def: card.def,
+                  sprites: sprites,
+                  // 54 px tall: fits between the grid (bottom at y 136) and
+                  // the bottom edge.
+                  width: 36,
+                  focusable: false,
+                  selected: card == selected,
+                  dimmed: !battle.canAfford(card),
+                ),
               ),
             ),
           ),

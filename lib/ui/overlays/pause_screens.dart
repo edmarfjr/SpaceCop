@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/chips/battle_chip.dart';
 import '../../game/audio.dart';
 import '../../game/settings.dart';
 import '../../game/star_cop_game.dart';
@@ -184,26 +185,99 @@ class _TextButton extends StatelessWidget {
 }
 
 /// Deck icon in battle, or "Deck" on the map: the run's deck, read-only.
-/// A tap anywhere closes it.
-class DeckOverlay extends StatelessWidget {
+/// In battle, tabs split it into the draw pile, the hand and the discard
+/// pile (the draw pile grouped, so its order stays hidden). A tap anywhere
+/// but the tabs closes it.
+class DeckOverlay extends StatefulWidget {
   const DeckOverlay({super.key, required this.game});
 
   final StarCopGame game;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: withTap(game.closeMenus),
-    child: ColoredBox(
-      color: Pico.darkBlue.withValues(alpha: 0.95),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: ChipPicker(
-          title: 'Deck (${game.run.deck.length}) · toque para fechar',
-          cards: game.run.deck,
-          sprites: game.sprites,
-          grouped: true,
+  State<DeckOverlay> createState() => _DeckOverlayState();
+}
+
+enum _DeckTab {
+  draw('Compra'),
+  hand('Mão'),
+  discard('Descarte'),
+  all('Deck');
+
+  const _DeckTab(this.label);
+
+  final String label;
+}
+
+class _DeckOverlayState extends State<DeckOverlay> {
+  _DeckTab _tab = _DeckTab.draw;
+
+  StarCopGame get game => widget.game;
+
+  @override
+  Widget build(BuildContext context) {
+    final deck = game.battleWorld?.battle.deck;
+    List<ChipCard> cards(_DeckTab tab) => switch (tab) {
+      _DeckTab.draw => deck!.drawPile,
+      _DeckTab.hand => deck!.hand,
+      _DeckTab.discard => deck!.discardPile,
+      _DeckTab.all => game.run.deck,
+    };
+    final tab = deck == null ? _DeckTab.all : _tab;
+    final shown = cards(tab);
+    return GestureDetector(
+      onTap: withTap(game.closeMenus),
+      child: ColoredBox(
+        color: Pico.darkBlue.withValues(alpha: 0.95),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Column(
+            children: [
+              if (deck != null)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (final t in _DeckTab.values)
+                      GestureDetector(
+                        onTap: withTap(() => setState(() => _tab = t)),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          padding: buttonPadding,
+                          decoration: BoxDecoration(
+                            color: t == tab ? Pico.blue : Pico.midnight,
+                            border: Border.all(color: petTitleBar),
+                          ),
+                          child: Text(
+                            '${t.label} ${cards(t).length}',
+                            style: GbText.body.copyWith(
+                              color: t == tab ? Pico.midnight : Pico.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 4),
+              Expanded(
+                child: shown.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Nenhuma carta aqui · toque para fechar',
+                          style: GbText.small.copyWith(color: Pico.lightGray),
+                        ),
+                      )
+                    : ChipPicker(
+                        title: deck == null
+                            ? 'Deck (${shown.length}) · toque para fechar'
+                            : 'Toque fora das abas para fechar',
+                        cards: shown,
+                        sprites: game.sprites,
+                        grouped: true,
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
