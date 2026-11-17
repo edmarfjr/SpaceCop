@@ -67,12 +67,32 @@ class _RewardOverlayState extends State<RewardOverlay> {
   /// The card or boss relic choice open over the list.
   Spoil? _open;
 
+  /// Spoils already taken: they stay on the list, struck out, so the
+  /// player sees what she got.
+  final List<(Sprite, String)> _taken = [];
+
+  /// "Pular" with spoils left asks first.
+  bool _confirmSkip = false;
+
   StarCopGame get game => widget.game;
 
   void _take(Spoil spoil, {ChipDef? card, RelicDef? relic}) => setState(() {
+    final (icon, text) = _describe(spoil);
+    _taken.add((
+      icon,
+      card != null
+          ? 'Carta: ${card.name}'
+          : relic != null
+          ? 'Relíquia: ${relic.name}'
+          : text,
+    ));
     game.takeSpoil(spoil, card: card, relic: relic);
     _open = null;
   });
+
+  void _skip() => game.spoils.isEmpty
+      ? game.finishNode()
+      : setState(() => _confirmSkip = true);
 
   void _back() {
     GameAudio.instance.play(Sfx.cancel);
@@ -95,7 +115,15 @@ class _RewardOverlayState extends State<RewardOverlay> {
       onPick: (relic) => _take(spoil, relic: relic),
       onSkip: _back,
     ),
-    _ => _list(),
+    _ =>
+      _confirmSkip
+          ? Stack(
+              children: [
+                _list(),
+                Positioned.fill(child: _skipDialog()),
+              ],
+            )
+          : _list(),
   };
 
   Widget _list() {
@@ -109,7 +137,14 @@ class _RewardOverlayState extends State<RewardOverlay> {
         child: Column(
           children: [
             Text('', style: GbText.small, textAlign: TextAlign.center),
-            Text('Espólios!', style: GbText.title, textAlign: TextAlign.center),
+            Text(
+              spoils.isEmpty
+                  ? 'Espólios'
+                  : 'Espólios · ${spoils.length} '
+                        '${spoils.length == 1 ? 'restante' : 'restantes'}',
+              style: GbText.title,
+              textAlign: TextAlign.center,
+            ),
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -125,7 +160,12 @@ class _RewardOverlayState extends State<RewardOverlay> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (spoils.isEmpty)
+                        for (final (icon, text) in _taken)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: _takenRow(icon, text),
+                          ),
+                        if (spoils.isEmpty && _taken.isEmpty)
                           Text(
                             'Nada mais a ser pego.',
                             textAlign: TextAlign.center,
@@ -152,10 +192,8 @@ class _RewardOverlayState extends State<RewardOverlay> {
                 const SizedBox(width: 8),
                 TextButton(
                   autofocus: spoils.isEmpty,
-                  onPressed: withTap(game.finishNode),
-                  child: Text(
-                    spoils.isEmpty ? 'Continuar' : 'Pular recompensas',
-                  ),
+                  onPressed: withTap(_skip),
+                  child: Text(spoils.isEmpty ? 'Continuar' : 'Pular restantes'),
                 ),
               ],
             ),
@@ -165,9 +203,9 @@ class _RewardOverlayState extends State<RewardOverlay> {
     );
   }
 
-  Widget _spoilButton(Spoil spoil, {required bool autofocus}) {
+  (Sprite, String) _describe(Spoil spoil) {
     final sprites = game.sprites;
-    final (icon, text) = switch (spoil) {
+    return switch (spoil) {
       CreditsSpoil(:final amount) => (sprites.credits, '$amount Créditos'),
       RelicSpoil(:final relic) => (sprites.relic(relic), relic.name),
       CardSpoil() => (sprites.deckIcon, 'Adicione uma carta ao seu deck'),
@@ -176,6 +214,107 @@ class _RewardOverlayState extends State<RewardOverlay> {
         'Escolha uma relíquia de chefe',
       ),
     };
+  }
+
+  /// A taken spoil: dimmed, struck out, "PEGO" on the right.
+  Widget _takenRow(Sprite icon, String text) => Opacity(
+    opacity: 0.45,
+    child: Container(
+      padding: buttonPadding,
+      decoration: BoxDecoration(
+        border: Border.all(color: Pico.darkGray, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          SizedBox.square(
+            dimension: 12,
+            child: FittedBox(child: SheetSprite(sprite: icon, scale: 1)),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: GbText.small.copyWith(
+                decoration: TextDecoration.lineThrough,
+              ),
+            ),
+          ),
+          Text('PEGO', style: GbText.small.copyWith(color: Pico.green)),
+        ],
+      ),
+    ),
+  );
+
+  /// Over the list: what skipping loses, focus on "Voltar".
+  Widget _skipDialog() {
+    final left = [for (final spoil in game.spoils) _describe(spoil).$2];
+    return ColoredBox(
+      color: Pico.black.withValues(alpha: 0.7),
+      child: Center(
+        child: Container(
+          width: 200,
+          decoration: const ShapeDecoration(
+            color: Pico.midnight,
+            shape: BeveledRectangleBorder(
+              side: BorderSide(color: Pico.orange),
+              borderRadius: BorderRadius.only(
+                topRight: Radius.circular(4),
+                bottomLeft: Radius.circular(4),
+              ),
+            ),
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                color: Pico.orange,
+                padding: const EdgeInsets.fromLTRB(4, 2, 4, 1),
+                child: Text(
+                  'PULAR ESPÓLIOS?',
+                  style: GbText.body.copyWith(color: Pico.midnight),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(4),
+                child: Text(
+                  'Estes serão perdidos:\n${left.join('\n')}',
+                  style: GbText.small,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      autofocus: true,
+                      onPressed: withTap(
+                        () => setState(() => _confirmSkip = false),
+                      ),
+                      child: const Text('Voltar'),
+                    ),
+                    const SizedBox(width: 6),
+                    TextButton(
+                      onPressed: withTap(game.finishNode),
+                      child: Text(
+                        'Pular mesmo assim',
+                        style: GbText.body.copyWith(color: Pico.coral),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _spoilButton(Spoil spoil, {required bool autofocus}) {
+    final (icon, text) = _describe(spoil);
     return OutlinedButton(
       autofocus: autofocus,
       style: OutlinedButton.styleFrom(
@@ -516,11 +655,22 @@ class _ShopOverlayState extends State<ShopOverlay> {
                     ),
                     const SizedBox(width: 6),
                   ],
-                  Expanded(child: _ShopInfo(item: _selected)),
+                  Expanded(
+                    child: _ShopInfo(
+                      item: _selected,
+                      missing: switch (_priceOf(_selected)) {
+                        final price? when price > run.credits =>
+                          price - run.credits,
+                        _ => null,
+                      },
+                    ),
+                  ),
                   const SizedBox(width: 6),
                   FilledButton(
                     onPressed: withTap(_confirm),
-                    child: const Text('Confirmar'),
+                    child: Text(
+                      _selected == _removalService ? 'Remover' : 'Comprar',
+                    ),
                   ),
                 ],
               ),
@@ -601,11 +751,13 @@ class _RemovalService extends StatelessWidget {
   );
 }
 
-/// What the selected shop item is.
+/// What the selected shop item is and, when it can't be paid, how many
+/// Créditos are missing.
 class _ShopInfo extends StatelessWidget {
-  const _ShopInfo({required this.item});
+  const _ShopInfo({required this.item, this.missing});
 
   final Object? item;
+  final int? missing;
 
   @override
   Widget build(BuildContext context) {
@@ -643,6 +795,11 @@ class _ShopInfo extends StatelessWidget {
                 style: TextStyle(color: rarityColor(rarity)),
               ),
             TextSpan(text: text),
+            if (missing case final missing?)
+              TextSpan(
+                text: '\nFaltam $missing C',
+                style: const TextStyle(color: Pico.coral),
+              ),
           ],
         ),
         style: GbText.small,
@@ -1549,16 +1706,160 @@ class GameOverOverlay extends StatelessWidget {
   final StarCopGame game;
 
   @override
-  Widget build(BuildContext context) => _Panel(
-    title: game.phase.value == GamePhase.victory ? 'Vitória!' : 'Game Over',
-    children: [
-      FilledButton(
-        autofocus: true,
-        onPressed: withTap(game.startNewRun),
-        child: const Text('Nova run'),
+  Widget build(BuildContext context) {
+    final run = game.run;
+    final won = game.phase.value == GamePhase.victory;
+    final (banner, color) = won
+        ? ('MISSÃO CUMPRIDA', Pico.green)
+        : game.abandoned
+        ? ('MISSÃO ABANDONADA', Pico.orange)
+        : ('MISSÃO FALHOU', Pico.red);
+    final floor = (run.current?.floor ?? -1) + 1;
+    final stats = [
+      ('Ato · andar', '${run.act} · $floor'),
+      ('Batalhas vencidas', '${run.battlesWon}'),
+      ('Inimigos derrotados', '${run.enemiesDefeated}'),
+      ('Créditos ganhos', '${run.creditsEarned}'),
+      ('Relíquias', '${run.relics.length}'),
+      ('Carta mais usada', run.favoriteCard ?? '-'),
+    ];
+    Widget window(String title, Widget child) => Container(
+      decoration: petWindow,
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: petTitleBar,
+            padding: const EdgeInsets.fromLTRB(4, 1, 4, 0),
+            child: Text(title, style: GbText.small),
+          ),
+          Expanded(
+            child: Padding(padding: const EdgeInsets.all(4), child: child),
+          ),
+        ],
       ),
-    ],
-  );
+    );
+    return ColoredBox(
+      color: Pico.midnight,
+      child: Column(
+        children: [
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            color: color,
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Text(
+              banner,
+              textAlign: TextAlign.center,
+              style: GbText.title.copyWith(color: Pico.midnight),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: window(
+                      'RELATÓRIO',
+                      Column(
+                        children: [
+                          for (final (label, value) in stats)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 2),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(label, style: GbText.small),
+                                  ),
+                                  // Long card names give way to the label.
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 80,
+                                    ),
+                                    child: Text(
+                                      value,
+                                      textAlign: TextAlign.right,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GbText.small.copyWith(
+                                        color: Pico.yellow,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 4,
+                    child: window(
+                      'DECK FINAL · ${run.deck.length}',
+                      SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 3,
+                          runSpacing: 3,
+                          children: [
+                            for (final card in run.deck)
+                              Container(
+                                width: 20,
+                                height: 20,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: Pico.black,
+                                  border: Border.all(
+                                    color: card.def.upgraded
+                                        ? Pico.yellow
+                                        : petTitleBar,
+                                  ),
+                                ),
+                                child: SizedBox.square(
+                                  dimension: 16,
+                                  child: FittedBox(
+                                    child: SheetSprite(
+                                      sprite: game.sprites.chip(card.def),
+                                      scale: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FilledButton(
+                  autofocus: true,
+                  onPressed: withTap(game.startNewRun),
+                  child: const Text('Nova run'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: withTap(game.backToMenu),
+                  child: const Text('Menu'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Over any screen: the choices a relic just taken asks for, one at a time

@@ -23,18 +23,111 @@ class PauseOverlay extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text('PAUSA', style: GbText.title),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          for (final (i, (label, action)) in [
+            ('Continuar', game.closeMenus),
+            ('Ver deck', game.showDeck),
+            ('Manual', game.openManualOverRun),
+            ('Configurações', game.openSettings),
+          ].indexed) ...[
+            FilledButton(
+              autofocus: i == 0,
+              onPressed: withTap(action),
+              child: Text(label),
+            ),
+            const SizedBox(height: 4),
+          ],
+          const SizedBox(height: 4),
           FilledButton(
-            autofocus: true,
-            onPressed: withTap(game.closeMenus),
-            child: const Text('Continuar'),
-          ),
-          const SizedBox(height: 6),
-          FilledButton(
-            onPressed: withTap(game.openSettings),
-            child: const Text('Configurações'),
+            onPressed: withTap(
+              () => showDialog<void>(
+                context: context,
+                barrierColor: Pico.black.withValues(alpha: 0.6),
+                builder: (_) => _AbandonDialog(game: game),
+              ),
+            ),
+            child: Text(
+              'Abandonar run',
+              style: GbText.body.copyWith(color: Pico.coral),
+            ),
           ),
         ],
+      ),
+    ),
+  );
+}
+
+/// "Abandonar run?": the run ends with its report; focus on "Voltar".
+class _AbandonDialog extends StatelessWidget {
+  const _AbandonDialog({required this.game});
+
+  final StarCopGame game;
+
+  @override
+  Widget build(BuildContext context) => VirtualScreen(
+    size: wideScreen,
+    child: Center(
+      child: Container(
+        width: 180,
+        decoration: const ShapeDecoration(
+          color: Pico.midnight,
+          shape: BeveledRectangleBorder(
+            side: BorderSide(color: Pico.coral),
+            borderRadius: BorderRadius.only(
+              topRight: Radius.circular(4),
+              bottomLeft: Radius.circular(4),
+            ),
+          ),
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Material(
+          type: MaterialType.transparency,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                color: Pico.coral,
+                padding: const EdgeInsets.fromLTRB(4, 2, 4, 1),
+                child: Text(
+                  'ABANDONAR RUN?',
+                  style: GbText.body.copyWith(color: Pico.midnight),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(4),
+                child: Text(
+                  'A run termina aqui, como uma derrota.',
+                  style: GbText.small,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      autofocus: true,
+                      onPressed: withTap(() => Navigator.of(context).pop()),
+                      child: const Text('Voltar'),
+                    ),
+                    const SizedBox(width: 6),
+                    TextButton(
+                      onPressed: withTap(() {
+                        Navigator.of(context).pop();
+                        game.abandonRun();
+                      }),
+                      child: Text(
+                        'Abandonar',
+                        style: GbText.body.copyWith(color: Pico.coral),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     ),
   );

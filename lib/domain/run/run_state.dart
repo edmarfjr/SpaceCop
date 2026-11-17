@@ -32,11 +32,8 @@ const double actHeal = 0.75;
 class RunState {
   factory RunState({required List<ChipCard> deck, Random? random}) {
     random ??= Random();
-    return RunState._(
-      random,
-      MapGenerator(random: random).generate(),
-      deck,
-    ).._rollBoss();
+    return RunState._(random, MapGenerator(random: random).generate(), deck)
+      .._rollBoss();
   }
 
   RunState._(this.random, this.map, this.deck);
@@ -78,7 +75,13 @@ class RunState {
       ..drawnElites.addAll(_ints(json['drawnElites']))
       ..drawnCards.addAll(_strings(json['drawnCards']))
       ..seenRelics.addAll(_strings(json['seenRelics']))
-      ..seenEvents.addAll(_strings(json['seenEvents']));
+      ..seenEvents.addAll(_strings(json['seenEvents']))
+      ..battlesWon = json['battlesWon'] as int? ?? 0
+      ..enemiesDefeated = json['enemiesDefeated'] as int? ?? 0
+      ..creditsEarned = json['creditsEarned'] as int? ?? 0
+      ..cardUses.addAll(
+        (json['cardUses'] as Map?)?.cast<String, int>() ?? const {},
+      );
     // Saves from before the pools have no boss yet.
     if (json['bossIndex'] case final int i
         when i < Encounters.bossesOf(run.act).length) {
@@ -121,6 +124,10 @@ class RunState {
     'drawnCards': drawnCards.toList(),
     'seenRelics': seenRelics.toList(),
     'seenEvents': seenEvents.toList(),
+    'battlesWon': battlesWon,
+    'enemiesDefeated': enemiesDefeated,
+    'creditsEarned': creditsEarned,
+    'cardUses': cardUses,
   };
 
   static Iterable<int> _ints(Object? list) =>
@@ -205,6 +212,19 @@ class RunState {
   /// Titles of the events already visited: none repeats in a run. The
   /// third act draws from the first act's, so it gets the ones left.
   final Set<String> seenEvents = {};
+
+  // The run's report, shown when it ends.
+  int battlesWon = 0;
+  int enemiesDefeated = 0;
+  int creditsEarned = 0;
+
+  /// Times each card (by name) was used in battle.
+  final Map<String, int> cardUses = {};
+
+  /// The card used the most, if any was.
+  String? get favoriteCard => cardUses.isEmpty
+      ? null
+      : cardUses.entries.reduce((a, b) => b.value > a.value ? b : a).key;
 
   bool hasRelic(RelicDef relic) => relics.contains(relic);
 
@@ -301,8 +321,19 @@ class RunState {
 
   /// A battle ended with the player at [hp]: the Kit Médico heals after a
   /// win, and a Núcleo Fênix that was [phoenixUsed] goes out.
-  void endBattle(int hp, {required bool won, bool phoenixUsed = false}) {
+  void endBattle(
+    int hp, {
+    required bool won,
+    bool phoenixUsed = false,
+    int enemiesDefeated = 0,
+    Map<String, int> cardUses = const {},
+  }) {
     this.hp = hp;
+    if (won) battlesWon++;
+    this.enemiesDefeated += enemiesDefeated;
+    for (final MapEntry(:key, :value) in cardUses.entries) {
+      this.cardUses.update(key, (n) => n + value, ifAbsent: () => value);
+    }
     if (won && hasRelic(Relics.medKit)) {
       this.hp = min(maxHp, this.hp + medKitHeal);
     }
@@ -318,7 +349,9 @@ class RunState {
 
   /// Every Créditos gain goes through here: none with Cofre Blindado.
   void gainCredits(int amount) {
-    if (!hasRelic(Relics.armoredVault)) credits += amount;
+    if (hasRelic(Relics.armoredVault)) return;
+    credits += amount;
+    creditsEarned += amount;
   }
 
   /// Takes [relic], with its max HP change (a gain heals as much) and what
@@ -440,7 +473,11 @@ class RunState {
   /// Picks [count] distinct chips to offer, by rarity, from those not
   /// offered yet; [elite] and Chip da Sorte roll rare ones more often, and
   /// a [boss] offers only rare ones.
-  List<ChipDef> rollRewards(int count, {bool elite = false, bool boss = false}) {
+  List<ChipDef> rollRewards(
+    int count, {
+    bool elite = false,
+    bool boss = false,
+  }) {
     final pool = [
       for (final chip in Chips.all)
         if (!boss || chip.rarity == Rarity.rare) chip,

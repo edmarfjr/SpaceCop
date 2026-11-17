@@ -50,6 +50,12 @@ class _MapOverlayState extends State<MapOverlay> {
   /// Relic whose icon is being held down: its description shows meanwhile.
   RelicDef? _held;
 
+  /// Node being held down: what it is shows meanwhile.
+  MapNode? _heldNode;
+
+  /// The node legend, toggled by its "?" button.
+  bool _legend = false;
+
   ScrollController? _scroll;
 
   @override
@@ -85,11 +91,38 @@ class _MapOverlayState extends State<MapOverlay> {
           Positioned(
             top: 2,
             right: 2,
-            child: HudIconButton(
-              icon: game.sprites.pauseIcon,
-              onTap: game.pause,
+            child: Row(
+              children: [
+                _LegendButton(
+                  open: _legend,
+                  onTap: () => setState(() => _legend = !_legend),
+                ),
+                const SizedBox(width: 4),
+                HudIconButton(icon: game.sprites.pauseIcon, onTap: game.pause),
+              ],
             ),
           ),
+          if (_legend)
+            Positioned(
+              top: 24,
+              right: 2,
+              child: _Legend(sprites: game.sprites),
+            ),
+          if (_heldNode case final node?)
+            Positioned(
+              top: 24,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: _NodeInfo(
+                  type: node.type!,
+                  sprite: node.type == NodeType.boss
+                      ? game.sprites.bossNode(run.boss)
+                      : game.sprites.node(node.type!),
+                  bossName: run.boss.name,
+                ),
+              ),
+            ),
           if (_held case final relic?)
             Positioned(
               top: 18,
@@ -107,66 +140,79 @@ class _MapOverlayState extends State<MapOverlay> {
   Widget _body(RunState run, List<MapNode> available) => Column(
     children: [
       Padding(
-        // Room on the right for the pause button.
-        padding: const EdgeInsets.fromLTRB(2, 2, 26, 2),
-        child: 
-        Container(
-          decoration: BoxDecoration(
-            color: Pico.darkBlue,
-            //border: Border.all(color: Pico.yellow, width: 1),
-            //borderRadius: BorderRadius.circular(1),
-          ),
-          child:Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Ato ${run.act} · HP ${run.hp}/${run.maxHp} · ',
-              style: GbText.small,
-            ),
-            TextButton(
-              onPressed: withTap(game.showDeck),
-              child: Text('Deck ${run.deck.length}', style: GbText.small),
-            ),
-            const Text(' · ', style: GbText.small),
-            SheetSprite(sprite: game.sprites.credits, scale: 1),
-            Text(': ${run.credits}', style: GbText.small),
-            // Many relics scroll sideways instead of overflowing.
-            Flexible(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: 
-                Row(
-                  children: [
-                    for (final relic in run.relics)
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onLongPressStart: (_) => setState(() => _held = relic),
-                        onLongPressEnd: (_) => setState(() => _held = null),
-                        onLongPressCancel: () => setState(() => _held = null),
-                        // The padding makes the icon easier to hold.
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(3, 2, 1, 2),
-                          // Bigger art shrinks to the usual 16 px.
-                          child: SizedBox.square(
-                            dimension: 16,
-                            child: FittedBox(
-                              child: SheetSprite(
-                                sprite: game.sprites.relic(relic),
-                                scale: 1,
+        // Room on the right for the legend and pause buttons.
+        padding: const EdgeInsets.fromLTRB(2, 2, 52, 2),
+        child: Container(
+          height: 20,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: petWindow,
+          child: Row(
+            children: [
+              Container(
+                color: Pico.orange,
+                padding: const EdgeInsets.fromLTRB(3, 1, 3, 0),
+                child: Text(
+                  'ATO ${run.act}',
+                  style: GbText.small.copyWith(color: Pico.midnight),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text('HP', style: GbText.small.copyWith(color: Pico.lightGray)),
+              const SizedBox(width: 2),
+              SizedBox(
+                width: 40,
+                child: LinearProgressIndicator(
+                  value: run.hp / run.maxHp,
+                  minHeight: 5,
+                  color: run.hp * 4 < run.maxHp ? Pico.red : Pico.green,
+                  backgroundColor: Pico.chocolate,
+                ),
+              ),
+              const SizedBox(width: 3),
+              Text('${run.hp}/${run.maxHp}', style: GbText.small),
+              const SizedBox(width: 4),
+              TextButton(
+                onPressed: withTap(game.showDeck),
+                child: Text('Deck ${run.deck.length}', style: GbText.small),
+              ),
+              const SizedBox(width: 4),
+              SheetSprite(sprite: game.sprites.credits, scale: 0.75),
+              Text(' ${run.credits}', style: GbText.small),
+              // Many relics scroll sideways instead of overflowing.
+              Flexible(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final relic in run.relics)
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onLongPressStart: (_) =>
+                              setState(() => _held = relic),
+                          onLongPressEnd: (_) => setState(() => _held = null),
+                          onLongPressCancel: () => setState(() => _held = null),
+                          // The padding makes the icon easier to hold.
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(3, 2, 1, 2),
+                            // Bigger art shrinks to the usual 16 px.
+                            child: SizedBox.square(
+                              dimension: 16,
+                              child: FittedBox(
+                                child: SheetSprite(
+                                  sprite: game.sprites.relic(relic),
+                                  scale: 1,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
-                
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        ),
-        
       ),
       Expanded(
         child: LayoutBuilder(
@@ -210,7 +256,12 @@ class _MapOverlayState extends State<MapOverlay> {
                       children: [
                         Positioned.fill(
                           child: CustomPaint(
-                            painter: _EdgePainter(run.map, center),
+                            painter: _EdgePainter(
+                              run.map,
+                              center,
+                              current: run.current,
+                              available: available,
+                            ),
                           ),
                         ),
                         for (final node in nodes)
@@ -218,6 +269,9 @@ class _MapOverlayState extends State<MapOverlay> {
                             left: center(node).dx - MapOverlay._nodeSize / 2,
                             top: center(node).dy - MapOverlay._nodeSize / 2,
                             child: _NodeButton(
+                              onHold: (held) => setState(
+                                () => _heldNode = held ? node : null,
+                              ),
                               node: node,
                               sprite: node.type == NodeType.boss
                                   ? game.sprites.bossNode(run.boss)
@@ -230,6 +284,38 @@ class _MapOverlayState extends State<MapOverlay> {
                               onTap: available.contains(node)
                                   ? () => game.selectNode(node)
                                   : null,
+                            ),
+                          ),
+                        // "Você está aqui": the player beside her node.
+                        if (run.current case final current?)
+                          Positioned(
+                            left: center(current).dx + MapOverlay._nodeSize / 2,
+                            top: center(current).dy - 18,
+                            child: IgnorePointer(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SheetSprite(
+                                    sprite: game.sprites.playerIdle,
+                                    scale: 1,
+                                  ),
+                                  Container(
+                                    color: Pico.yellow,
+                                    padding: const EdgeInsets.fromLTRB(
+                                      2,
+                                      1,
+                                      2,
+                                      0,
+                                    ),
+                                    child: Text(
+                                      'VOCÊ',
+                                      style: GbText.small.copyWith(
+                                        color: Pico.midnight,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                       ],
@@ -285,6 +371,7 @@ class _NodeButton extends StatefulWidget {
     required this.node,
     required this.sprite,
     required this.isCurrent,
+    required this.onHold,
     this.focusNode,
     this.autofocus = false,
     this.onTap,
@@ -296,6 +383,9 @@ class _NodeButton extends StatefulWidget {
   final FocusNode? focusNode;
   final bool autofocus;
   final VoidCallback? onTap;
+
+  /// Holding any node shows what it is: true when held, false on release.
+  final ValueChanged<bool> onHold;
 
   @override
   State<_NodeButton> createState() => _NodeButtonState();
@@ -344,15 +434,24 @@ class _NodeButtonState extends State<_NodeButton>
       alignment: Alignment.center,
       child: SheetSprite(sprite: widget.sprite, scale: 2),
     );
+    Widget holdable(Widget child) => GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart: (_) => widget.onHold(true),
+      onLongPressEnd: (_) => widget.onHold(false),
+      onLongPressCancel: () => widget.onHold(false),
+      child: child,
+    );
     if (!active) {
-      if (widget.isCurrent) return node(Pico.white);
-      return Opacity(
-        opacity: _idleOpacity,
-        child: node(Colors.transparent),
+      if (widget.isCurrent) return holdable(node(Pico.white));
+      return holdable(
+        Opacity(opacity: _idleOpacity, child: node(Colors.transparent)),
       );
     }
     final button = GestureDetector(
       onTap: withTap(onTap),
+      onLongPressStart: (_) => widget.onHold(true),
+      onLongPressEnd: (_) => widget.onHold(false),
+      onLongPressCancel: () => widget.onHold(false),
       child: AnimatedBuilder(
         animation: _blink,
         builder: (context, _) =>
@@ -376,9 +475,16 @@ class _NodeButtonState extends State<_NodeButton>
   }
 }
 
-/// Dashed paths that stop [_inset] short of each node's center.
+/// Paths that stop [_inset] short of each node's center: solid
+/// [Pico.blue] where the player has been, solid [Pico.yellow] from her
+/// node to the ones she can pick, dashed white elsewhere.
 class _EdgePainter extends CustomPainter {
-  _EdgePainter(this.map, this.center);
+  _EdgePainter(
+    this.map,
+    this.center, {
+    required this.current,
+    required this.available,
+  });
 
   static const _inset = 10.0;
   static const _dash = 4.0;
@@ -386,28 +492,180 @@ class _EdgePainter extends CustomPainter {
 
   final RunMap map;
   final Offset Function(MapNode) center;
+  final MapNode? current;
+  final List<MapNode> available;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Pico.white
+    Paint pen(Color color) => Paint()
+      ..color = color
       ..strokeWidth = 1
       ..isAntiAlias = false;
+    final dashed = pen(Pico.white);
+    final walked = pen(Pico.blue);
+    final next = pen(Pico.yellow);
     for (final node in map.usedNodes) {
-      for (final next in map.nextOf(node)) {
+      for (final to in map.nextOf(node)) {
         final from = center(node);
-        final delta = center(next) - from;
+        final delta = center(to) - from;
         final length = delta.distance;
         if (length <= 2 * _inset) continue;
         final dir = delta / length;
+        final solid = node.visited && to.visited
+            ? walked
+            : node == current && available.contains(to)
+            ? next
+            : null;
+        if (solid != null) {
+          canvas.drawLine(
+            from + dir * _inset,
+            from + dir * (length - _inset),
+            solid,
+          );
+          continue;
+        }
         for (var d = _inset; d < length - _inset; d += _dash + _gap) {
           final end = min(d + _dash, length - _inset);
-          canvas.drawLine(from + dir * d, from + dir * end, paint);
+          canvas.drawLine(from + dir * d, from + dir * end, dashed);
         }
       }
     }
   }
 
   @override
-  bool shouldRepaint(_EdgePainter oldDelegate) => oldDelegate.map != map;
+  bool shouldRepaint(_EdgePainter oldDelegate) =>
+      oldDelegate.map != map || oldDelegate.current != current;
+}
+
+/// Name and what a node holds, for the legend and a held node.
+(String, String) _describeNode(NodeType type, String bossName) =>
+    switch (type) {
+      NodeType.battle => ('Batalha', 'Capangas. Dá Créditos e uma carta.'),
+      NodeType.elite => (
+        'Elite',
+        'Inimigos fortes. Dá uma relíquia e cartas melhores.',
+      ),
+      NodeType.event => ('Evento', 'Uma escolha, com ganho e custo.'),
+      NodeType.rest => ('Descanso', 'Recupera HP ou melhora uma carta.'),
+      NodeType.shop => ('Loja', 'Cartas, relíquias e remoção de carta.'),
+      NodeType.boss => ('Chefe', '$bossName. Fim do ato.'),
+    };
+
+/// Same box as [HudIconButton], with a "?" that opens the legend.
+class _LegendButton extends StatelessWidget {
+  const _LegendButton({required this.open, required this.onTap});
+
+  final bool open;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: withTap(onTap),
+    child: Container(
+      width: 22,
+      height: 20,
+      decoration: BoxDecoration(
+        color: open ? Pico.blue : Pico.darkBlue,
+        border: Border.all(color: Pico.lightGray, width: 0.5),
+        borderRadius: BorderRadius.circular(2),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '?',
+        style: GbText.title.copyWith(color: open ? Pico.midnight : Pico.white),
+      ),
+    ),
+  );
+}
+
+/// What each node icon is, under the "?" button.
+class _Legend extends StatelessWidget {
+  const _Legend({required this.sprites});
+
+  final GameSprites sprites;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 84,
+    decoration: petWindow,
+    clipBehavior: Clip.hardEdge,
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          color: petTitleBar,
+          padding: const EdgeInsets.fromLTRB(4, 1, 4, 0),
+          child: const Text('LEGENDA', style: GbText.small),
+        ),
+        for (final type in [
+          NodeType.battle,
+          NodeType.elite,
+          NodeType.event,
+          NodeType.rest,
+          NodeType.shop,
+        ])
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
+            child: Row(
+              children: [
+                SheetSprite(sprite: sprites.node(type), scale: 1),
+                const SizedBox(width: 4),
+                Text(_describeNode(type, '').$1, style: GbText.small),
+              ],
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.all(4),
+          child: Text(
+            'Segure um nó para ver o que ele dá.',
+            style: GbText.small.copyWith(color: Pico.lightGray),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// A held node: its icon, name and what it gives.
+class _NodeInfo extends StatelessWidget {
+  const _NodeInfo({
+    required this.type,
+    required this.sprite,
+    required this.bossName,
+  });
+
+  final NodeType type;
+  final Sprite sprite;
+  final String bossName;
+
+  @override
+  Widget build(BuildContext context) {
+    final (name, text) = _describeNode(type, bossName);
+    return Container(
+      width: 200,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Pico.midnight,
+        border: Border.all(color: Pico.yellow, width: focusBorder),
+        borderRadius: BorderRadius.circular(2),
+      ),
+      child: Row(
+        children: [
+          SheetSprite(sprite: sprite, scale: 2),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(name, style: GbText.body.copyWith(color: Pico.yellow)),
+                Text(text, style: GbText.small),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

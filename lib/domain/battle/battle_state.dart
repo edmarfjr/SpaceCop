@@ -925,6 +925,14 @@ class BattleState {
   /// Cards used this battle, for the Gatilho Duplo.
   int cardsUsed = 0;
 
+  /// Times each card (by name) was used this battle, for the run's report.
+  final Map<String, int> cardUses = {};
+
+  /// Enemies killed this battle (parts of a bigger one don't count), for
+  /// the run's report.
+  int get enemiesDefeated =>
+      enemies.where((e) => e.isDead && !e.def.part).length;
+
   /// The Núcleo Fênix brought the player back; the run drops it.
   bool phoenixUsed = false;
 
@@ -1466,6 +1474,7 @@ class BattleState {
 
   void _useChip(ChipCard card) {
     final def = card.def;
+    cardUses.update(def.name, (n) => n + 1, ifAbsent: () => 1);
     final twice = overclocked;
     overclocked = false;
     _activate(def);

@@ -74,7 +74,7 @@ class _ManualOverlayState extends State<ManualOverlay> {
       case LogicalKeyboardKey.arrowRight:
         _turn(1);
       case LogicalKeyboardKey.escape:
-        game.backToMenu();
+        game.closeManual();
       default:
         return KeyEventResult.ignored;
     }
@@ -108,7 +108,7 @@ class _ManualOverlayState extends State<ManualOverlay> {
                   const SizedBox(width: 6),
                   TextButton(
                     autofocus: true,
-                    onPressed: withTap(game.backToMenu),
+                    onPressed: withTap(game.closeManual),
                     child: const Text('Voltar'),
                   ),
                 ],

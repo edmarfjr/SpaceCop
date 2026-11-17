@@ -39,8 +39,17 @@ ou tamanhos direto nos widgets: crie um token.
   opções embaixo dele: `[rótulo]`, o ganho em verde e o custo em coral.
 - Loja (como no Slay the Spire): 5 cartas em cima e o serviço de remoção à
   direita; embaixo, Sair, 3 relíquias (só o ícone), uma caixa com a
-  descrição do item selecionado e Confirmar. Tocar só seleciona (borda
-  amarela); Confirmar compra.
+  descrição do item selecionado e Comprar (Remover, no serviço). Tocar só
+  seleciona (borda amarela); Comprar compra. Sem Créditos bastantes, o
+  botão fica desabilitado e a caixa diz "Faltam N C" em `Pico.coral`.
+- Espólios: o título conta os restantes ("Espólios · 2 restantes"); o que
+  já foi pego fica na lista, riscado e apagado, com "PEGO". "Pular
+  restantes" com espólios sobrando pede confirmação, listando o que se
+  perde, com o foco em "Voltar".
+- Fim de run: faixa com o resultado (MISSÃO CUMPRIDA `Pico.green`, FALHOU
+  `Pico.red`, ABANDONADA `Pico.orange`), o relatório (ato e andar,
+  batalhas vencidas, inimigos derrotados, Créditos ganhos, relíquias,
+  carta mais usada) e o deck final, em janelas PET; Nova run e Menu.
 - Os overlays usam `VirtualScreen`, que os escala com `FittedBox`.
 - Dentro da tela, os tamanhos são px virtuais, não dp.
 - A escala de fonte do sistema é ignorada dentro da tela
@@ -75,8 +84,13 @@ ou tamanhos direto nos widgets: crie um token.
   de 20 px. Ele abre rolado até o andar que pode ser escolhido, e o resto se
   vê arrastando (o mouse também arrasta). Nos nós que podem ser escolhidos
   só a borda pisca (amarelo e branco); o nó atual tem borda branca e os
-  outros ficam a 45% de opacidade. O cabeçalho (HP, deck, créditos)
-  fica fixo em cima.
+  outros ficam a 45% de opacidade. O caminho já feito é uma linha sólida
+  `Pico.blue`; do nó atual aos escolhíveis, sólida `Pico.yellow`; o resto,
+  tracejado branco. A policial fica à direita do nó atual, com a
+  etiqueta "VOCÊ". O cabeçalho, uma janela PET (selo do ato em
+  `Pico.orange`, barra de HP, deck, créditos, relíquias), fica fixo em
+  cima. O botão "?", ao lado da pausa, abre a legenda dos nós; segurar
+  um nó mostra o que ele é e o que dá.
 
 ## Cor
 
@@ -163,6 +177,9 @@ Tamanhos em px virtuais, dentro da tela:
     mostra o deck. Tocar em qualquer lugar fecha a pausa ou o deck. Na
     batalha, o deck tem abas: Compra (agrupada, sem revelar a ordem), Mão,
     Descarte e Deck; tocar fora das abas fecha.
+  - A pausa tem Continuar, Ver deck, Manual (por cima da run; "Voltar"
+    volta à pausa), Configurações e Abandonar run, que pede confirmação
+    e termina a run com o relatório.
   - Teclado (desktop): setas/WASD movem, X/K usa a carta, Z/J passa para a
     próxima.
 - Swipe e cartas usam `Listener` puro, sem arena de gestos, para segurar uma

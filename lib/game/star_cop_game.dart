@@ -172,6 +172,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
 
   void startRunWith(StarterDeck deck) {
     savedRun = null;
+    abandoned = false;
     RunSave.clear();
     run = RunState(deck: deck.build());
     _goTo(GamePhase.map);
@@ -181,7 +182,25 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
 
   void openManual() => _goTo(GamePhase.manual);
 
+  /// From the pause: the manual on top, the run kept under it.
+  void openManualOverRun() => overlays.add(Overlays.manual);
+
+  /// The manual's "Voltar": back to the menu, or to the pause it was
+  /// opened from.
+  void closeManual() => phase.value == GamePhase.manual
+      ? backToMenu()
+      : overlays.remove(Overlays.manual);
+
   void backToMenu() => _goTo(GamePhase.menu);
+
+  /// The run was given up from the pause ([GameOverOverlay] says so).
+  bool abandoned = false;
+
+  /// Pause, "Abandonar run": ends the run like a defeat, with its report.
+  void abandonRun() {
+    abandoned = true;
+    _goTo(GamePhase.gameOver);
+  }
 
   /// Menu: back to the saved run, on its map.
   void continueRun() {
@@ -271,6 +290,8 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
       battle.player.hp,
       won: battle.phase == BattlePhase.won,
       phoenixUsed: battle.phoenixUsed,
+      enemiesDefeated: battle.enemiesDefeated,
+      cardUses: battle.cardUses,
     );
     final eliteFight = _eliteFight;
     final fightReward = _fightReward;
