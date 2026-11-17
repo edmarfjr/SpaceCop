@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flame/components.dart' show Sprite;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -43,15 +41,6 @@ class BattleHud extends StatelessWidget {
             left: 2,
             width: _gridLeft - 6,
             child: IgnorePointer(child: _PlayerStatus(battle: battle)),
-          ),
-          Positioned(
-            top: 41,
-            bottom: 50,
-            left: 2,
-            width: _gridLeft - 6,
-            child: IgnorePointer(
-              child: _CardSlot(battle: battle, sprites: game.sprites),
-            ),
           ),
           Positioned(
             bottom: 2,
@@ -365,129 +354,6 @@ class _PlayerStatusState extends State<_PlayerStatus> {
   );
 }
 
-/// Under the status, a PET window with the selected card in full: art,
-/// name, cost, damage, family and description, which the 36 px cards of
-/// the hand are too small to show.
-class _CardSlot extends StatelessWidget {
-  const _CardSlot({required this.battle, required this.sprites});
-
-  final BattleState battle;
-  final GameSprites sprites;
-
-  /// The art window, in virtual px.
-  static const _art = Size(40, 26);
-
-  @override
-  Widget build(BuildContext context) {
-    final card = battle.selectedChip;
-    return Container(
-      decoration: petWindow,
-      clipBehavior: Clip.hardEdge,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            color: petTitleBar,
-            padding: const EdgeInsets.fromLTRB(4, 1, 4, 0),
-            child: const Text('CARTA', style: GbText.small),
-          ),
-          if (card == null)
-            Padding(
-              padding: const EdgeInsets.all(4),
-              child: Text(
-                'Sem cartas na mão.',
-                style: GbText.small.copyWith(color: Pico.lightGray),
-              ),
-            )
-          else ...[
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 3, bottom: 2),
-                width: _art.width,
-                height: _art.height,
-                color: Pico.black,
-                alignment: Alignment.center,
-                child: _drawArt(sprites.chip(card.def)),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      card.def.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GbText.small.copyWith(color: Pico.yellow),
-                    ),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '${battle.costOf(card)} EN',
-                            style: TextStyle(
-                              color: battle.canAfford(card)
-                                  ? Pico.blue
-                                  : Pico.darkGray,
-                            ),
-                          ),
-                          if (card.def.damage > 0)
-                            TextSpan(
-                              text: ' · ${card.def.damage} DANO',
-                              style: const TextStyle(color: Pico.red),
-                            ),
-                        ],
-                      ),
-                      style: GbText.small,
-                    ),
-                    Text(
-                      card.def.family.label,
-                      style: GbText.small.copyWith(
-                        color: familyColor(card.def.family),
-                      ),
-                    ),
-                    // Takes what is left of the slot: as many whole lines
-                    // as fit, the last one ending in "..." if cut.
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, box) => Text(
-                          card.def.description,
-                          maxLines: max(
-                            1,
-                            box.maxHeight ~/
-                                (GbText.small.fontSize! * GbText.small.height!),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          style: GbText.small.copyWith(color: Pico.lightGray),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  /// Whole scales keep the pixels square: 16 px art at 1x, 8 px icons at
-  /// 2x; bigger art shrinks to fit.
-  Widget _drawArt(Sprite art) {
-    final fit = min(
-      _art.width / art.srcSize.x,
-      (_art.height - 2) / art.srcSize.y,
-    );
-    return SheetSprite(
-      sprite: art,
-      scale: fit >= 1 ? fit.floorToDouble() : fit,
-    );
-  }
-}
-
 /// Bottom left, a PET window with the draw and discard piles. When the
 /// next hand will need the discard pile, it says it gets shuffled back.
 class _Piles extends StatelessWidget {
@@ -649,21 +515,15 @@ class _Hand extends StatelessWidget {
                 tapFeedback();
                 world.pressChip(card);
               },
-              // The card shown in the slot: yellow outline.
-              child: Container(
-                foregroundDecoration: card == selected
-                    ? BoxDecoration(border: Border.all(color: Pico.yellow))
-                    : null,
-                child: ChipCardView(
-                  def: card.def,
-                  sprites: sprites,
-                  // 54 px tall: fits between the grid (bottom at y 136) and
-                  // the bottom edge.
-                  width: 36,
-                  focusable: false,
-                  selected: card == selected,
-                  dimmed: !battle.canAfford(card),
-                ),
+              child: ChipCardView(
+                def: card.def,
+                sprites: sprites,
+                // 54 px tall: fits between the grid (bottom at y 136) and
+                // the bottom edge.
+                width: 36,
+                focusable: false,
+                selected: card == selected,
+                dimmed: !battle.canAfford(card),
               ),
             ),
           ),

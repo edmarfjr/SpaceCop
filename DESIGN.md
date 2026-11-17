@@ -55,16 +55,15 @@ ou tamanhos direto nos widgets: crie um token.
 - A escala de fonte do sistema é ignorada dentro da tela
   (`TextScaler.noScaling`), para o layout não quebrar.
 - A grade da batalha fica em (72, 40), centralizada, com 240×96 px.
-- A coluna à esquerda da grade (x 2–66) tem três janelas PET (`petWindow`:
-  fundo `Pico.midnight`, borda `Pico.royal`, dois cantos cortados):
+- A coluna à esquerda da grade (x 2–66) tem duas janelas PET (`petWindow`:
+  fundo `Pico.midnight`, borda `Pico.royal`, dois cantos cortados). Um
+  slot com a carta selecionada por inteiro foi testado no meio e tirado:
+  no celular a carta é usada no toque, então o slot pouco ajudava.
   - em cima, o status: HP grande, Energia embaixo e o gauge com o rótulo
     "CARGA"; cheio, ele pisca amarelo e branco. Ao tomar dano, o HP treme
     em vermelho, a borda fica vermelha (`petAlert`) e o HP perdido sobe
     sobre a janela ("-30") por 1 s. Abaixo de 1/4 do HP máximo, o número
     pisca vermelho e a borda da tela pulsa vermelha;
-  - no meio (y 41), a carta selecionada por inteiro: arte, nome em
-    amarelo, custo, dano, família na cor dela e descrição. Na mão, a
-    mesma carta tem contorno amarelo;
   - embaixo, as pilhas de compra e descarte; quando a próxima mão vai
     embaralhar o descarte, diz "Embaralha na próxima mão".
 - Com a mão vazia, o lugar dela mostra "MÃO VAZIA · nova mão quando a
