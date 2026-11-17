@@ -2599,13 +2599,17 @@ class BattleState {
   }
 
   /// A Capanga Infiltrador whose twin lives on another row: projectiles
-  /// can't hurt it.
+  /// can't hurt it. The shield drops while either twin is stunned or
+  /// rooted.
   bool prismGuarded(EnemyFighter enemy) {
     final twin = enemy.partner;
+    bool held(EnemyFighter e) => e.has(Status.stunned) || e.has(Status.rooted);
     return enemy.def.prism &&
         twin != null &&
         !twin.isDead &&
-        twin.pos.y != enemy.pos.y;
+        twin.pos.y != enemy.pos.y &&
+        !held(enemy) &&
+        !held(twin);
   }
 
   /// Target-side modifiers, then the hit:
@@ -2715,7 +2719,8 @@ class BattleState {
       _playerHurt();
     }
     target.takeDamage(total);
-    if (total > 0) hits.add((target: target, amount: total, multiplier: multiplier));
+    if (total > 0)
+      hits.add((target: target, amount: total, multiplier: multiplier));
   }
 
   /// The player relics that answer a hit: Placa de Absorção and Espinhos

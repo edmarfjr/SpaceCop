@@ -425,15 +425,24 @@ class PrismBehavior extends EnemyBehavior {
     final busy = enemy.attacking || (!alone && twin.attacking);
     if (leads && !busy && enemy.moveTimer-- <= 0) {
       enemy.moveTimer = moveTicks;
-      for (final dy in [1, -1]..shuffle(battle.random)) {
-        if (alone) {
-          if (battle.tryMove(enemy, GridPos(0, dy))) break;
-        } else if (battle.canEnter(enemy, enemy.pos + GridPos(0, dy)) &&
-            battle.canEnter(twin, twin.pos + GridPos(0, -dy))) {
-          battle
-            ..tryMove(enemy, GridPos(0, dy))
-            ..tryMove(twin, GridPos(0, -dy));
-          break;
+      // Out of mirror (a stun, root or push moved only one twin): a step
+      // back toward the mirrored rows instead, the twin first.
+      if (!alone && enemy.pos.y + twin.pos.y != gridRows - 1) {
+        final twinDy = (gridRows - 1 - enemy.pos.y - twin.pos.y).sign;
+        if (!battle.tryMove(twin, GridPos(0, twinDy))) {
+          battle.tryMove(enemy, GridPos(0, twinDy));
+        }
+      } else {
+        for (final dy in [1, -1]..shuffle(battle.random)) {
+          if (alone) {
+            if (battle.tryMove(enemy, GridPos(0, dy))) break;
+          } else if (battle.canEnter(enemy, enemy.pos + GridPos(0, dy)) &&
+              battle.canEnter(twin, twin.pos + GridPos(0, -dy))) {
+            battle
+              ..tryMove(enemy, GridPos(0, dy))
+              ..tryMove(twin, GridPos(0, -dy));
+            break;
+          }
         }
       }
     }
