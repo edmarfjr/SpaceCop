@@ -50,11 +50,21 @@ class BattleHud extends StatelessWidget {
           //   right: 2,
           //   child: IgnorePointer(child: _EnemyBars(battle: battle)),
           // ),
+          // Above the tallest sprites of the grid's top row. While the
+          // battle waits for the player, the prompt takes the line.
           Positioned(
-            top: 14,
+            top: 3,
             left: _gridLeft,
             width: _gridWidth,
-            child: _Info(battle: battle),
+            child: IgnorePointer(
+              child: battle.waitingForPlayer
+                  ? Text(
+                      'AGUARDANDO · mova ou use uma carta',
+                      textAlign: TextAlign.center,
+                      style: GbText.small.copyWith(color: Pico.yellow),
+                    )
+                  : _Info(battle: battle),
+            ),
           ),
           Positioned(
             top: 2,
@@ -75,19 +85,6 @@ class BattleHud extends StatelessWidget {
             right: 2,
             child: _Hand(world: world, sprites: game.sprites),
           ),
-          if (battle.waitingForPlayer)
-            Positioned(
-              top: 14,
-              left: _gridLeft,
-              width: _gridWidth,
-              child: IgnorePointer(
-                child: Text(
-                  'Pausa · mova ou use uma carta',
-                  textAlign: TextAlign.center,
-                  style: GbText.small.copyWith(color: Pico.yellow),
-                ),
-              ),
-            ),
           // The battle waits for this choice, so it covers everything.
           if (battle.peekCards.isNotEmpty)
             Positioned.fill(
@@ -201,6 +198,9 @@ class _PlayerStatus extends StatelessWidget {
 
   final BattleState battle;
 
+  /// Half a blink of the full gauge, in ticks.
+  static const _gaugeBlinkTicks = ticksPerSecond ~/ 8;
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -220,11 +220,29 @@ class _PlayerStatus extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 2),
-      LinearProgressIndicator(
-        value: battle.gauge / gaugeTicks,
-        minHeight: 5,
-        color: battle.gaugeFull ? Pico.yellow : Pico.red,
-        backgroundColor: Pico.chocolate,
+      Row(
+        children: [
+          Text(
+            'CARGA',
+            style: GbText.small.copyWith(
+              color: battle.gaugeFull ? Pico.yellow : Pico.lightGray,
+            ),
+          ),
+          const SizedBox(width: 3),
+          Expanded(
+            child: LinearProgressIndicator(
+              value: battle.gauge / gaugeTicks,
+              minHeight: 5,
+              // Full: blinks yellow and white, 4 times a second.
+              color: !battle.gaugeFull
+                  ? Pico.red
+                  : (battle.ticks ~/ _gaugeBlinkTicks).isEven
+                  ? Pico.yellow
+                  : Pico.white,
+              backgroundColor: Pico.chocolate,
+            ),
+          ),
+        ],
       ),
     ],
   );
@@ -294,27 +312,18 @@ class _Info extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = battle.selectedChip;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        //Text(
-        //  selected?.def.description ?? '',
-        //  style: GbText.small,
-        //  maxLines: 1,
-        //  overflow: TextOverflow.ellipsis,
-        //),
-        Text(
-          //'Compra ${battle.deck.drawPile.length} · Descarte ${battle.deck.discardPile.length}'
-          '${battle.damageBonus > 0 ? ' · +${battle.damageBonus}' : ''}'
-          '${battle.chainCount > 0 ? ' · Corrente ${battle.chainFamily!.label} x${battle.chainCount}' : ''}'
-          '${battle.chainSurge ? ' · Sobrecarga' : ''}'
-          '${battle.overclocked ? ' · Overclock' : ''}',
-          style: GbText.small.copyWith(color: Pico.lightGray),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+    return Text(
+      [
+        if (battle.damageBonus > 0) '+${battle.damageBonus}',
+        if (battle.chainCount > 0)
+          'Corrente ${battle.chainFamily!.label} x${battle.chainCount}',
+        if (battle.chainSurge) 'Sobrecarga',
+        if (battle.overclocked) 'Overclock',
+      ].join(' · '),
+      textAlign: TextAlign.center,
+      style: GbText.small.copyWith(color: Pico.lightGray),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }

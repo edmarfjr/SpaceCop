@@ -305,10 +305,14 @@ class _NodeButtonState extends State<_NodeButton>
     with SingleTickerProviderStateMixin {
   bool _focused = false;
 
-  /// Nodes the player can pick blink, so the next step stands out. Built
+  /// The border of the nodes the player can pick blinks yellow and white,
+  /// so the next step stands out; the node itself stays fully lit. Built
   /// in [initState], not lazily: a lazy one first touched by [dispose]
   /// would look up the deactivated tree for its ticker.
   late final AnimationController _blink;
+
+  /// Opacity of the nodes that can't be picked, except the current one.
+  static const _idleOpacity = 0.45;
 
   @override
   void initState() {
@@ -316,7 +320,6 @@ class _NodeButtonState extends State<_NodeButton>
     _blink = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
-      lowerBound: 0.3,
     );
     if (widget.onTap != null) _blink.repeat(reverse: true);
   }
@@ -331,30 +334,31 @@ class _NodeButtonState extends State<_NodeButton>
   Widget build(BuildContext context) {
     final onTap = widget.onTap;
     final active = onTap != null;
+    Widget node(Color border) => Container(
+      width: MapOverlay._nodeSize,
+      height: MapOverlay._nodeSize,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(2),
+        border: Border.all(color: border, width: 1),
+      ),
+      alignment: Alignment.center,
+      child: SheetSprite(sprite: widget.sprite, scale: 2),
+    );
+    if (!active) {
+      if (widget.isCurrent) return node(Pico.white);
+      return Opacity(
+        opacity: _idleOpacity,
+        child: node(Colors.transparent),
+      );
+    }
     final button = GestureDetector(
       onTap: withTap(onTap),
-      child: Container(
-        width: MapOverlay._nodeSize,
-        height: MapOverlay._nodeSize,
-        decoration: BoxDecoration(
-          //color: widget.node.visited
-          //    ? Pico.lightGray
-          //    : Pico.darkGray,
-          borderRadius: BorderRadius.circular(2),
-          border: Border.all(
-            color: active
-                ? Pico.yellow
-                : widget.isCurrent
-                ? Pico.white
-                : Colors.transparent,
-            width: 1,//_focused ? focusBorder : 0.75,
-          ),
-        ),
-        alignment: Alignment.center,
-        child: SheetSprite(sprite: widget.sprite, scale: 2),
+      child: AnimatedBuilder(
+        animation: _blink,
+        builder: (context, _) =>
+            node(Color.lerp(Pico.yellow, Pico.white, _blink.value)!),
       ),
     );
-    if (onTap == null) return button;
     return FocusableActionDetector(
       focusNode: widget.focusNode,
       autofocus: widget.autofocus,
@@ -367,7 +371,7 @@ class _NodeButtonState extends State<_NodeButton>
           },
         ),
       },
-      child: FadeTransition(opacity: _blink, child: button),
+      child: button,
     );
   }
 }

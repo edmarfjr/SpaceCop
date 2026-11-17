@@ -29,7 +29,7 @@ ou tamanhos direto nos widgets: crie um token.
 ## Tela virtual
 
 - Os menus (descanso, recompensa...) são desenhados num espaço virtual de
-  **256×192** (`virtualScreen`).
+  **384×192** (`virtualScreen`).
 - A batalha e o mapa usam um espaço largo, **384×192** (`wideScreen`, 2:1), o
   mesmo da câmera do Flame. O HUD, a pausa e o deck usam esse tamanho, para
   ficarem alinhados com a grade. A loja e os eventos também, para usar a
@@ -47,7 +47,10 @@ ou tamanhos direto nos widgets: crie um token.
   (`TextScaler.noScaling`), para o layout não quebrar.
 - A grade da batalha fica em (72, 40), centralizada, com 240×96 px.
 - O status da jogadora fica no canto superior esquerdo (x 2–66): HP e
-  Energia numa linha, o gauge embaixo. A corrente fica sobre a grade.
+  Energia numa linha, o gauge embaixo, com o rótulo "CARGA"; cheio, ele
+  pisca amarelo e branco. A corrente fica numa linha acima da grade
+  (y 3), longe dos sprites; enquanto a batalha espera a jogadora, a mesma
+  linha mostra "AGUARDANDO · mova ou use uma carta" em `Pico.yellow`.
 - À direita da grade, abaixo dos ícones, cada inimigo tem nome, tipo
   (Máquina, Orgânico, Etéreo, em `Pico.lightGray`) e barra de vida
   (vermelha, borda branca); nomes repetidos são numerados ("Prisma 2").
@@ -58,7 +61,9 @@ ou tamanhos direto nos widgets: crie um token.
   pausa ficam no canto superior direito.
 - O mapa ocupa a largura toda e é mais alto que a tela: 28 px por andar, nós
   de 20 px. Ele abre rolado até o andar que pode ser escolhido, e o resto se
-  vê arrastando (o mouse também arrasta). O cabeçalho (HP, deck, créditos)
+  vê arrastando (o mouse também arrasta). Nos nós que podem ser escolhidos
+  só a borda pisca (amarelo e branco); o nó atual tem borda branca e os
+  outros ficam a 45% de opacidade. O cabeçalho (HP, deck, créditos)
   fica fixo em cima.
 
 ## Cor
