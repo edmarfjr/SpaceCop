@@ -52,7 +52,26 @@ class _ManualOverlayState extends State<ManualOverlay> {
 
   int _page = 0;
 
+  /// "Voltar". Opened over the pause, whose button already holds the
+  /// focus, autofocus does nothing: the focus is taken by hand, so the
+  /// keys (Esc, arrows) reach the manual.
+  final _back = FocusNode(debugLabel: 'manual back');
+
   StarCopGame get game => widget.game;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _back.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _back.dispose();
+    super.dispose();
+  }
 
   void _turn(int step) {
     final next = (_page + step).clamp(0, _pages.length - 1);
@@ -107,7 +126,7 @@ class _ManualOverlayState extends State<ManualOverlay> {
                   ),
                   const SizedBox(width: 6),
                   TextButton(
-                    autofocus: true,
+                    focusNode: _back,
                     onPressed: withTap(game.closeManual),
                     child: const Text('Voltar'),
                   ),
