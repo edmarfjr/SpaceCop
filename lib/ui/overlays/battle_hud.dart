@@ -92,6 +92,7 @@ class BattleHud extends StatelessWidget {
             right: 2,
             child: _Hand(world: world, sprites: game.sprites),
           ),
+          _HeldCard(world: world, sprites: game.sprites),
           // Under a quarter of the max HP, the screen's edge pulses red.
           if (battle.player.hp * 4 < battle.player.maxHp &&
               (battle.ticks ~/ ticksPerSecond).isEven)
@@ -477,10 +478,19 @@ class _Info extends StatelessWidget {
   }
 }
 
-/// The hand, in a row. Touching a chip uses it. Raw [Listener]s, like the
-/// swipe.
+/// The hand, in a row. Touching a chip holds it (the battle stands still
+/// and [_HeldCard] shows it enlarged); lifting the finger on it uses it.
+/// Raw [Listener]s, like the swipe.
 class _Hand extends StatelessWidget {
   const _Hand({required this.world, required this.sprites});
+
+  /// 54 px tall: fits between the grid (bottom at y 136) and the bottom
+  /// edge.
+  static const double cardWidth = 36;
+  static const _cardSize = Size(cardWidth, cardWidth * 1.5);
+
+  /// Each card's slot: the card and the 1 px gap on its left.
+  static const double slot = cardWidth + 1;
 
   final BattleWorld world;
   final GameSprites sprites;
@@ -513,14 +523,18 @@ class _Hand extends StatelessWidget {
             child: Listener(
               onPointerDown: (_) {
                 tapFeedback();
-                world.pressChip(card);
+                world.holdChip(card);
               },
+              // Used only when lifted on the card; sliding off cancels.
+              onPointerUp: (e) => world.releaseChip(
+                card,
+                use: (Offset.zero & _cardSize).contains(e.localPosition),
+              ),
+              onPointerCancel: (_) => world.releaseChip(card, use: false),
               child: ChipCardView(
                 def: card.def,
                 sprites: sprites,
-                // 54 px tall: fits between the grid (bottom at y 136) and
-                // the bottom edge.
-                width: 36,
+                width: cardWidth,
                 focusable: false,
                 selected: card == selected,
                 dimmed: !battle.canAfford(card),
@@ -528,6 +542,44 @@ class _Hand extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// The held card, enlarged above its place in the hand so its text can be
+/// read. Lifting the finger on the small card uses it.
+class _HeldCard extends StatelessWidget {
+  const _HeldCard({required this.world, required this.sprites});
+
+  final BattleWorld world;
+  final GameSprites sprites;
+
+  static const double width = 80;
+
+  /// Hand inset from the screen's bottom-right corner.
+  static const double _margin = 2;
+
+  @override
+  Widget build(BuildContext context) {
+    final card = world.held;
+    final hand = world.battle.hand;
+    final i = card == null ? -1 : hand.indexOf(card);
+    if (i < 0) return const SizedBox.shrink();
+    // Center over the small card, kept on screen.
+    final fromRight = _margin + (hand.length - i - 0.5) * _Hand.slot;
+    final right = (fromRight - width / 2).clamp(_margin, double.infinity);
+    return Positioned(
+      right: right,
+      bottom: _margin + _Hand.cardWidth * 1.5 + 4,
+      child: IgnorePointer(
+        child: ChipCardView(
+          def: card!.def,
+          sprites: sprites,
+          width: width,
+          focusable: false,
+          dimmed: !world.battle.canAfford(card),
+        ),
+      ),
     );
   }
 }

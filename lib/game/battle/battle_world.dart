@@ -85,6 +85,23 @@ class BattleWorld extends World
     _tappedTicks = _touchBufferTicks;
   }
 
+  /// The card under the player's finger: the battle stands still and the
+  /// HUD shows it enlarged until the finger lifts.
+  ChipCard? held;
+
+  void holdChip(ChipCard card) {
+    held = card;
+    revision.value++;
+  }
+
+  /// The finger left [card]: [use] it (lifted on it) or not (slid off).
+  void releaseChip(ChipCard card, {required bool use}) {
+    if (held != card) return;
+    held = null;
+    if (use) pressChip(card);
+    revision.value++;
+  }
+
   @override
   Future<void> onLoad() async {
     await add(ScrollingBackground(game.sprites.battleBackground));
@@ -121,7 +138,13 @@ class BattleWorld extends World
       DamageText(
         amount,
         position: head + Vector2(_random.nextDouble() * 8 - 4, 0),
-        color: target is PlayerFighter ? Pico.red : multiplier == 1 ? Pico.white :  multiplier > 1 ? Pico.yellow : Pico.lightGray,
+        color: target is PlayerFighter
+            ? Pico.red
+            : multiplier == 1
+            ? Pico.white
+            : multiplier > 1
+            ? Pico.yellow
+            : Pico.lightGray,
       ),
     );
     if (target is PlayerFighter) {
@@ -141,7 +164,7 @@ class BattleWorld extends World
                 (Vector2.random(_random) - Vector2.all(0.5)) *
                     (2 * _shakeAmplitude);
     }
-    if (game.halted || battle.peekOpen) return;
+    if (game.halted || battle.peekOpen || held != null) return;
     if (battle.isOver) {
       _endTimer += dt;
       if (!_finished && _endTimer >= _endDelay) {

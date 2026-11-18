@@ -192,7 +192,10 @@ Tamanhos em px virtuais, dentro da tela:
   - Deslizar o dedo em qualquer lugar fora da mão e dos ícones move uma casa na direção dominante.
     Continuar arrastando sem soltar move mais uma casa a cada ~18 px
     virtuais, com no mínimo 0,3 s entre um passo e o próximo.
-  - Tocar numa carta a usa.
+  - Segurar uma carta pausa a batalha (sem tela de pausa) e mostra a
+    carta ampliada (80 px de largura) acima dela, para ler. Soltar o dedo
+    sobre a carta a usa; arrastar para fora e soltar cancela. Enquanto a
+    carta está segura, deslizar com outro dedo não move.
     Carta que põe algo na arena (torreta, Drone Médico, bobina,
     barricada, minas) sem painel livre para isso não é usada: fica na mão,
     sem gastar Energia, e toca o som de cancelar.
@@ -207,8 +210,8 @@ Tamanhos em px virtuais, dentro da tela:
     e termina a run com o relatório.
   - Teclado (desktop): setas/WASD movem, X/K usa a carta, Z/J passa para a
     próxima.
-- Swipe e cartas usam `Listener` puro, sem arena de gestos, para segurar uma
-  carta com um dedo e deslizar com o outro.
+- Swipe e cartas usam `Listener` puro, sem arena de gestos, para tocar
+  uma carta com um dedo sem cancelar o swipe do outro.
 - Vibração (`lib/ui/feedback.dart`):
   - toque em botão, carta, nó do mapa ou ícone: `tapFeedback` (leve,
     `lightImpact`). Botões novos passam o callback por `withTap`;
