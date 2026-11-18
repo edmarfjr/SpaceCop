@@ -2193,12 +2193,7 @@ class BattleState {
       case ObstacleKind.turret:
         // Back of the player's row; if the player stands there, the first
         // free panel in front of them.
-        GridPos? pos;
-        for (var x = 0; x < gridColumns && pos == null; x++) {
-          if (_placeable(GridPos(x, player.pos.y))) {
-            pos = GridPos(x, player.pos.y);
-          }
-        }
+        final pos = _gearSpot();
         if (pos == null) return;
         obstacles.add(
           Obstacle(
@@ -2225,12 +2220,7 @@ class BattleState {
         );
       case ObstacleKind.medic:
         // Back of the player's row, like the Drone.
-        GridPos? pos;
-        for (var x = 0; x < gridColumns && pos == null; x++) {
-          if (_placeable(GridPos(x, player.pos.y))) {
-            pos = GridPos(x, player.pos.y);
-          }
-        }
+        final pos = _gearSpot();
         if (pos == null) return;
         obstacles.add(
           Obstacle(
@@ -2244,11 +2234,7 @@ class BattleState {
       case ObstacleKind.tesla:
         // The frontmost free panel of the player's side in their row; behind
         // them if they stand at the front.
-        GridPos? pos;
-        for (var x = gridColumns - 1; x >= 0 && pos == null; x--) {
-          final cell = GridPos(x, player.pos.y);
-          if (_placeable(cell)) pos = cell;
-        }
+        final pos = _gearSpot(fromFront: true);
         if (pos == null) return;
         obstacles.add(
           Obstacle(
@@ -3182,6 +3168,30 @@ class BattleState {
   /// can put a turret, drone or coil. Unlike [canEnter], a Holograma or
   /// Escudo Refletor there counts as taken.
   bool _placeable(GridPos pos) => canEnter(player, pos) && unitAt(pos) == null;
+
+  /// Where a card puts a turret, drone or coil: the first [_placeable]
+  /// panel of the player's row, from the back (from the front with
+  /// [fromFront]). With that row full, the first free panel of each column
+  /// in the same order, the rows nearest the player first.
+  GridPos? _gearSpot({bool fromFront = false}) {
+    final columns = [for (var x = 0; x < gridColumns; x++) x];
+    final order = fromFront ? columns.reversed.toList() : columns;
+    for (final x in order) {
+      if (GridPos(x, player.pos.y) case final cell when _placeable(cell)) {
+        return cell;
+      }
+    }
+    final rows = [for (var y = 0; y < gridRows; y++) y]
+      ..sort(
+        (a, b) => (a - player.pos.y).abs().compareTo((b - player.pos.y).abs()),
+      );
+    for (final x in order) {
+      for (final y in rows) {
+        if (GridPos(x, y) case final cell when _placeable(cell)) return cell;
+      }
+    }
+    return null;
+  }
 
   /// Sticks a Lança in [pos] if nothing stands there.
   void _plantSpear(GridPos pos) {
