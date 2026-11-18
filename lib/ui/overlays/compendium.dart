@@ -142,7 +142,7 @@ class _CompendiumOverlayState extends State<CompendiumOverlay> {
                       family.label,
                       _family == family,
                       () => _family = family,
-                      color: familyColor(family),
+                      color: Pico.white,//familyColor(family),
                     ),
                   ],
                 ],

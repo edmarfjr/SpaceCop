@@ -1956,7 +1956,7 @@ class BattleState {
       case EnemyRowPanelEffect(:final state):
         for (var x = 0; x < gridColumns; x++) {
           final cell = GridPos(x, player.pos.y);
-          if (ownerAt(cell) == Team.enemy && panelAt(cell).walkable) {
+          if (ownerAt(cell) != Team.player && panelAt(cell).walkable) {
             setPanel(cell, state);
           }
         }
@@ -2959,7 +2959,7 @@ class BattleState {
     for (var x = coil.pos.x + 1; x < gridColumns; x++) {
       final cell = GridPos(x, coil.pos.y);
       if (_targetAt(cell, Team.enemy) == null) continue;
-      strike(cell, teslaZapDamage, Team.enemy, Element.elec);
+      strike(cell, teslaZapDamage, Team.enemy, Element.elec, family: ChipFamily.energy);
       return;
     }
   }
