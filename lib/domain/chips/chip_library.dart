@@ -2096,8 +2096,8 @@ abstract final class Chips {
       name: 'Projéteis',
       tagline: 'Encare seus inimigos com puro poder de fogo.',
       cards: [
-        (shot, 2),
         (cannon, 2),
+        (shot, 2),
         (shotgun, 2),
         (incendiaryRound, 1),
         (laserSight, 1),

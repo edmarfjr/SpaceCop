@@ -150,9 +150,13 @@ abstract final class SpriteFiles {
 
   /// 32x32 frame every chip card is drawn on.
   static const chipFrame = 'chips/chip.png';
+  static const chipIncFrame = 'chips/chipInc.png';
+  static const chipRaroFrame = 'chips/chipRaro.png';
 
   /// Same frame for upgraded ("+") cards.
   static const chipFrameUpgraded = 'chips/chipEvo.png';
+  static const chipIncFrameUpgraded = 'chips/chipEvoInc.png';
+  static const chipRaroFrameUpgraded = 'chips/chipEvoRaro.png';
 
   static const obstacles = <ObstacleKind, String>{
     ObstacleKind.rock: 'obstacles/pedra.png',
@@ -432,7 +436,11 @@ abstract final class SpriteFiles {
     credits,
     muzzle,
     chipFrame,
+    chipIncFrame,
+    chipRaroFrame,
     chipFrameUpgraded,
+    chipIncFrameUpgraded,
+    chipRaroFrameUpgraded,
     shot,
     spear,
     ball,
@@ -522,7 +530,11 @@ class GameSprites {
   late final Sprite spear = _file(SpriteFiles.spear);
   late final Sprite ball = _file(SpriteFiles.ball);
   late final Sprite chipFrame = _file(SpriteFiles.chipFrame);
+  late final Sprite chipIncFrame = _file(SpriteFiles.chipIncFrame);
+  late final Sprite chipRaroFrame = _file(SpriteFiles.chipRaroFrame);
   late final Sprite chipFrameUpgraded = _file(SpriteFiles.chipFrameUpgraded);
+  late final Sprite chipIncFrameUpgraded = _file(SpriteFiles.chipIncFrameUpgraded);
+  late final Sprite chipRaroFrameUpgraded = _file(SpriteFiles.chipRaroFrameUpgraded);
   late final Sprite pickaxe = _file(SpriteFiles.pickaxe);
   late final Sprite molotov = _file(SpriteFiles.molotov);
   late final List<Sprite> rune = [
@@ -626,6 +638,20 @@ class GameSprites {
 
   Sprite chip(ChipDef def) =>
       _file(SpriteFiles.chips[def.id] ?? SpriteFiles.chips[Chips.shot.id]!);
+
+
+  
+  Sprite rarityCard(Rarity rarity) => switch (rarity) {
+    Rarity.common => chipFrame,
+    Rarity.uncommon => chipIncFrame,
+    Rarity.rare => chipRaroFrame,
+  };
+
+  Sprite rarityCardEvo(Rarity rarity) => switch (rarity) {
+    Rarity.common => chipFrameUpgraded,
+    Rarity.uncommon => chipIncFrameUpgraded,
+    Rarity.rare => chipRaroFrameUpgraded,
+  };
 
   /// Null for cards swung bare-handed (Ombrada, Investida).
   Sprite? weapon(ChipDef def) => switch (SpriteFiles.weapons[def.id]) {

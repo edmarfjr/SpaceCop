@@ -56,11 +56,11 @@ class _ChipCardViewState extends State<ChipCardView> {
   /// Regions of the frame, in its pixels: the name bar, the black art
   /// window, the cost (blue) and damage (red) circles, the element icon
   /// between them, and the description box.
-  static const _name = Rect.fromLTWH(3, 3, 26, 3);
-  static const _nameOutline = Rect.fromLTWH(2, 2, 28, 5);
+  static const _name = Rect.fromLTWH(3, 3.5, 26, 3);
+ // static const _nameOutline = Rect.fromLTWH(2, 2, 28, 5);
   static const _art = Rect.fromLTWH(5, 9, 22, 16);
-  static const _left = Rect.fromLTWH(1, 9, 6, 6);
-  static const _right = Rect.fromLTWH(25, 9, 6, 6);
+  static const _left = Rect.fromLTWH(1, 8.5, 6, 6);
+  static const _right = Rect.fromLTWH(25, 8.5, 6, 6);
   static const _description = Rect.fromLTWH(3, 28, 26, 17);
 
   @override
@@ -119,11 +119,11 @@ class _ChipCardViewState extends State<ChipCardView> {
             children: [
               SheetSprite(
                 sprite: def.upgraded
-                    ? widget.sprites.chipFrameUpgraded
-                    : widget.sprites.chipFrame,
+                    ? widget.sprites.rarityCardEvo(def.rarity)
+                    : widget.sprites.rarityCard(def.rarity),
                 scale: scale,
               ),
-              if (def.rarity != Rarity.common)
+           /*   if (def.rarity != Rarity.common)
                 at(
                   _nameOutline,
                   DecoratedBox(
@@ -135,6 +135,7 @@ class _ChipCardViewState extends State<ChipCardView> {
                     ),
                   ),
                 ),
+              */
               at(
                 _name,
                 Center(
@@ -171,12 +172,16 @@ class _ChipCardViewState extends State<ChipCardView> {
                 Container(
                   alignment: Alignment.topCenter,
                   child: fitted(
-                    def.description,
-                    2 * scale,
+                    '\n${def.description}',
+                    2.5 * scale,
                     lines: 7,
                     prefix: TextSpan(
                       text: '${def.family.label}\n',
-                      style: TextStyle(color: familyColor(def.family)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: familyColor(def.family),
+                        //shadows: sombra,
+                      ),
                     ),
                   ),
                 ),

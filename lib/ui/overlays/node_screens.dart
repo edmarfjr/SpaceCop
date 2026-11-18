@@ -1667,22 +1667,31 @@ class _ShowcasePainter extends CustomPainter {
       case _DeckAttack.shoot:
         _draw(canvas, sprites.playerAttack, Offset.zero);
         // The flash only for the first moments of the shot.
-        if (t < 0.65) _draw(canvas, sprites.muzzle, const Offset(21.5, 5.5));
+        if (t < 0.65) _draw(canvas, sprites.muzzle, const Offset(21, 5.0));
       case _DeckAttack.melee:
-        _draw(canvas, sprites.playerMelee, Offset.zero);
         final dagger = sprites.weapon(Chips.dagger)!;
         _draw(
           canvas,
           dagger,
-          _fist - Offset(0, (dagger.src.height ~/ 2).toDouble()),
+          _fist - Offset(1, (dagger.src.height ~/ 2).toDouble()),
         );
+        if (t < 0.65){
+          final cut = sprites.cut;
+          _draw(
+            canvas,
+            cut,
+            _fist - Offset(-3, 13),
+          );
+        }
+        
+        _draw(canvas, sprites.playerMelee, Offset.zero);
       case _DeckAttack.laser:
         _draw(canvas, sprites.playerAttack, Offset.zero);
         // Swells in, flickers, thins out, like the battle's beams.
         final age = (t - 0.5) / 0.5;
         final swell = min(1.0, min(age, 1 - age) * 6 + 0.2);
         final flicker = (t * 40).floor().isEven ? 0.5 : 0.0;
-        final end = _DeckShowcase.box.width - _left;
+        final end = _DeckShowcase.box.width + _left;
         for (final (i, (paint, half)) in _beam.indexed) {
           final h = (half + (i < 2 ? flicker : 0)) * swell;
           canvas
