@@ -1300,7 +1300,7 @@ class MenuOverlay extends StatelessWidget {
           ],
         ),
         // The policewoman beside the window, standing on a platform.
-        Positioned(
+       /* Positioned(
           left: 56,
           bottom: 40,
           child: IgnorePointer(
@@ -1311,7 +1311,7 @@ class MenuOverlay extends StatelessWidget {
               ],
             ),
           ),
-        ),
+        ),*/
       ],
     );
   }

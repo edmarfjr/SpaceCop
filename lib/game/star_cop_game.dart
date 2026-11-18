@@ -290,13 +290,13 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     jackIn = boss
         ? (Pico.red, Pico.burgundy, run.boss.name.toUpperCase())
         : _eliteFight || run.current?.type == NodeType.elite
-        ? (Pico.orange, Pico.pumpkin, 'ELITE')
-        : (Pico.blue, Pico.royal, 'JACK IN');
+        ? (Pico.orange, Pico.pumpkin, 'ELITE BATTLE')
+        : (Pico.blue, Pico.royal, 'BATTLE');
     overlays.add(Overlays.jackIn);
   }
 
   /// The jack-in's two band colors and its word, for the battle starting.
-  (Color, Color, String) jackIn = (Pico.blue, Pico.royal, 'JACK IN');
+  (Color, Color, String) jackIn = (Pico.blue, Pico.royal, 'BATTLE');
 
   void endJackIn() => overlays.remove(Overlays.jackIn);
 

@@ -167,10 +167,10 @@ abstract final class SpriteFiles {
   };
 
   static final chips = <String, String>{
-    Chips.shot.id: 'chips/revolver.png',
+    Chips.shot.id: 'chips/pistola.png',
     Chips.smg.id: 'chips/smg.png',
     Chips.shotgun.id: 'chips/shotgun.png',
-    Chips.cannon.id: 'chips/revolver.png',
+    Chips.cannon.id: 'chips/revolverMira.png',
     Chips.vShot.id: 'chips/plasmaPistol.png',
     Chips.melta.id: 'chips/melta.png',
     Chips.missile.id: 'chips/missilItem.png',
