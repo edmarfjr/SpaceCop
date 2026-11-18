@@ -246,6 +246,10 @@ enum BattleEventKind {
 
   /// A heavy hit that shakes the screen.
   quake,
+
+  /// The player tried a card that puts gear on the arena with no room for
+  /// it; the card stays in hand.
+  noRoom,
   won,
   lost,
 }
@@ -1403,7 +1407,37 @@ class BattleState {
     }
     final chip = selectedChip;
     if (!input.useChip || chip == null || inSmoke(player)) return;
-    if (canAfford(chip)) _useChip(chip);
+    if (!canAfford(chip)) return;
+    if (!hasRoom(chip.def)) {
+      events.add(const BattleEvent(BattleEventKind.noRoom));
+      return;
+    }
+    _useChip(chip);
+  }
+
+  /// Whether a card that puts something on the arena has a panel for it;
+  /// without one it can't be used, so it isn't lost for nothing.
+  bool hasRoom(ChipDef def) {
+    final front = player.pos + const GridPos(1, 0);
+    return switch (def.effect) {
+      SpawnObstacleEffect(
+        kind: ObstacleKind.turret || ObstacleKind.medic || ObstacleKind.tesla,
+      ) =>
+        _gearSpot() != null,
+      SpawnObstacleEffect(kind: ObstacleKind.barricade) =>
+        front.inBounds && panelAt(front).walkable && barricadeAt(front) == null,
+      SpawnObstacleEffect(kind: ObstacleKind.mine) =>
+        [
+          for (var x = enemyColumn0; x < gridColumns; x++)
+            for (var y = 0; y < gridRows; y++) GridPos(x, y),
+        ].any(
+          (pos) =>
+              panelAt(pos).walkable &&
+              !panelAt(pos).mine &&
+              unitAt(pos) == null,
+        ),
+      _ => true,
+    };
   }
 
   /// Restores [amount] of the player's HP, up to the max.

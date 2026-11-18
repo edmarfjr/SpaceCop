@@ -193,6 +193,9 @@ Tamanhos em px virtuais, dentro da tela:
     Continuar arrastando sem soltar move mais uma casa a cada ~18 px
     virtuais, com no mínimo 0,3 s entre um passo e o próximo.
   - Tocar numa carta a usa.
+    Carta que põe algo na arena (torreta, Drone Médico, bobina,
+    barricada, minas) sem painel livre para isso não é usada: fica na mão,
+    sem gastar Energia, e toca o som de cancelar.
   - Swipe e toque que caem durante um cooldown ficam guardados por alguns
     ticks, em vez de se perderem.
   - Os ícones no topo pausam ou mostram o deck. No mapa, o botão "Deck"
