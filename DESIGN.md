@@ -42,6 +42,14 @@ ou tamanhos direto nos widgets: crie um token.
   descrição do item selecionado e Comprar (Remover, no serviço). Tocar só
   seleciona (borda amarela); Comprar compra. Sem Créditos bastantes, o
   botão fica desabilitado e a caixa diz "Faltam N C" em `Pico.coral`.
+  Visual PET: título "LOJA" na barra `Pico.royal`, Créditos numa janela
+  PET, o serviço de remoção e cada relíquia em janelas PET (selecionado:
+  moldura `Pico.yellow`) e a caixa de descrição como janela PET com o
+  nome do item na barra. A remoção custa 75 C, mais 25 C por remoção já
+  feita na run.
+- Seleção de deck: nome do deck na barra `Pico.royal`, a lista de cartas
+  numa janela PET ("> DECK · N CARTAS") e os botões de deck no estilo PET,
+  com moldura `Pico.yellow` no deck mostrado.
 - Espólios: o título conta os restantes ("Espólios · 2 restantes"); o que
   já foi pego fica na lista, riscado e apagado, com "PEGO". "Pular
   restantes" com espólios sobrando pede confirmação, listando o que se

@@ -10,6 +10,7 @@ import '../../domain/map/run_map.dart';
 import '../../domain/run/events.dart';
 import '../../domain/run/relics.dart';
 import '../../domain/run/run_state.dart';
+import '../../domain/run/shop.dart' show removalPriceStep;
 import '../../game/audio.dart';
 import '../../game/sprites.dart';
 import '../../game/star_cop_game.dart';
@@ -38,17 +39,8 @@ class _Panel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            header ??
-                // System heading: a PET title bar, in capitals.
-                Container(
-                  color: petTitleBar,
-                  padding: const EdgeInsets.fromLTRB(8, 2, 8, 1),
-                  child: Text(
-                    title.toUpperCase(),
-                    style: GbText.title,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+            // System heading: a PET title bar, in capitals.
+            header ?? _TitleBar(title),
             const SizedBox(height: 6),
             for (final child in children)
               child is ChipPicker ? Flexible(child: child) : child,
@@ -56,6 +48,57 @@ class _Panel extends StatelessWidget {
         ),
       ),
     ),
+  );
+}
+
+/// A PET window with a small title bar ("> DECK") over [child]. With
+/// [expand], [child] fills the window's height.
+class _PetWindow extends StatelessWidget {
+  const _PetWindow({
+    required this.title,
+    required this.child,
+    this.decoration = petWindow,
+    this.expand = false,
+  });
+
+  final String title;
+  final Widget child;
+  final ShapeDecoration decoration;
+  final bool expand;
+
+  @override
+  Widget build(BuildContext context) {
+    final body = Padding(padding: const EdgeInsets.all(4), child: child);
+    return Container(
+      decoration: decoration,
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            color: petTitleBar,
+            padding: const EdgeInsets.fromLTRB(4, 1, 4, 0),
+            child: Text(title, style: GbText.small, maxLines: 1),
+          ),
+          expand ? Expanded(child: body) : body,
+        ],
+      ),
+    );
+  }
+}
+
+/// A screen's title on the PET title bar, in capitals (as [_Panel]'s).
+class _TitleBar extends StatelessWidget {
+  const _TitleBar(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    color: petTitleBar,
+    padding: const EdgeInsets.fromLTRB(8, 2, 8, 1),
+    child: Text(title.toUpperCase(), style: GbText.title),
   );
 }
 
@@ -593,10 +636,23 @@ class _ShopOverlayState extends State<ShopOverlay> {
           children: [
             Row(
               children: [
-                const Text('Loja', style: GbText.title),
+                const _TitleBar('Loja'),
                 const Spacer(),
-                SheetSprite(sprite: game.sprites.credits, scale: 0.4),
-                Text(' ${run.credits}', style: GbText.body),
+                // The wallet, in a small PET window.
+                Container(
+                  decoration: petWindow,
+                  padding: const EdgeInsets.fromLTRB(4, 1, 6, 1),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SheetSprite(sprite: game.sprites.credits, scale: 0.4),
+                      Text(
+                        ' ${run.credits} C',
+                        style: GbText.body.copyWith(color: Pico.yellow),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -648,8 +704,15 @@ class _ShopOverlayState extends State<ShopOverlay> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _Selectable(
-                            selected: _selected == relic,
+                          // Each relic on its own PET pad.
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: _selected == relic
+                                ? petWindowFramed(
+                                    Pico.yellow,
+                                    width: focusBorder,
+                                  )
+                                : petWindow,
                             child: SheetSprite(
                               sprite: game.sprites.relic(relic),
                               scale: 3,
@@ -731,23 +794,23 @@ class _RemovalService extends StatelessWidget {
     onTap: withTap(onTap),
     child: Column(
       children: [
-        Container(
+        SizedBox(
           width: _shopCardWidth + 8,
           height: _shopCardWidth * 1.5,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: Pico.midnight,
-            border: Border.all(
-              color: selected ? Pico.yellow : Pico.lightGray,
-              width: selected ? focusBorder : 0.5,
-            ),
-          ),
-          child: Text(
-            available ? 'Remover\numa carta\ndo deck' : 'Serviço\nusado',
-            textAlign: TextAlign.center,
-            style: GbText.small.copyWith(
-              color: available ? Pico.white : Pico.darkGray,
+          child: _PetWindow(
+            title: '> SERVIÇO',
+            expand: true,
+            decoration: selected
+                ? petWindowFramed(Pico.yellow, width: focusBorder)
+                : petWindow,
+            child: Center(
+              child: Text(
+                available ? 'Remover\numa carta\ndo deck' : 'Serviço\nusado',
+                textAlign: TextAlign.center,
+                style: GbText.small.copyWith(
+                  color: available ? Pico.white : Pico.darkGray,
+                ),
+              ),
             ),
           ),
         ),
@@ -778,23 +841,21 @@ class _ShopInfo extends StatelessWidget {
         rarity,
         description,
       ),
-      _removalService => ('Remover carta', null, 'Tira uma carta do deck.'),
+      _removalService => (
+        'Remover carta',
+        null,
+        'Tira uma carta do deck. Fica $removalPriceStep C mais cara a cada '
+            'remoção.',
+      ),
       _ => ('', null, 'Toque num item para ver o que é.'),
     };
-    return Container(
-      height: double.infinity,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        border: Border.all(color: Pico.lightGray, width: 0.5),
-      ),
+    // The item's name goes on the window's title bar.
+    return _PetWindow(
+      title: name.isEmpty ? '> INFO' : '> ${name.toUpperCase()}',
+      expand: true,
       child: Text.rich(
         TextSpan(
           children: [
-            if (name.isNotEmpty)
-              TextSpan(
-                text: rarity == null ? '$name\n' : '$name ',
-                style: const TextStyle(color: Pico.yellow),
-              ),
             if (rarity != null)
               TextSpan(
                 text: '(${rarity.label})\n',
@@ -1300,7 +1361,7 @@ class MenuOverlay extends StatelessWidget {
           ],
         ),
         // The policewoman beside the window, standing on a platform.
-       /* Positioned(
+        /* Positioned(
           left: 56,
           bottom: 40,
           child: IgnorePointer(
@@ -1346,7 +1407,9 @@ class _DeckSelectOverlayState extends State<DeckSelectOverlay> {
   /// Card width in the list: twice the frame, so the art stays pixel-sharp.
   static const _cardWidth = 64.0;
   static const _cardGap = 2.0;
-  static const _boxPadding = 3.0;
+
+  /// [_PetWindow]'s padding.
+  static const _boxPadding = 4.0;
   static const _boxWidth = _cardWidth * 3 + _cardGap * 2 + _boxPadding * 2 + 2;
 
   @override
@@ -1365,8 +1428,8 @@ class _DeckSelectOverlayState extends State<DeckSelectOverlay> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(deck.name, style: GbText.title),
-                        const SizedBox(height: 2),
+                        _TitleBar(deck.name),
+                        const SizedBox(height: 3),
                         Text(deck.tagline, style: GbText.small),
                         const SizedBox(height: 4),
                         Expanded(
@@ -1381,47 +1444,48 @@ class _DeckSelectOverlayState extends State<DeckSelectOverlay> {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Container(
+                  SizedBox(
                     width: _boxWidth,
-                    padding: const EdgeInsets.all(_boxPadding),
-                    decoration: BoxDecoration(
-                      color: Pico.midnight,
-                      border: Border.all(color: Pico.white),
-                    ),
-                    child: SingleChildScrollView(
-                      // A new deck starts its list from the top.
-                      key: ValueKey(_index),
-                      child: Wrap(
-                        spacing: _cardGap,
-                        runSpacing: _cardGap,
-                        children: [
-                          for (final (def, count) in deck.cards)
-                            Stack(
-                              children: [
-                                ChipCardView(
-                                  def: def,
-                                  sprites: game.sprites,
-                                  width: _cardWidth,
-                                  focusable: false,
-                                ),
-                                if (count > 1)
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: ColoredBox(
-                                      color: Pico.black,
-                                      child: Text(
-                                        'x$count',
-                                        style: GbText.small.copyWith(
-                                          color: Pico.yellow,
-                                          fontWeight: FontWeight.bold,
+                    child: _PetWindow(
+                      title:
+                          '> DECK · ${deck.cards.fold(0, (n, c) => n + c.$2)}'
+                          ' CARTAS',
+                      expand: true,
+                      child: SingleChildScrollView(
+                        // A new deck starts its list from the top.
+                        key: ValueKey(_index),
+                        child: Wrap(
+                          spacing: _cardGap,
+                          runSpacing: _cardGap,
+                          children: [
+                            for (final (def, count) in deck.cards)
+                              Stack(
+                                children: [
+                                  ChipCardView(
+                                    def: def,
+                                    sprites: game.sprites,
+                                    width: _cardWidth,
+                                    focusable: false,
+                                  ),
+                                  if (count > 1)
+                                    Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: ColoredBox(
+                                        color: Pico.black,
+                                        child: Text(
+                                          'x$count',
+                                          style: GbText.small.copyWith(
+                                            color: Pico.yellow,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                              ],
-                            ),
-                        ],
+                                ],
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -1450,12 +1514,22 @@ class _DeckSelectOverlayState extends State<DeckSelectOverlay> {
                       onFocusChange: (focused) {
                         if (focused) setState(() => _index = i);
                       },
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: Pico.black,
-                        padding: const EdgeInsets.all(2),
-                        side: BorderSide(
-                          color: i == _index ? Pico.yellow : Pico.lightGray,
+                      // PET buttons; the deck shown keeps a yellow frame
+                      // when the focus is elsewhere.
+                      style: ButtonStyle(
+                        padding: const WidgetStatePropertyAll(
+                          EdgeInsets.all(2),
                         ),
+                        side: i == _index
+                            ? WidgetStateProperty.resolveWith(
+                                (states) => BorderSide(
+                                  color: states.contains(WidgetState.focused)
+                                      ? Pico.white
+                                      : Pico.yellow,
+                                  width: focusBorder,
+                                ),
+                              )
+                            : null,
                       ),
                       onPressed: withTap(() {
                         _focus[i].requestFocus();

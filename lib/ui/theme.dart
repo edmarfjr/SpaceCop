@@ -109,6 +109,19 @@ const petWindow = ShapeDecoration(
   ),
 );
 
+/// [petWindow] with a [side] frame: [Pico.yellow] on a selected item.
+ShapeDecoration petWindowFramed(Color side, {double width = 1}) =>
+    ShapeDecoration(
+      color: Pico.midnight,
+      shape: BeveledRectangleBorder(
+        side: BorderSide(color: side, width: width),
+        borderRadius: const BorderRadius.only(
+          topRight: Radius.circular(4),
+          bottomLeft: Radius.circular(4),
+        ),
+      ),
+    );
+
 /// Title bar on top of a [petWindow].
 const petTitleBar = Pico.royal;
 

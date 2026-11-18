@@ -725,7 +725,8 @@ List<_Chapter> _book() => [
         'Fogueira: *descanse* (30% do HP máximo) ou *melhore* uma carta, '
             'que ganha a versão "+".',
         'Loja: cartas por *40/65/100 C*, relíquias por *110/150/200 C* '
-            '(comum/incomum/rara). Remover uma carta: *75 C*.',
+            '(comum/incomum/rara). Remover uma carta: *75 C*, '
+            '*+25 C* a cada remoção feita na run.',
       ],
     ),
   ]),

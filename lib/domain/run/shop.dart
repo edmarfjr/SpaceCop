@@ -17,8 +17,12 @@ int relicPrice(Rarity rarity) => switch (rarity) {
 
 const int removalPrice = 75;
 
+/// What each removal already done this run adds to the next one.
+const int removalPriceStep = 25;
+
 /// One visit to a shop node: 5 chips and 3 relics for sale, priced by
-/// rarity, plus one chip removal. Cartão de Sócio takes 25% off and makes
+/// rarity, plus one chip removal, 25 C dearer for each one done this
+/// run. Cartão de Sócio takes 25% off and makes
 /// the removal free.
 class Shop {
   Shop(this.run) : chips = run.rollRewards(5), relics = run.rollRelics(3);
@@ -40,7 +44,8 @@ class Shop {
 
   int chipCost(ChipDef def) => _free ? 0 : _price(chipPrice(def.rarity));
   int relicCost(RelicDef relic) => _free ? 0 : _price(relicPrice(relic.rarity));
-  int get removalCost => _member ? 0 : _price(removalPrice);
+  int get removalCost =>
+      _member ? 0 : _price(removalPrice + removalPriceStep * run.shopRemovals);
 
   /// Only one card can be removed per visit.
   bool get canRemove => !_removedHere;
@@ -73,7 +78,9 @@ class Shop {
     if (!canRemove || !run.deck.contains(card) || !_pay(removalCost)) {
       return false;
     }
-    run.deck.remove(card);
+    run
+      ..deck.remove(card)
+      ..shopRemovals += 1;
     _removedHere = true;
     return true;
   }

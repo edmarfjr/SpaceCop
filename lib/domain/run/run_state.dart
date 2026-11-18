@@ -67,6 +67,7 @@ class RunState {
       ..bossHpCut = (json['bossHpCut'] as num? ?? 0).toDouble()
       ..bossBarrier = json['bossBarrier'] as bool? ?? false
       ..freeShopItem = json['freeShopItem'] as bool? ?? false
+      ..shopRemovals = json['shopRemovals'] as int? ?? 0
       ..relics.addAll([
         for (final id in (json['relics']! as List).cast<String>())
           ?Relics.byId(id),
@@ -118,6 +119,7 @@ class RunState {
     'bossHpCut': bossHpCut,
     'bossBarrier': bossBarrier,
     'freeShopItem': freeShopItem,
+    'shopRemovals': shopRemovals,
     'bossIndex': bossIndex,
     'drawnNormals': drawnNormals.toList(),
     'drawnElites': drawnElites.toList(),
@@ -179,6 +181,10 @@ class RunState {
 
   /// The next shop gives one card or relic away (Transmissão para a Base).
   bool freeShopItem = false;
+
+  /// Cards removed at shops this run; each one raises the next removal's
+  /// price.
+  int shopRemovals = 0;
 
   final List<RelicDef> relics = [];
 
