@@ -94,19 +94,19 @@ class _CompendiumOverlayState extends State<CompendiumOverlay> {
     String label,
     bool selected,
     VoidCallback onTap, {
-    Color color = Pico.white,
+    Color color = Pico.darkBlue,
   }) => GestureDetector(
     onTap: () => _set(onTap),
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: selected ? Pico.eggplant : Pico.midnight,
+        color: selected ? Pico.blue : Pico.midnight,
         border: Border.all(
-          color: selected ? Pico.yellow : Pico.darkGray,
-          width: selected ? 1 : 0.5,
+          color: selected ? Pico.white : Pico.lavender,
+          width: selected ? 2 : 1,
         ),
       ),
-      child: Text(label, style: GbText.small.copyWith(color: color)),
+      child: Text(label, style: GbText.small.copyWith(color: selected ? Pico.darkBlue : Pico.white,)),
     ),
   );
 

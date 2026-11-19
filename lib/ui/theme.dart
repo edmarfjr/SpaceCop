@@ -87,13 +87,13 @@ Color rarityColor(Rarity rarity) => switch (rarity) {
 
 /// Card family: the first line of a card's description, on the dark box.
 Color familyColor(ChipFamily family) => switch (family) {
-  ChipFamily.projectile => Pico.black,//Pico.darkGray,
-  ChipFamily.explosive => Pico.black,//Pico.pumpkin,
-  ChipFamily.energy => Pico.black,//Pico.royal,
-  ChipFamily.melee => Pico.black,//Pico.red,
-  ChipFamily.equipment => Pico.black,//
-  ChipFamily.consumable => Pico.black,//Pico.green,
-  ChipFamily.tactical => Pico.black,//Pico.darkGreen,
+  ChipFamily.projectile => Pico.darkGray,
+  ChipFamily.explosive => Pico.pumpkin,
+  ChipFamily.energy => Pico.blue,
+  ChipFamily.melee => Pico.red,
+  ChipFamily.equipment => Pico.lavender,
+  ChipFamily.consumable => Pico.green,
+  ChipFamily.tactical => Pico.darkGreen,
 };
 
 List<Shadow> sombra = <Shadow>[

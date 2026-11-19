@@ -51,17 +51,17 @@ class _ChipCardViewState extends State<ChipCardView> {
   bool _focused = false;
 
   /// Size of the `chips/chip.png` frame, in its pixels.
-  static const _frame = Size(32, 48);
+  static const _frame = Size(36, 48);
 
   /// Regions of the frame, in its pixels: the name bar, the black art
   /// window, the cost (blue) and damage (red) circles, the element icon
   /// between them, and the description box.
-  static const _name = Rect.fromLTWH(3, 3.5, 26, 3);
+  static const _name = Rect.fromLTWH(5, 4, 26, 3);
  // static const _nameOutline = Rect.fromLTWH(2, 2, 28, 5);
-  static const _art = Rect.fromLTWH(5, 9, 22, 16);
+  static const _art = Rect.fromLTWH(7, 9, 22, 16);
   static const _left = Rect.fromLTWH(1, 8.5, 6, 6);
-  static const _right = Rect.fromLTWH(25, 8.5, 6, 6);
-  static const _description = Rect.fromLTWH(3, 28, 26, 17);
+  static const _right = Rect.fromLTWH(29, 8.5, 6, 6);
+  static const _description = Rect.fromLTWH(5, 28, 26, 17);
 
   @override
   Widget build(BuildContext context) {
@@ -100,9 +100,19 @@ class _ChipCardViewState extends State<ChipCardView> {
               maxLines: lines,
               style: TextStyle(
                 fontSize: size,
-                height: 1.05,
+                height: 1.0,
                 color: color ?? Pico.white,
                 fontWeight: lines == null ? FontWeight.bold : null,
+                shadows: <Shadow>[
+                          Shadow(offset: Offset(1, 1)*size*0.1),
+                          Shadow(offset: Offset(-1, 1)*size*0.1),
+                          Shadow(offset: Offset(1, -1)*size*0.1),
+                          Shadow(offset: Offset(-1, -1)*size*0.1),
+                          Shadow(offset: Offset(1, 0)*size*0.1),
+                          Shadow(offset: Offset(-1, 0)*size*0.1),
+                          Shadow(offset: Offset(0, 1)*size*0.1),
+                          Shadow(offset: Offset(0, -1)*size*0.1),
+                        ],
               ),
             ),
           ),
@@ -118,9 +128,10 @@ class _ChipCardViewState extends State<ChipCardView> {
           child: Stack(
             children: [
               SheetSprite(
-                sprite: def.upgraded
+                sprite: 
+                /*def.upgraded
                     ? widget.sprites.rarityCardEvo(def.rarity)
-                    : widget.sprites.rarityCard(def.rarity),
+                    :*/ widget.sprites.rarityCard(def.rarity),
                 scale: scale,
               ),
            /*   if (def.rarity != Rarity.common)
@@ -139,7 +150,7 @@ class _ChipCardViewState extends State<ChipCardView> {
               at(
                 _name,
                 Center(
-                  child: fitted(def.name, 2 * scale, color: Pico.darkBlue),
+                  child: fitted(def.name, 2.5 * scale, color:def.upgraded ? Pico.green : Pico.white),
                 ),
               ),
               at(
@@ -224,7 +235,7 @@ class _ChipCardViewState extends State<ChipCardView> {
 }
 
 /// Energy cost, top-left of the card.
-class _CostBadge extends StatelessWidget {
+/*class _CostBadge extends StatelessWidget {
   const _CostBadge({required this.cost, required this.size});
 
   final int cost;
@@ -246,4 +257,5 @@ class _CostBadge extends StatelessWidget {
       ),
     ),
   );
-}
+ 
+} */

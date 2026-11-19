@@ -662,15 +662,15 @@ class _GridPainter extends CustomPainter {
 /// Name and what a node holds, for the legend and a held node.
 (String, String) _describeNode(NodeType type, String bossName) =>
     switch (type) {
-      NodeType.battle => ('Batalha', 'Capangas. Dá Créditos e uma carta.'),
+      NodeType.battle => ('Batalha', 'Inimigos comuns. Dá Créditos e uma carta.'),
       NodeType.elite => (
         'Elite',
         'Inimigos fortes. Dá uma relíquia e cartas melhores.',
       ),
-      NodeType.event => ('Evento', 'Uma escolha, com ganho e custo.'),
-      NodeType.rest => ('Descanso', 'Recupera HP ou melhora uma carta.'),
-      NodeType.shop => ('Loja', 'Cartas, relíquias e remoção de carta.'),
-      NodeType.boss => ('Chefe', '$bossName. Fim do ato.'),
+      NodeType.event => ('Evento', 'Um evento aleatório.'),
+      NodeType.rest => ('Descanso', 'Descanse ou melhore seu arsenal.'),
+      NodeType.shop => ('Loja', 'Gaste seus creditos com produtos e serviços.'),
+      NodeType.boss => ('Chefe', '$bossName.'),
     };
 
 /// Same box as [HudIconButton], with a "?" that opens the legend.
