@@ -46,7 +46,7 @@ abstract final class Chips {
   static const shotgun = ChipDef(
     id: 'shotgun',
     name: 'Escopeta',
-    description: 'Acerta o alvo e a célula atrás dele.',
+    description: 'Acerta o alvo e o painel atrás.',
     cost: 1,
     family: ChipFamily.projectile,
     type: ChipType.attack,
@@ -67,6 +67,7 @@ abstract final class Chips {
     effect: ProjectileEffect(
       pattern: [GridPos(0, 0), GridPos(1, 1), GridPos(1, -1)],
     ),
+    fx: ChipFx.beam,
   );
 
   static const melta = ChipDef(
@@ -79,6 +80,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 10,
     effect: RowStrikeEffect.ahead(),
+    fx: ChipFx.beam,
   );
 
   static const missile = ChipDef(
@@ -106,7 +108,7 @@ abstract final class Chips {
   static const baton = ChipDef(
     id: 'baton',
     name: 'Cacetete',
-    description: 'Golpe frontal que atordoa por 2 s.',
+    description: 'Golpe frontal que atordoa por 3 s.',
     cost: 1,
     family: ChipFamily.melee,
     type: ChipType.attack,
@@ -114,7 +116,7 @@ abstract final class Chips {
     damage: 10,
     effect: MeleeEffect(
       pattern: [GridPos(1, 0)],
-      stunTicks: 2 * ticksPerSecond,
+      stunTicks: 3 * ticksPerSecond,
     ),
     pose: ChipPose.melee,
     fx: ChipFx.bolt,
@@ -144,15 +146,13 @@ abstract final class Chips {
     target: ChipTarget.self,
     damage: 15,
     effect: MeleeEffect(pattern: [GridPos(1, 0)], push: 1),
-    pose: ChipPose.melee,
+    pose: ChipPose.ombrada,
   );
 
   static const energyWhip = ChipDef(
     id: 'energy_whip',
     name: 'Chicote de Energia',
-    description:
-        'Golpeia os 2 painéis à frente e puxa quem '
-        'está no segundo.',
+    description: 'Acerta os 2 painéis à frente e puxa quem está no segundo.',
     cost: 1,
     family: ChipFamily.melee,
     rarity: Rarity.uncommon,
@@ -167,7 +167,7 @@ abstract final class Chips {
   static const seismicHammer = ChipDef(
     id: 'seismic_hammer',
     name: 'Martelo Sísmico',
-    description: 'Golpeia o painel à frente e o racha.',
+    description: 'Acerta o painel à frente e o racha.',
     cost: 2,
     family: ChipFamily.melee,
     rarity: Rarity.uncommon,
@@ -182,8 +182,7 @@ abstract final class Chips {
   static const grenade = ChipDef(
     id: 'grenade',
     name: 'Granada',
-    description:
-        'Lançada no 3º painel à frente: explode em cruz. Uso único.',
+    description: 'Atira no 3º painel à frente. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
@@ -198,7 +197,7 @@ abstract final class Chips {
     id: 'incendiary_grenade',
     name: 'Granada Incendiária',
     description:
-        'Lançada no 3º painel à frente: explode em cruz e o centro vira Lava. '
+        'Atira no 3º painel à frente: centro vira Lava. '
         'Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
@@ -215,9 +214,7 @@ abstract final class Chips {
   static const smokeGrenade = ChipDef(
     id: 'smoke_grenade',
     name: 'Granada de Fumaça',
-    description:
-        'Lançada no 3º painel à frente: explode em cruz e deixa Fumaça por '
-        '10 s. Uso único.',
+    description: 'Atira no 3º painel à frente: deixa Fumaça. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
@@ -231,16 +228,14 @@ abstract final class Chips {
   static const stunGrenade = ChipDef(
     id: 'stun_grenade',
     name: 'Granada Atordoante',
-    description:
-        'Lançada no 3º painel à frente: explode em cruz e atordoa  '
-        'por 2 s. Uso único.',
+    description: 'Atira no 3º painel à frente: atordoa. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 5,
-    effect: GrenadeEffect(stunTicks: 2 * ticksPerSecond),
+    effect: GrenadeEffect(stunTicks: 3 * ticksPerSecond),
     pose: ChipPose.toss,
     exhaust: true,
     fx: ChipFx.blast,
@@ -275,7 +270,7 @@ abstract final class Chips {
   static const energyDrink = ChipDef(
     id: 'energy_drink',
     name: 'Energético',
-    description: '+2 de Energia nesta mão.',
+    description: '+2 de Energia neste turno.',
     cost: 1,
     family: ChipFamily.tactical,
     type: ChipType.support,
@@ -301,7 +296,8 @@ abstract final class Chips {
   static const powerGenerator = ChipDef(
     id: 'power_generator',
     name: 'Gerador de Energia',
-    description: 'A carga carrega 20% mais rápido até o fim da luta. Uso único.',
+    description:
+        'A carga carrega 20% mais rápido até o fim da luta. Uso único.',
     cost: 2,
     family: ChipFamily.consumable,
     rarity: Rarity.rare,
@@ -336,6 +332,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 10,
     effect: PushEffect(1, status: Status.wet),
+    fx: ChipFx.beam,
   );
 
   static const crossFlame = ChipDef(
@@ -392,8 +389,7 @@ abstract final class Chips {
     id: 'mirror',
     name: 'Escudo Refletor',
     description:
-        'Escudo no seu painel por 5 s: devolve tiros inimigos com o dobro '
-        'do dano.',
+        'Escudo no seu painel por 5 s: devolve tiros inimigos com o dobro do dano.',
     cost: 2,
     family: ChipFamily.equipment,
     rarity: Rarity.uncommon,
@@ -420,8 +416,7 @@ abstract final class Chips {
     id: 'area_steal',
     name: 'Avanço',
     description:
-        'Rouba uma coluna inimiga, causa 5 de dano e empurra quem lá estiver.'
-        ,
+        'Rouba uma coluna inimiga, causa 5 de dano e empurra quem lá estiver.',
     cost: 2,
     family: ChipFamily.tactical,
     rarity: Rarity.rare,
@@ -435,8 +430,7 @@ abstract final class Chips {
   static const barricade = ChipDef(
     id: 'rock',
     name: 'Barricada',
-    description:
-        'Barricada de 40 HP à sua frente. Bloqueia tiros inimigos;',
+    description: 'Barricada de 40 HP à sua frente. Bloqueia tiros inimigos.',
     cost: 1,
     family: ChipFamily.equipment,
     type: ChipType.support,
@@ -474,13 +468,12 @@ abstract final class Chips {
   static const hook = ChipDef(
     id: 'hook',
     name: 'Gancho',
-    description:
-        'Puxa o primeiro alvo da linha para a frente e o atordoa por 2 s.',
+    description: 'Puxa o primeiro alvo da linha para a frente e o atordoa.',
     cost: 1,
     family: ChipFamily.tactical,
     type: ChipType.support,
     target: ChipTarget.row,
-    effect: PullEffect(stunTicks: 2 * ticksPerSecond),
+    effect: PullEffect(stunTicks: 3 * ticksPerSecond),
     pose: ChipPose.melee,
   );
 
@@ -488,8 +481,7 @@ abstract final class Chips {
     id: 'cryo_grenade',
     name: 'Criogranada',
     description:
-        'Lançada no 3º painel à frente: explode em cruz, molha quem for '
-        'atingido e congela o painél. Uso único.',
+        'Atira no 3º painel à frente: molha e centro congela. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -505,9 +497,7 @@ abstract final class Chips {
   static const emp = ChipDef(
     id: 'emp',
     name: 'Pulso EMP',
-    description:
-        'Lançado no 3º painel à frente: pulso em cruz que derruba escudos '
-        'por 3 s. Uso único.',
+    description: 'Atira no 3º painel à frente: derruba escudos. Uso único.',
     cost: 2,
     family: ChipFamily.energy,
     rarity: Rarity.uncommon,
@@ -536,9 +526,7 @@ abstract final class Chips {
   static const laserSight = ChipDef(
     id: 'laser_sight',
     name: 'Mira Laser',
-    description:
-        'Marca o primeiro inimigo da linha: por 5 s ele leva +5 de cada '
-        'acerto.',
+    description: 'Marca o primeiro alvo da linha.',
     cost: 0,
     family: ChipFamily.tactical,
     type: ChipType.support,
@@ -550,8 +538,7 @@ abstract final class Chips {
   static const overcharge = ChipDef(
     id: 'overcharge',
     name: 'Sobrecarga',
-    description:
-        'A próxima carta de Ataque conta 2 vezes na corrente.',
+    description: 'A próxima carta de Ataque conta 2 vezes na corrente.',
     cost: 1,
     family: ChipFamily.tactical,
     rarity: Rarity.uncommon,
@@ -564,8 +551,7 @@ abstract final class Chips {
   static const tractorBeam = ChipDef(
     id: 'tractor_beam',
     name: 'Feixe Trator',
-    description:
-        'Puxa 1 painel todos os inimigos da linha.',
+    description: 'Puxa 1 painel todos os inimigos da linha.',
     cost: 2,
     family: ChipFamily.tactical,
     rarity: Rarity.uncommon,
@@ -577,9 +563,7 @@ abstract final class Chips {
   static const teslaCoil = ChipDef(
     id: 'tesla_coil',
     name: 'Bobina Tesla',
-    description:
-        'Bobina de 30 HP na frente: dá um choque de 5 de dano de energia'
-        'no primeiro inimigo da linha a cada 1 s, por 8 s.',
+    description: 'Bobina de 30 HP na frente: causa 5 de dano de energia.',
     cost: 2,
     family: ChipFamily.equipment,
     rarity: Rarity.uncommon,
@@ -592,9 +576,7 @@ abstract final class Chips {
   static const overclock = ChipDef(
     id: 'overclock',
     name: 'Overclock',
-    description:
-        'A próxima carta é usada 2 vezes; a segunda não gasta Energia. Uso '
-        'único.',
+    description: 'A próxima carta é usada 2 vezes. Uso único.',
     cost: 1,
     family: ChipFamily.consumable,
     rarity: Rarity.rare,
@@ -609,8 +591,7 @@ abstract final class Chips {
     id: 'sniper',
     name: 'Rifle de Precisão',
     description:
-        'Dispare um projetil; +15 se o alvo estiver na coluna do '
-        'fundo.',
+        'Dispare um projetil; +15 se o alvo estiver na coluna do fundo.',
     cost: 2,
     family: ChipFamily.projectile,
     rarity: Rarity.rare,
@@ -650,21 +631,21 @@ abstract final class Chips {
   static const tranqDart = ChipDef(
     id: 'tranq_dart',
     name: 'Dardo Tranquilizante',
-    description: 'Dispare um projetil que atordoa o alvo por 1 s.',
+    description: 'Dispare um projetil que atordoa o alvo.',
     cost: 1,
     family: ChipFamily.projectile,
     rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 5,
-    effect: StatusShotEffect(Status.stunned, ticksPerSecond),
+    effect: StatusShotEffect(Status.stunned, 2 * ticksPerSecond),
   );
 
   static const fragGrenade = ChipDef(
     id: 'frag_grenade',
     name: 'Granada Frag.',
     description:
-        'Lançada no 3º painel à frente: explode num quadrado 3x3. Uso único.',
+        'Atira no 3º painel à frente: explode num quadrado 3x3. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -679,8 +660,7 @@ abstract final class Chips {
   static const mortar = ChipDef(
     id: 'mortar',
     name: 'Morteiro',
-    description:
-        'Bombardeia a coluna do fundo inteira. Uso único.',
+    description: 'Bombardeia a coluna do fundo. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     type: ChipType.attack,
@@ -698,9 +678,7 @@ abstract final class Chips {
   static const fissureBomb = ChipDef(
     id: 'fissure_bomb',
     name: 'Bomba de Fissura',
-    description:
-        'Lançada no 3º painel à frente: explode e racha a coluna. '
-        'Uso único.',
+    description: 'Atira no 3º painel à frente: racha a coluna. Uso único.',
     cost: 1,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -716,8 +694,7 @@ abstract final class Chips {
     id: 'fusion_laser',
     name: 'Laser de Fusão',
     description:
-        'Laser que atravessa toda a linha; o painel do primeiro '
-        'alvo vira Lava.',
+        'Laser que atravessa toda a linha; o painel do primeiro alvo vira Lava.',
     cost: 2,
     family: ChipFamily.energy,
     rarity: Rarity.uncommon,
@@ -731,8 +708,7 @@ abstract final class Chips {
   static const freezeRay = ChipDef(
     id: 'freeze_ray',
     name: 'Raio Congelante',
-    description:
-        'Raio que molha o alvo e congela seu painél',
+    description: 'Raio que molha o alvo e congela seu painél',
     cost: 1,
     family: ChipFamily.energy,
     rarity: Rarity.uncommon,
@@ -843,13 +819,14 @@ abstract final class Chips {
   static const stimulant = ChipDef(
     id: 'stimulant',
     name: 'Estimulante',
-    description: '+3 de Energia nesta mão. Uso único.',
+    description: '+3 de Energia neste turno. Uso único.',
     cost: 1,
     family: ChipFamily.consumable,
     type: ChipType.support,
     target: ChipTarget.self,
     effect: EnergyBurstEffect(3),
     exhaust: true,
+    pose: ChipPose.toss,
   );
 
   static const specialAmmo = ChipDef(
@@ -877,18 +854,19 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: StatusAllEffect(Status.marked, 3 * ticksPerSecond),
+    pose: ChipPose.toss,
   );
 
   static const jammer = ChipDef(
     id: 'jammer',
     name: 'Interferência',
-    description: 'Atordoa todos os inimigos por 1 s.',
+    description: 'Atordoa todos os inimigos por 2 s.',
     cost: 1,
     family: ChipFamily.tactical,
     rarity: Rarity.uncommon,
     type: ChipType.support,
     target: ChipTarget.self,
-    effect: StatusAllEffect(Status.stunned, ticksPerSecond),
+    effect: StatusAllEffect(Status.stunned, 2 * ticksPerSecond),
     fx: ChipFx.glitch,
   );
 
@@ -903,7 +881,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     damage: 20,
     effect: DashEffect(MeleeEffect(pattern: [GridPos(1, 0)])),
-    pose: ChipPose.melee,
+    pose: ChipPose.ombrada,
   );
 
   static const medicDrone = ChipDef(
@@ -975,15 +953,13 @@ abstract final class Chips {
   static const resonance = ChipDef(
     id: 'resonance',
     name: 'Pulso Ressonante',
-    description:
-        'Acerta o primeiro inimigo da linha: dano × a posição na corrente '
-        '(1ª, 2ª ou 3ª carta), além do bônus normal da corrente.',
+    description: 'Projetil de energia: dano extra pela posição na corrente.',
     cost: 1,
     family: ChipFamily.energy,
     rarity: Rarity.uncommon,
     type: ChipType.attack,
     target: ChipTarget.row,
-    damage: 5,
+    damage: 10,
     effect: ChainScaleEffect(),
     fx: ChipFx.rings,
     pose: ChipPose.toss,
@@ -993,8 +969,7 @@ abstract final class Chips {
     id: 'wildcard',
     name: 'Coringa',
     description:
-        'A próxima carta de Ataque conta como da família da corrente atual.'
-        ,
+        'A próxima carta de Ataque conta como da família da corrente atual.',
     cost: 1,
     family: ChipFamily.tactical,
     rarity: Rarity.rare,
@@ -1021,8 +996,7 @@ abstract final class Chips {
   static const ricochet = ChipDef(
     id: 'ricochet',
     name: 'Ricochete',
-    description:
-        'Atira um projétil que rebate em um alvo aleatório.',
+    description: 'Atira um projétil que rebate em um alvo aleatório.',
     cost: 1,
     family: ChipFamily.projectile,
     rarity: Rarity.uncommon,
@@ -1130,8 +1104,7 @@ abstract final class Chips {
     id: 'spear',
     name: 'Lança',
     description:
-        'Projétil que empurra o alvo 1 painel. A lança '
-        'crava no painel por 8 s e bloqueando movimentos inimigos.',
+        'Lança que empurra o alvo e crava no chão bloqueando movimentos inimigos.',
     cost: 1,
     family: ChipFamily.projectile,
     rarity: Rarity.uncommon,
@@ -1145,21 +1118,22 @@ abstract final class Chips {
 
   static const energyCannon = ChipDef(
     id: 'energy_cannon',
-    name: 'Canhão',
-    description: 'Dispara um tiro de energia em linha reta.',
+    name: 'Canhão de braço',
+    description: 'Projetil de energia.',
     cost: 1,
     family: ChipFamily.energy,
     type: ChipType.attack,
     target: ChipTarget.row,
     damage: 15,
     effect: ProjectileEffect(),
+    fx: ChipFx.beam,
   );
 
   static const polearm = ChipDef(
     id: 'polearm',
     name: 'Arma de Haste',
     description:
-        'Golpeia os 2 painéis à frente na sua linha que empurra o alvo que estiver no segundo painel.',
+        'Golpeia os 2 painéis à frente e empurra o alvo que estiver no segundo painel.',
     cost: 1,
     family: ChipFamily.melee,
     rarity: Rarity.uncommon,
@@ -1195,6 +1169,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: NoEffect(),
+    pose: ChipPose.toss,
   );
 
   /// Curse from the act 3 events: hurts when drawn.
@@ -1221,8 +1196,7 @@ abstract final class Chips {
     id: 'execution_shot',
     name: 'Tiro de Execução',
     description:
-        'Dispara um projetil; +20 de dano se o alvo estiver abaixo de '
-        '30% da vida.',
+        'Dispara um projetil; +20 de dano se o alvo estiver abaixo de 30% da vida.',
     cost: 1,
     family: ChipFamily.projectile,
     rarity: Rarity.uncommon,
@@ -1236,8 +1210,7 @@ abstract final class Chips {
     id: 'stacking_round',
     name: 'Tiro Contínuo',
     description:
-        'Dispara um projetil. Cada uso nesta luta aumenta o dano em +5 '
-        'em todas as copias desta carta.',
+        'Dispara um projetil. +5 de dano em todas as copias desta carta.',
     cost: 1,
     family: ChipFamily.projectile,
     type: ChipType.attack,
@@ -1264,8 +1237,7 @@ abstract final class Chips {
     id: 'conductor',
     name: 'Condutor',
     description:
-        'Dispara um projetil de energia; se o alvo estiver Molhado, o '
-        'choque passa para todos os alvos molhados.',
+        'Projetil de energia; se o alvo estiver Molhado, salta para todos os alvos molhados.',
     cost: 2,
     family: ChipFamily.energy,
     rarity: Rarity.uncommon,
@@ -1289,6 +1261,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 10,
     effect: AnchorEffect(3 * ticksPerSecond),
+    fx: ChipFx.beam,
   );
 
   static const networkSurge = ChipDef(
@@ -1336,9 +1309,7 @@ abstract final class Chips {
     id: 'gravity_grenade',
     name: 'Granada Grav.',
     description:
-        'Lançada no 3º painel à frente: explode em cruz e atrai os alvos '
-        'para o centro. '
-        'Uso único.',
+        'Atira no 3º painel à frente: atrai os alvos para o centro. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.rare,
@@ -1355,8 +1326,7 @@ abstract final class Chips {
     id: 'parry',
     name: 'Aparar',
     description:
-        'Por 3 s, previne o próximo dano que você levaria e golpeia o '
-        'primeiro inimigo da sua linha.',
+        'Por 3 s, repele o proximo ataque no primeiro inimigo da sua linha.',
     cost: 1,
     family: ChipFamily.melee,
     rarity: Rarity.uncommon,
@@ -1560,11 +1530,7 @@ abstract final class Chips {
     for (final up in [
       _up(shot, damage: 10),
       _up(cannon, damage: 25),
-      _up(
-        smg,
-        description: 'Rajada de 4 tiros na linha.',
-        effect: const BurstEffect(4),
-      ),
+      _up(smg, description: 'Rajada de 4 tiros.', effect: const BurstEffect(4)),
       _up(shotgun, damage: 15),
       _up(vShot, damage: 15),
       _up(melta, damage: 15),
@@ -1572,8 +1538,8 @@ abstract final class Chips {
       _up(
         baton,
         damage: 15,
-        description: 'Golpeia os 3 painéis à frente e atordoa por 3 s.',
-        effect: const MeleeEffect(stunTicks: 3 * ticksPerSecond),
+        description: 'Golpeia a coluna à frente e atordoa por 4 s.',
+        effect: const MeleeEffect(stunTicks: 4 * ticksPerSecond),
       ),
       _up(sword, damage: 30),
       _up(shoulderBash, damage: 20),
@@ -1583,16 +1549,13 @@ abstract final class Chips {
       _up(incendiaryGrenade, damage: 25),
       _up(
         stunGrenade,
-        description:
-            'Lançada no 3º painel à frente: explode em cruz e atordoa quem '
-            'for atingido por 3 s. Fora do centro, metade do dano. Uso único.',
-        effect: const GrenadeEffect(stunTicks: 3 * ticksPerSecond),
+        description: 'Atira no 3º painel à frente: atordoa por 4 s. Uso único.',
+        effect: const GrenadeEffect(stunTicks: 4 * ticksPerSecond),
       ),
       _up(
         smokeGrenade,
         description:
-            'Lançada no 3º painel à frente: explode em cruz e deixa Fumaça '
-            'por 15 s. Quem está na Fumaça não ataca. Fora do centro, metade do dano. Uso único.',
+            'Atira no 3º painel à frente: deixa Fumaça por 15 s. Uso único.',
         effect: const GrenadeEffect(smokeTicks: 15 * ticksPerSecond),
       ),
       _up(
@@ -1610,7 +1573,7 @@ abstract final class Chips {
       _up(
         powerGenerator,
         description:
-            'O gauge enche 30% mais rápido até o fim da luta. Uso único.',
+            'A carga carrega 30% mais rápido até o fim da luta. Uso único.',
         effect: const GaugeSpeedEffect(30),
       ),
       _up(cracker, damage: 30),
@@ -1630,8 +1593,7 @@ abstract final class Chips {
       _up(
         mirror,
         description:
-            'Escudo no seu painel por 8 s: devolve tiros inimigos com o '
-            'dobro do dano.',
+            'Escudo no seu painel por 8 s: devolve tiros inimigos com o dobro do dano.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.reflector,
           amount: 8 * ticksPerSecond,
@@ -1641,16 +1603,13 @@ abstract final class Chips {
       _up(
         areaSteal,
         description:
-            'Empurra a área neutra 1 coluna para a frente por 15 s. Quem '
-            'estiver na coluna tomada leva 10 e é empurrado. Usar de novo soma '
-            'o tempo.',
+            'Rouba uma coluna inimiga, causa 10 de dano e empurra quem lá estiver.',
         effect: const AreaStealEffect(15 * ticksPerSecond, hitDamage: 10),
       ),
       _up(
         barricade,
         description:
-            'Barricada de 60 HP à sua frente. Bloqueia tiros inimigos; '
-            'dá para andar por ela.',
+            'Barricada de 60 HP à sua frente. Bloqueia tiros inimigos.',
         effect: const SpawnObstacleEffect(ObstacleKind.barricade, amount: 60),
       ),
       _up(
@@ -1672,24 +1631,19 @@ abstract final class Chips {
       _up(neuralVine, damage: 25),
       _up(
         laserSight,
-        description:
-            'Marca o primeiro inimigo da linha: por 8 s ele leva +5 de cada '
-            'acerto.',
+        description: 'Marca o primeiro alvo da linha por 8 s.',
         effect: const StatusShotEffect(Status.marked, 8 * ticksPerSecond),
       ),
       _up(overcharge, cost: 0),
       _up(
         tractorBeam,
-        description:
-            'Puxa 2 painéis todos os inimigos da sua linha. Quem bater em '
-            'algo sofre colisão.',
+        description: 'Puxa 2 painéis todos os inimigos da linha.',
         effect: const TractorEffect(steps: 2),
       ),
       _up(
         teslaCoil,
         description:
-            'Bobina de 30 HP na frente do seu lado: dá um choque de 5 '
-            'de dano no primeiro inimigo da linha a cada 1 s, por 12 s.',
+            'Bobina de 30 HP na frente: causa 5 de dano de energia por 12 s.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.tesla,
           amount: 12 * ticksPerSecond,
@@ -1701,8 +1655,8 @@ abstract final class Chips {
       _up(piercingShot, damage: 18),
       _up(
         tranqDart,
-        description: 'Acerta o primeiro inimigo da linha e o atordoa por 2 s.',
-        effect: const StatusShotEffect(Status.stunned, 2 * ticksPerSecond),
+        description: 'Dispare um projetil que atordoa o alvo por 4 s.',
+        effect: const StatusShotEffect(Status.stunned, 4 * ticksPerSecond),
       ),
       _up(fragGrenade, damage: 20),
       _up(mortar, damage: 30),
@@ -1717,8 +1671,8 @@ abstract final class Chips {
       _up(
         fireTurret,
         description:
-            'Torre de 30 HP que atira 5 de dano a cada 2 s por 15 s; quem é '
-            'atingido fica Queimando.',
+            'Torre de 30 HP que causa 5 de dano a cada 2 s por 15 s; '
+            'alvos são incendiados.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.turret,
           amount: 15 * ticksPerSecond,
@@ -1736,7 +1690,7 @@ abstract final class Chips {
       ),
       _up(
         stimulant,
-        description: '+4 de Energia nesta mão. Uso único.',
+        description: '+4 de Energia neste turno. Uso único.',
         effect: const EnergyBurstEffect(4),
       ),
       _up(
@@ -1778,7 +1732,7 @@ abstract final class Chips {
         effect: const SelfStatusEffect(Status.regen, 20 * ticksPerSecond),
       ),
       _up(tacticalReload, cost: 0),
-      _up(resonance, damage: 7),
+      _up(resonance, damage: 15),
       _up(wildcard, cost: 0),
       _up(ricochet, damage: 15),
       _up(voltaicArc, damage: 15),
@@ -1789,8 +1743,7 @@ abstract final class Chips {
       _up(
         stackingRound,
         description:
-            'Acerta o primeiro inimigo da linha. Cada uso nesta luta soma +8 '
-            'em todas as copias desta carta.',
+            'Dispara um projetil. +8 de dano em todas as copias desta carta.',
         effect: const StackingShotEffect(8),
       ),
       _up(staticDischarge, damage: 15),
@@ -1805,7 +1758,7 @@ abstract final class Chips {
       _up(vampireBlade, damage: 20),
       _up(
         ammoKit,
-        description: 'Põe 3 Tiros Rápidos na mão, só nesta luta. Uso único.',
+        description: 'Põe 3 Tiros Rápidos na mão, nesta luta. Uso único.',
         effect: const AddCardsEffect('shot', 3),
       ),
       _up(recycleCapsule, cost: 0),
@@ -1823,7 +1776,7 @@ abstract final class Chips {
       _up(
         chargePad,
         description:
-            'Seu painel enche o gauge 50% mais rápido enquanto você estiver '
+            'Seu painel enche a carga 50% mais rápido enquanto você estiver '
             'nele, por 15 s.',
         effect: const ChargePadEffect(15 * ticksPerSecond),
       ),
@@ -1835,8 +1788,7 @@ abstract final class Chips {
       ),
       _up(
         hologram,
-        description:
-            'Isca de 40 HP no seu painel por 8 s: os inimigos miram nela.',
+        description: 'Isca de 40 HP no seu painel por 8 s: Atrai inimigos.',
         effect: const SpawnObstacleEffect(
           ObstacleKind.decoy,
           amount: 8 * ticksPerSecond,
@@ -1845,8 +1797,8 @@ abstract final class Chips {
       _up(
         assistedAim,
         description:
-            'Os 2 próximos tiros caem direto no inimigo com menos vida, em '
-            'qualquer linha.',
+            'Os 2 próximos tiros acertam o alvo com menos vida, em qualquer '
+            'linha.',
         effect: const HomingEffect(2),
       ),
       _up(
@@ -2100,8 +2052,7 @@ abstract final class Chips {
     ),
     StarterDeck(
       name: 'Corpo-a-corpo',
-      tagline:
-          'Enfrente seus inimigos cara a cara.',
+      tagline: 'Enfrente seus inimigos cara a cara.',
       cards: [
         (dagger, 2),
         (baton, 2),

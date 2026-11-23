@@ -734,7 +734,7 @@ List<_Chapter> _book() => [
     for (final page in _chunks(_events, 4))
       (s) => _grid([for (final e in page) _eventEntry(s, e)]),
   ]),
-  _Chapter('Cartas', [
+  /*  _Chapter('Cartas', [
     for (final page in _chunks(Chips.all, 4))
       (s) => _grid([for (final def in page) _cardEntry(s, def)]),
   ]),
@@ -757,6 +757,7 @@ List<_Chapter> _book() => [
           ],
         ),
   ]),
+  */
   _Chapter('Dicas', [
     (s) => _spread(SheetSprite(sprite: s.playerAttack, scale: 3), [
       '*Saia da linha* quando o sinal piscar.',

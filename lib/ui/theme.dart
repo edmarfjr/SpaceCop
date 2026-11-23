@@ -87,25 +87,25 @@ Color rarityColor(Rarity rarity) => switch (rarity) {
 
 /// Card family: the first line of a card's description, on the dark box.
 Color familyColor(ChipFamily family) => switch (family) {
-  ChipFamily.projectile => Pico.darkGray,
+  ChipFamily.projectile => Pico.lavender,
   ChipFamily.explosive => Pico.pumpkin,
   ChipFamily.energy => Pico.blue,
   ChipFamily.melee => Pico.red,
-  ChipFamily.equipment => Pico.lavender,
+  ChipFamily.equipment => Pico.white,
   ChipFamily.consumable => Pico.green,
   ChipFamily.tactical => Pico.darkGreen,
 };
 
 List<Shadow> sombra = <Shadow>[
-                          Shadow(offset: Offset(1, 1)*0.5),
-                          Shadow(offset: Offset(-1, 1)*0.5),
-                          Shadow(offset: Offset(1, -1)*0.5),
-                          Shadow(offset: Offset(-1, -1)*0.5),
-                          Shadow(offset: Offset(1, 0)*0.5),
-                          Shadow(offset: Offset(-1, 0)*0.5),
-                          Shadow(offset: Offset(0, 1)*0.5),
-                          Shadow(offset: Offset(0, -1)*0.5),
-                        ]; 
+  Shadow(offset: Offset(1, 1) * 0.5),
+  Shadow(offset: Offset(-1, 1) * 0.5),
+  Shadow(offset: Offset(1, -1) * 0.5),
+  Shadow(offset: Offset(-1, -1) * 0.5),
+  Shadow(offset: Offset(1, 0) * 0.5),
+  Shadow(offset: Offset(-1, 0) * 0.5),
+  Shadow(offset: Offset(0, 1) * 0.5),
+  Shadow(offset: Offset(0, -1) * 0.5),
+];
 
 /// PET window, the sci-fi box of the battle HUD: [Pico.midnight] inside, a
 /// [Pico.royal] frame and two cut corners.

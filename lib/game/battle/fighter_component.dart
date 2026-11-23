@@ -51,27 +51,54 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     return f is PlayerFighter && f.attackCooldown > 0;
   }
 
-  /// The melee card's weapon in the fist of the swing frame, outside the
-  /// clip since it reaches past the sprite.
-  void _drawWeapon(Canvas canvas) {
+  /// The card's weapon or gun in the fist of the attack frame, outside the
+  /// clip since it reaches past the sprite. Its left edge, middle row,
+  /// sits on the fist.
+  void _drawHeld(Canvas canvas) {
     final f = fighter;
-    if (f is! PlayerFighter || !_attacking || f.pose != ChipPose.melee) return;
-    final weapon = switch (f.lastChip) {
-      final def? => sprites.weapon(def),
+    if (f is! PlayerFighter || !_attacking) return;
+    final fist = _fists[f.pose];
+    final held = switch (f.lastChip) {
+      final def? => sprites.held(def),
       null => null,
     };
-    if (weapon == null) return;
-    final grip = (weapon.srcSize.y ~/ 2).toDouble();
-    weapon.render(
+    if (fist == null || held == null) return;
+    held.render(
       canvas,
-      position: (_fist - Vector2(0, grip)) * _scale,
-      size: weapon.srcSize * _scale,
+      position: _heldOrigin(fist, held) * _scale,
+      size: held.srcSize * _scale,
       overridePaint: _flashing ? _hurtPaint : null,
     );
   }
 
-  /// The fist in the player's swing frame, in art pixels.
-  static final _fist = Vector2(22, 9);
+  /// Top-left corner of a held sprite gripped at [fist], in art pixels.
+  static Vector2 _heldOrigin(Vector2 fist, Sprite held) =>
+      fist - Vector2(0, (held.srcSize.y ~/ 2).toDouble());
+
+  /// The tip of the gun in hand, in art pixels; null when firing without
+  /// one.
+  Vector2? get _barrelTip {
+    final f = fighter;
+    if (f is! PlayerFighter) return null;
+    final fist = _fists[f.pose];
+    final def = f.lastChip;
+    if (fist == null || def == null) return null;
+    final gun = sprites.held(def);
+    final tip = sprites.barrelTip(def);
+    if (gun == null || tip == null) return null;
+    return _heldOrigin(fist, gun) + tip;
+  }
+
+  /// The flash's own pixel that touches the barrel: its left edge, on the
+  /// row of the burst's point.
+  static final _muzzleRoot = Vector2(0, 3);
+
+  /// The fist in each attack frame that holds something, in art pixels.
+  /// A pose with a held sprite in `SpriteFiles.held` needs its fist here.
+  static final _fists = <ChipPose, Vector2>{
+    ChipPose.melee: Vector2(22, 9),
+    ChipPose.shoot: Vector2(15, 9),
+  };
 
   /// Firing gets the muzzle flash; swings and tosses don't.
   bool get _shooting {
@@ -223,8 +250,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
         stage: stage,
         pose: pose,
       ),
-      _ when _shooting => sprites.playerAttack,
-      _ when _attacking => sprites.playerMelee,
+      PlayerFighter(:final pose) when _attacking => sprites.playerPose(pose),
       _ => _idleSprite,
     };
     // Digging in or climbing out: the sprite slides below its feet line.
@@ -249,7 +275,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     );
     if (_isDecoy) _scanlines(canvas);
     canvas.restore();
-    _drawWeapon(canvas);
+    _drawHeld(canvas);
     // Energy shield: the player's barrier, or an enemy nothing can hurt.
     final shielded = switch (fighter) {
       PlayerFighter(:final barrierTicks) => barrierTicks > 0,
@@ -312,10 +338,14 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
           _lifeFill,
         );
     }
+    // From the gun's tip, or in front of the bare hand without one.
     if (_shooting) {
+      final tip = _barrelTip;
       sprites.muzzle.render(
         canvas,
-        position: Vector2(size.x - 5, 11),
+        position: tip == null
+            ? Vector2(size.x - 5, 11)
+            : (tip - _muzzleRoot) * _scale,
         size: sprites.muzzle.srcSize * _scale,
       );
     }
@@ -338,8 +368,9 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     }
     // Obstacles show their life as a number; a Lança has none worth
     // showing.
-    if (fighter case Obstacle(:final kind)
-        when kind != ObstacleKind.spear && kind != ObstacleKind.dynamite) {
+    if (fighter case Obstacle(
+      :final kind,
+    ) when kind != ObstacleKind.spear && kind != ObstacleKind.dynamite) {
       _hpText.render(
         canvas,
         '${fighter.hp}',

@@ -387,6 +387,8 @@ class DiggerBehavior extends EnemyBehavior {
           ..hidden = false
           ..buried = 1
           ..timer = digTicks;
+        // It surfaces by teleporting, not stepping: set off what's there.
+        battle.setOffMines(enemy);
       case _climbingOut:
         enemy
           ..stage = _up

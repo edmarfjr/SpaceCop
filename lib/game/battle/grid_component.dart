@@ -82,7 +82,7 @@ class GridComponent extends PositionComponent {
               .render(
                 canvas,
                 position: cellCenter(pos),
-                size: Vector2.all(16),
+                size: Vector2.all(32),
                 anchor: Anchor.center,
                 overridePaint: _mine,
               );
@@ -96,13 +96,13 @@ class GridComponent extends PositionComponent {
           final pulse = _clock * 4 % 2 < 1;
           canvas
             ..drawOval(
-              Rect.fromCenter(center: center, width: 30, height: 18), 
+              Rect.fromCenter(center: center, width: 30, height: 18),
               _pad
                 ..style = PaintingStyle.fill
                 ..color = Pico.green.withValues(alpha: pulse ? 0.35 : 0.2),
             )
             ..drawOval(
-              Rect.fromCenter(center: center, width: 30, height: 18), 
+              Rect.fromCenter(center: center, width: 30, height: 18),
               _pad
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = 2

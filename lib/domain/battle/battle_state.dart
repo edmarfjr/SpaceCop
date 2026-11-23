@@ -1604,6 +1604,10 @@ class BattleState {
         }
         final back =
             far.x == gridColumns - 1 && _targetAt(far, Team.enemy) != null;
+        if (def.fx == ChipFx.beam) {
+          // Until the shot has crossed the row.
+          beams.add(Beam(gridColumns + 2, element: def.tint));
+        }
         _fire(
           def,
           back ? damage + farBonus : damage,
@@ -1770,6 +1774,7 @@ class BattleState {
                 family: def.family,
               ),
               Team.enemy,
+              carrier: victim,
             );
           });
         }
@@ -2409,13 +2414,22 @@ class BattleState {
       }
     }
     unit.pos = to;
-    for (final cell in into) {
+    setOffMines(unit, skip: from);
+  }
+
+  /// Sets off the mines under [unit], except on the [skip] cells it was
+  /// already covering. Each mine is cleared before it hurts, so it can only
+  /// go off once. The blast comes from below ([pointBlank]): it reaches
+  /// units hidden or burrowed underground, which nothing else can hit.
+  void setOffMines(Fighter unit, {Iterable<GridPos> skip = const []}) {
+    for (final cell in _cellsAt(unit, unit.pos)) {
+      if (skip.contains(cell) || !cell.inBounds) continue;
       final panel = panelAt(cell);
-      if (from.contains(cell) || !panel.mine) continue;
+      if (!panel.mine) continue;
       final amount = panel.mineDamage;
       panel.mineDamage = 0;
       flashes.add(HitFlash(cell));
-      damage(unit, amount);
+      damage(unit, amount, pointBlank: true);
     }
   }
 
@@ -2651,6 +2665,11 @@ class BattleState {
   ///   hit;
   /// - the card [family] against the enemy's kind ([_kindMultiplier]); a
   ///   phased Etéreo lets it through, and an Explosivo makes it solid.
+  ///
+  /// [pointBlank] marks a blast on the unit itself (a mine it set off, a
+  /// Carga C4 stuck on it): it reaches [EnemyFighter.hidden] and [EnemyFighter.burrowed]
+  /// units, which stay hidden or burrowed. Targeting is untouched: they
+  /// still can't be picked or hit by anything else.
   void damage(
     Fighter target,
     int amount, {
@@ -2658,9 +2677,10 @@ class BattleState {
     ChipFamily? family,
     HitKind kind = HitKind.area,
     Projectile? shot,
+    bool pointBlank = false,
   }) {
     if (target is EnemyFighter) {
-      if (target.invulnerable || target.hidden) return;
+      if (target.invulnerable || (target.hidden && !pointBlank)) return;
       if (target.linkedTo case final body?) {
         damage(
           body,
@@ -2702,6 +2722,7 @@ class BattleState {
     var total = amount;
     if (target is EnemyFighter &&
         target.burrowed &&
+        !pointBlank &&
         family != ChipFamily.explosive) {
       events.add(BattleEvent(BattleEventKind.blocked, unit: target));
       return;
@@ -3005,7 +3026,11 @@ class BattleState {
 
   /// Damage is applied once, on the impact tick, only to the opposing team
   /// and neutral units.
-  void _impact(Projectile shot, Team opponent) {
+  ///
+  /// A [carrier] (the enemy a Carga C4 is stuck on) takes the center cell
+  /// even hidden or burrowed: the bomb is on it, not aimed at it. Hidden, it
+  /// takes only the damage, no status or on-hit effect.
+  void _impact(Projectile shot, Team opponent, {Fighter? carrier}) {
     if (_shotTargetAt(shot.pos, opponent) case final Obstacle reflector
         when reflector.kind == ObstacleKind.reflector) {
       _reflect(reflector, shot);
@@ -3028,9 +3053,15 @@ class BattleState {
         _ => HitFlash(cell),
       });
       final straight = offset == const GridPos(0, 0);
-      final target = _targetAt(cell, opponent);
+      final pointBlank =
+          straight &&
+          carrier != null &&
+          !carrier.isDead &&
+          carrier.occupies(cell);
+      final target = pointBlank ? carrier : _targetAt(cell, opponent);
       if (target != null && struck.add(target)) {
-        final through = _passesThrough(target, shot.family);
+        final through =
+            _passesThrough(target, shot.family) || target.hidden;
         final execute = switch (shot.onHit) {
           ExecuteEffect(:final threshold, :final bonus)
               when straight && target.hp < target.maxHp * threshold =>
@@ -3048,6 +3079,7 @@ class BattleState {
           family: shot.family,
           kind: straight ? HitKind.straight : HitKind.spread,
           shot: shot,
+          pointBlank: pointBlank,
         );
         if (!through) {
           if (shot.status case final status?) {

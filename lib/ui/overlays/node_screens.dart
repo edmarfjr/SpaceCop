@@ -1666,38 +1666,44 @@ class _ShowcasePainter extends CustomPainter {
     switch (style) {
       case _DeckAttack.shoot:
         _draw(canvas, sprites.playerAttack, Offset.zero);
-        // The flash only for the first moments of the shot.
-        if (t < 0.65) _draw(canvas, sprites.muzzle, const Offset(21, 5.0));
+        final gun = sprites.held(Chips.cannon)!;
+        final gunAt = _fist - Offset(8, (gun.src.height ~/ 2).toDouble());
+        _draw(canvas, gun, gunAt);
+        // The flash only for the first moments of the shot, from the tip.
+        final tip = sprites.barrelTip(Chips.cannon)!;
+        if (t < 0.65) {
+          _draw(canvas, sprites.muzzle, gunAt + Offset(tip.x, tip.y - 3));
+        }
       case _DeckAttack.melee:
-        final dagger = sprites.weapon(Chips.dagger)!;
+        final dagger = sprites.held(Chips.dagger)!;
         _draw(
           canvas,
           dagger,
-          _fist - Offset(1, (dagger.src.height ~/ 2).toDouble()),
+          _fist - Offset(1, (dagger.src.height ~/ 2).toDouble() - 1),
         );
-        if (t < 0.65){
+        if (t < 0.65) {
           final cut = sprites.cut;
-          _draw(
-            canvas,
-            cut,
-            _fist - Offset(-3, 13),
-          );
+          _draw(canvas, cut, _fist - Offset(-3, 13));
         }
-        
+
         _draw(canvas, sprites.playerMelee, Offset.zero);
       case _DeckAttack.laser:
         _draw(canvas, sprites.playerAttack, Offset.zero);
+        final gun = sprites.held(Chips.energyCannon)!;
+        final gunAt = _fist - Offset(8, (gun.src.height ~/ 2).toDouble());
+        _draw(canvas, gun, gunAt);
         // Swells in, flickers, thins out, like the battle's beams.
         final age = (t - 0.5) / 0.5;
         final swell = min(1.0, min(age, 1 - age) * 6 + 0.2);
         final flicker = (t * 40).floor().isEven ? 0.5 : 0.0;
         final end = _DeckShowcase.box.width + _left;
+        final begin = _hand + Offset(4, 2);
         for (final (i, (paint, half)) in _beam.indexed) {
           final h = (half + (i < 2 ? flicker : 0)) * swell;
           canvas
-            ..drawCircle(_hand, h, paint)
+            ..drawCircle(begin, h, paint)
             ..drawRect(
-              Rect.fromLTRB(_hand.dx, _hand.dy - h, end, _hand.dy + h),
+              Rect.fromLTRB(begin.dx, begin.dy - h, end, begin.dy + h),
               paint,
             );
         }

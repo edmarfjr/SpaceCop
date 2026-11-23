@@ -293,6 +293,52 @@ abstract final class SpriteFiles {
     Chips.polearm.id: 'weapons/polearm.png',
   };
 
+  /// Gun in hand while firing a shoot card, pointing forward. Same rule
+  /// as [weapons]: the left edge, middle row, sits on the player's fist.
+  static final guns = <String, String>{
+    Chips.shot.id: 'weapons/pistola.png',
+    Chips.cannon.id: 'weapons/revolver.png',
+    Chips.melta.id: 'weapons/melta.png',
+    Chips.vShot.id: 'weapons/plasma.png',
+    Chips.shotgun.id: 'weapons/shotgun.png',
+    Chips.smg.id: 'weapons/smg.png',
+    // Revolver until each card gets its own gun.
+    Chips.missile.id: 'weapons/revolver.png',
+    Chips.bubblePush.id: 'weapons/revolver.png',
+    Chips.thunderLance.id: 'weapons/revolver.png',
+    Chips.neuralVine.id: 'weapons/revolver.png',
+    Chips.tractorBeam.id: 'weapons/revolver.png',
+    Chips.sniper.id: 'weapons/revolver.png',
+    Chips.incendiaryRound.id: 'weapons/revolver.png',
+    Chips.piercingShot.id: 'weapons/revolver.png',
+    Chips.tranqDart.id: 'weapons/revolver.png',
+    Chips.fusionLaser.id: 'weapons/revolver.png',
+    Chips.freezeRay.id: 'weapons/revolver.png',
+    Chips.steadyBeam.id: 'weapons/revolver.png',
+    Chips.fireTurret.id: 'weapons/revolver.png',
+    Chips.stimulant.id: 'weapons/revolver.png',
+    Chips.specialAmmo.id: 'weapons/revolver.png',
+    Chips.combatScan.id: 'weapons/revolver.png',
+    Chips.jammer.id: 'weapons/revolver.png',
+    Chips.ricochet.id: 'weapons/revolver.png',
+    Chips.voltaicArc.id: 'weapons/revolver.png',
+    Chips.energyCannon.id: 'weapons/armCannon.png',
+    Chips.executionShot.id: 'weapons/revolver.png',
+    Chips.stackingRound.id: 'weapons/revolver.png',
+    Chips.staticDischarge.id: 'weapons/revolver.png',
+    Chips.conductor.id: 'weapons/revolver.png',
+    Chips.quantumAnchor.id: 'weapons/revolver.png',
+    Chips.networkSurge.id: 'weapons/revolver.png',
+    Chips.sweepLaser.id: 'weapons/revolver.png',
+  };
+
+  /// What the player holds for each attack pose, by card id. A pose
+  /// missing here (toss, ombrada) is drawn empty-handed.
+  static final held = <ChipPose, Map<String, String>>{
+    ChipPose.melee: weapons,
+    ChipPose.shoot: guns,
+  };
+
   /// Frame drawn over every panel, by the side that owns it.
   static const panelFrames = <Team, String>{
     Team.player: 'panels/panel_panelPlr.png',
@@ -462,7 +508,7 @@ abstract final class SpriteFiles {
     ...enemies.values,
     ...obstacles.values,
     ...chips.values,
-    ...weapons.values,
+    for (final table in held.values) ...table.values,
     ...panels.values,
     ...panelFrames.values,
     ...statuses.values,
@@ -477,7 +523,7 @@ abstract final class SpriteFiles {
 /// Every sprite of the game, loaded once by [StarCopGame.onLoad]. Flutter
 /// widgets draw them too (see `SheetSprite`).
 class GameSprites {
-  GameSprites._(this._images);
+  GameSprites._(this._images, this._barrelTips);
 
   /// Loads every file, calling [onProgress] with the share done (0 to 1)
   /// after each one.
@@ -491,10 +537,36 @@ class GameSprites {
       loaded[path] = await images.load(path);
       onProgress?.call(loaded.length / paths.length);
     }
-    return GameSprites._(loaded);
+    final tips = <String, Vector2>{
+      for (final path in SpriteFiles.guns.values)
+        path: ?await _findBarrelTip(loaded[path]!),
+    };
+    return GameSprites._(loaded, tips);
+  }
+
+  /// The pixel just past the gun's rightmost column, on the middle of the
+  /// opaque rows there: where the flash comes out. Read from the art, so
+  /// a new gun needs no numbers. Null for an empty image.
+  static Future<Vector2?> _findBarrelTip(Image image) async {
+    final data = await image.toByteData();
+    if (data == null) return null;
+    for (var x = image.width - 1; x >= 0; x--) {
+      final rows = [
+        for (var y = 0; y < image.height; y++)
+          // Alpha is the 4th byte of each RGBA pixel.
+          if (data.getUint8((y * image.width + x) * 4 + 3) > 0) y,
+      ];
+      if (rows.isNotEmpty) {
+        return Vector2(x + 1, ((rows.first + rows.last) ~/ 2).toDouble());
+      }
+    }
+    return null;
   }
 
   final Map<String, Image> _images;
+
+  /// Barrel tip of each gun file, in its art pixels.
+  final Map<String, Vector2> _barrelTips;
 
   Sprite _file(String path) => Sprite(_images[path]!);
 
@@ -507,6 +579,16 @@ class GameSprites {
   late final Sprite playerIdle = _frame(SpriteFiles.player, 0, 24);
   late final Sprite playerAttack = _frame(SpriteFiles.player, 1, 24);
   late final Sprite playerMelee = _frame(SpriteFiles.player, 2, 24);
+  late final Sprite playerOmbrada = _frame(SpriteFiles.player, 3, 24);
+
+  /// The player's frame while using a chip of [pose]. The switch is
+  /// exhaustive, so a new [ChipPose] won't compile until it gets a frame
+  /// here.
+  Sprite playerPose(ChipPose pose) => switch (pose) {
+    ChipPose.shoot => playerAttack,
+    ChipPose.melee || ChipPose.toss => playerMelee,
+    ChipPose.ombrada => playerOmbrada,
+  };
 
   /// Muzzle flash, drawn in front of the player while shooting and at the
   /// Drone's barrel.
@@ -533,8 +615,12 @@ class GameSprites {
   late final Sprite chipIncFrame = _file(SpriteFiles.chipIncFrame);
   late final Sprite chipRaroFrame = _file(SpriteFiles.chipRaroFrame);
   late final Sprite chipFrameUpgraded = _file(SpriteFiles.chipFrameUpgraded);
-  late final Sprite chipIncFrameUpgraded = _file(SpriteFiles.chipIncFrameUpgraded);
-  late final Sprite chipRaroFrameUpgraded = _file(SpriteFiles.chipRaroFrameUpgraded);
+  late final Sprite chipIncFrameUpgraded = _file(
+    SpriteFiles.chipIncFrameUpgraded,
+  );
+  late final Sprite chipRaroFrameUpgraded = _file(
+    SpriteFiles.chipRaroFrameUpgraded,
+  );
   late final Sprite pickaxe = _file(SpriteFiles.pickaxe);
   late final Sprite molotov = _file(SpriteFiles.molotov);
   late final List<Sprite> rune = [
@@ -639,8 +725,6 @@ class GameSprites {
   Sprite chip(ChipDef def) =>
       _file(SpriteFiles.chips[def.id] ?? SpriteFiles.chips[Chips.shot.id]!);
 
-
-  
   Sprite rarityCard(Rarity rarity) => switch (rarity) {
     Rarity.common => chipFrame,
     Rarity.uncommon => chipIncFrame,
@@ -653,11 +737,16 @@ class GameSprites {
     Rarity.rare => chipRaroFrameUpgraded,
   };
 
-  /// Null for cards swung bare-handed (Ombrada, Investida).
-  Sprite? weapon(ChipDef def) => switch (SpriteFiles.weapons[def.id]) {
+  /// What the player holds while using [def]: a melee weapon, a gun, or
+  /// null for cards used bare-handed.
+  Sprite? held(ChipDef def) => switch (SpriteFiles.held[def.pose]?[def.id]) {
     final path? => _file(path),
     null => null,
   };
+
+  /// Where [def]'s gun fires from, in the gun's art pixels; null when the
+  /// card holds no gun.
+  Vector2? barrelTip(ChipDef def) => _barrelTips[SpriteFiles.guns[def.id]];
 
   Sprite panel(PanelState state) => _file(SpriteFiles.panels[state]!);
 

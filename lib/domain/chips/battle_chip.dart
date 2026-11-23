@@ -598,14 +598,9 @@ class NoEffect extends ChipEffect {
 
 /// Immutable chip design (the "card"). Never mutated during a battle.
 /// How the player is drawn using a chip: firing (attack frame and muzzle
-/// flash), or swinging / tossing (the melee frame).
-enum ChipPose {
-  shoot,
-  melee,
-
-  /// Lobbed at its target cell; the effect happens when it lands.
-  toss,
-}
+/// flash), swinging / tossing (the melee frame), or a shoulder charge (the
+/// ombrada frame). Each pose's frame is picked in `GameSprites.playerPose`.
+enum ChipPose { shoot, melee, toss, ombrada }
 
 /// Extra look of a card in battle. Purely visual.
 enum ChipFx {

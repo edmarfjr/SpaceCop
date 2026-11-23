@@ -53,6 +53,7 @@ class BattleSounds {
     ChipType.support => Sfx.support,
     ChipType.attack => switch (def.pose) {
       ChipPose.melee => Sfx.melee,
+      ChipPose.ombrada => Sfx.melee,
       ChipPose.toss => Sfx.toss,
       ChipPose.shoot => switch (def.tint) {
         Element.fire => Sfx.shotFire,
