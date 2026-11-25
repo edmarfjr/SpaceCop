@@ -703,6 +703,34 @@ class ChipDef {
     _ => Element.neutral,
   };
 
+  /// Cards whose shots travel the row, which Mira Assistida redirects.
+  bool get firesShots => switch (effect) {
+    ProjectileEffect() => pose != ChipPose.toss,
+    CrackEffect() ||
+    PushEffect() ||
+    PullEffect() ||
+    SpearEffect() ||
+    StatusShotEffect() ||
+    BounceEffect() ||
+    BurstEffect() ||
+    ChainScaleEffect() ||
+    StackingShotEffect() ||
+    ExecuteEffect() ||
+    WetShockEffect() ||
+    ConductorEffect() ||
+    AnchorEffect() => true,
+    _ => false,
+  };
+
+  /// Cards that lob something along an arc when used: grenades, the TNT
+  /// and tossed shots. Other toss cards (rocks and mines laid from afar
+  /// too) are only the pose.
+  bool get lobs => switch (effect) {
+    GrenadeEffect() || DynamiteEffect() => true,
+    ProjectileEffect() => pose == ChipPose.toss,
+    _ => false,
+  };
+
   /// Single use per battle: once used, the card leaves the battle's deck
   /// instead of going to the discard pile.
   final bool exhaust;

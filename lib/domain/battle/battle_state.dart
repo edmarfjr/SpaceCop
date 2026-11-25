@@ -293,17 +293,34 @@ enum Lob {
   pickaxe,
   molotov,
 
-  /// A ball leaving a smoke trail (Foguete Teleguiado).
+  /// A missile leaving a smoke trail (Foguete Teleguiado, the Tanque de
+  /// Guerra's missiles).
   rocket,
+
+  /// A stick grenade (Capanga Granada, Capanga de Duas Cabeças).
+  stickGrenade,
+
+  /// A mortar shell (Capanga Artilharia).
+  mortar,
 
   /// The owner itself leaps along the arc (Saltador).
   self,
 }
 
+/// What the player lobs using [def]; the card's own art, if it has one,
+/// is picked by the renderer from [LobView.chip].
+Lob playerLob(ChipDef def) => def.fx == ChipFx.smoke ? Lob.rocket : Lob.ball;
+
 /// An enemy attack waiting for its telegraph to run out.
 class _Scheduled {
-  _Scheduled(this.owner, this.ticksLeft, this.action, this.lob, this.cells)
-    : flightTicks = min(ticksLeft, lobFlightTicks);
+  _Scheduled(
+    this.owner,
+    this.ticksLeft,
+    this.action,
+    this.lob,
+    this.cells,
+    this.chip,
+  ) : flightTicks = min(ticksLeft, lobFlightTicks);
 
   final Fighter? owner;
   final int flightTicks;
@@ -311,16 +328,21 @@ class _Scheduled {
   final void Function() action;
   final Lob lob;
   final List<GridPos> cells;
+
+  /// The card the player threw [lob] with.
+  final ChipDef? chip;
 }
 
 /// One [Lob] in the air, for the renderer: thrown by [from] at [to],
-/// landing in [ticksLeft] of its [flightTicks].
+/// landing in [ticksLeft] of its [flightTicks]. [chip] is the card the
+/// player threw it with, null for enemies' lobs and rocks and mines laid.
 typedef LobView = ({
   Lob lob,
   Fighter from,
   GridPos to,
   int ticksLeft,
   int flightTicks,
+  ChipDef? chip,
 });
 
 /// Input for one tick. Directions are held keys; the booleans are presses.
@@ -1277,7 +1299,8 @@ class BattleState {
   /// [owner] died in the meantime.
   ///
   /// With a [lob], the owner throws it at each cell so it lands as the
-  /// attack resolves. The player's throws aren't telegraphed ([telegraph]).
+  /// attack resolves. The player's throws aren't telegraphed ([telegraph]);
+  /// [chip] is the card they threw it with.
   void schedule(
     Fighter? owner,
     Iterable<GridPos> cells,
@@ -1286,22 +1309,29 @@ class BattleState {
     TelegraphKind kind = TelegraphKind.damage,
     Lob lob = Lob.none,
     bool telegraph = true,
+    ChipDef? chip,
   }) {
     if (telegraph) warn(cells, ticks, kind, owner);
-    _scheduled.add(_Scheduled(owner, ticks, action, lob, cells.toList()));
+    _scheduled.add(_Scheduled(owner, ticks, action, lob, cells.toList(), chip));
     if (owner is EnemyFighter) owner.pendingAttacks++;
   }
 
-  /// The player lobs a ball at [cell]; [land] runs when it gets there.
-  void _toss(GridPos cell, void Function() land, {Lob lob = Lob.ball}) =>
-      schedule(
-        player,
-        [cell],
-        playerTossTicks,
-        land,
-        lob: lob,
-        telegraph: false,
-      );
+  /// The player lobs [lob] at [cell], thrown with [chip] (drawn as the
+  /// card's own art, if it has one); [land] runs when it gets there.
+  void _toss(
+    GridPos cell,
+    void Function() land, {
+    Lob lob = Lob.ball,
+    ChipDef? chip,
+  }) => schedule(
+    player,
+    [cell],
+    playerTossTicks,
+    land,
+    lob: lob,
+    telegraph: false,
+    chip: chip,
+  );
 
   /// Where a tossed attack lands: the first target in the player's row, or
   /// the far end of it.
@@ -1328,6 +1358,7 @@ class BattleState {
           to: cell,
           ticksLeft: s.ticksLeft,
           flightTicks: s.flightTicks,
+          chip: s.chip,
         );
       }
     }
@@ -1559,7 +1590,7 @@ class BattleState {
     final ammo = def.family == ChipFamily.projectile ? projectileBonus : 0;
     final spends = _spendsBonus(def);
     _homingCell = null;
-    if (homingShots > 0 && _firesShots(def)) {
+    if (homingShots > 0 && def.firesShots) {
       if (weakestEnemy() case final target?) {
         homingShots--;
         _homingCell = target.pos;
@@ -1594,7 +1625,7 @@ class BattleState {
           status: status,
           fx: def.fx,
         );
-        _toss(shot.pos, () => _impact(shot, Team.enemy));
+        _toss(shot.pos, () => _impact(shot, Team.enemy), chip: def);
       case ProjectileEffect(:final pattern, :final farBonus):
         // Mira Assistida sends the shot to its own target: the bonus and the
         // tracer follow it.
@@ -1699,14 +1730,11 @@ class BattleState {
             [for (final offset in pattern) target + offset],
             barrageWarnTicks,
             land,
-            lob: Lob.ball,
+            lob: playerLob(def),
+            chip: def,
           );
         } else {
-          _toss(
-            lob: def.fx == ChipFx.smoke ? Lob.rocket : Lob.ball,
-            target,
-            land,
-          );
+          _toss(lob: playerLob(def), chip: def, target, land);
         }
       case CrackEffect() ||
           PushEffect() ||
@@ -1742,7 +1770,7 @@ class BattleState {
           fx: def.fx,
           halfSplash: true,
         );
-        _toss(target, () {
+        _toss(chip: def, target, () {
           if (!target.inBounds) return;
           obstacles.add(
             Obstacle(
@@ -2032,25 +2060,6 @@ class BattleState {
     return targets.reduce((a, b) => score(a) <= score(b) ? a : b);
   }
 
-  /// Cards whose shots travel the row, which Mira Assistida redirects.
-  bool _firesShots(ChipDef def) => switch (def.effect) {
-    ProjectileEffect() => def.pose != ChipPose.toss,
-    CrackEffect() ||
-    PushEffect() ||
-    PullEffect() ||
-    SpearEffect() ||
-    StatusShotEffect() ||
-    BounceEffect() ||
-    BurstEffect() ||
-    ChainScaleEffect() ||
-    StackingShotEffect() ||
-    ExecuteEffect() ||
-    WetShockEffect() ||
-    ConductorEffect() ||
-    AnchorEffect() => true,
-    _ => false,
-  };
-
   /// Attacks that deal damage take Bala Oca and Adrenalina bonuses, and use
   /// them up; damage-free shots (Gancho, Mira Laser) leave them.
   bool _spendsBonus(ChipDef def) =>
@@ -2175,8 +2184,8 @@ class BattleState {
     return null;
   }
 
-  /// [tossed] rocks and mines are lobbed at their cell and only appear
-  /// when they land there (if it is still free).
+  /// [tossed] rocks and mines only appear a toss's flight later (if their
+  /// cell is still free); nothing is drawn flying there.
   ///
   /// [amount] overrides the kind's default (see [SpawnObstacleEffect]).
   /// [ticks] of player gear, longer with Kit de Engenharia.
@@ -2192,7 +2201,7 @@ class BattleState {
     Element element = Element.elec,
   }) {
     void place(GridPos pos, void Function() put) =>
-        tossed ? _toss(pos, put) : put();
+        tossed ? _toss(pos, put, lob: Lob.none) : put();
     bool free(GridPos pos) =>
         pos.inBounds && panelAt(pos).walkable && unitAt(pos) == null;
     switch (kind) {
@@ -2980,7 +2989,13 @@ class BattleState {
     for (var x = coil.pos.x + 1; x < gridColumns; x++) {
       final cell = GridPos(x, coil.pos.y);
       if (_targetAt(cell, Team.enemy) == null) continue;
-      strike(cell, teslaZapDamage, Team.enemy, Element.elec, family: ChipFamily.energy);
+      strike(
+        cell,
+        teslaZapDamage,
+        Team.enemy,
+        Element.elec,
+        family: ChipFamily.energy,
+      );
       return;
     }
   }
@@ -3060,8 +3075,7 @@ class BattleState {
           carrier.occupies(cell);
       final target = pointBlank ? carrier : _targetAt(cell, opponent);
       if (target != null && struck.add(target)) {
-        final through =
-            _passesThrough(target, shot.family) || target.hidden;
+        final through = _passesThrough(target, shot.family) || target.hidden;
         final execute = switch (shot.onHit) {
           ExecuteEffect(:final threshold, :final bonus)
               when straight && target.hp < target.maxHp * threshold =>

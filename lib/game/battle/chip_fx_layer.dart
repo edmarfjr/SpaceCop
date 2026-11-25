@@ -4,11 +4,12 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 
 import '../../domain/battle/battle_state.dart';
-import '../../domain/chips/battle_chip.dart' show ChipFx;
+import '../../domain/chips/battle_chip.dart' show ChipDef, ChipFx;
 import '../../domain/element.dart';
 import '../../domain/grid.dart';
 import '../../ui/theme.dart';
 import 'fighter_component.dart';
+import '../player_attack_art.dart';
 import '../sprites.dart';
 import 'grid_component.dart';
 import 'projectile_layer.dart';
@@ -33,13 +34,13 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
   static const double _beamCore = 5;
 
   /// Outer, middle and inner colors of a beam of each element.
-  static final _beamColors = {
+  static final beamColors = {
     for (final MapEntry(:key, :value) in {
       Element.elec: (Pico.royal, Pico.blue, Pico.yellow),
       Element.fire: (Pico.red, Pico.orange, Pico.yellow),
       Element.aqua: (Pico.royal, Pico.blue, Pico.white),
       Element.wood: (Pico.darkGreen, Pico.green, Pico.lime),
-      Element.neutral: (Pico.pumpkin, Pico.orange, Pico.white),
+      Element.neutral: (Pico.darkGreen, Pico.green, Pico.white),
     }.entries)
       key: (
         Paint()..color = value.$1,
@@ -164,22 +165,7 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
       if (zap.from == null && zap.to.y == battle.player.pos.y) {
         to = Vector2(to.x, from.y);
       }
-      switch (zap.style) {
-        case ZapStyle.bolt:
-          ShieldLinkLayer.drawBolt(canvas, from, to, shape);
-        case ZapStyle.tracer:
-          canvas.drawLine(Offset(from.x, from.y), Offset(to.x, to.y), _tracer);
-        case ZapStyle.laser:
-          final a = Offset(from.x, from.y);
-          final b = Offset(to.x, to.y);
-          canvas
-            ..drawLine(a, b, _laserEdge)
-            ..drawLine(a, b, _tracer);
-        case ZapStyle.chain:
-          _drawChain(canvas, from, to);
-        case ZapStyle.tractor:
-          _drawTractor(canvas, from, to);
-      }
+      drawZap(canvas, zap.style, from, to, shape);
     }
     for (final particle in _particles) {
       particle.render(canvas);
@@ -188,11 +174,23 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
       _drawTrail(canvas, trail);
     }
     for (final ring in battle.rings) {
-      _drawRings(canvas, hand, ring);
+      drawRings(canvas, hand, ring.count, Ring.lifetime - ring.ticksLeft);
     }
     if (battle.glitchTicks > 0) {
       for (final enemy in battle.enemies) {
-        if (!enemy.hidden) _drawStatic(canvas, enemy, shape);
+        if (enemy.hidden) continue;
+        if (viewOf(enemy) case final view?) {
+          drawStatic(
+            canvas,
+            Rect.fromLTWH(
+              view.position.x - view.size.x / 2,
+              view.position.y - view.size.y,
+              view.size.x,
+              view.size.y,
+            ),
+            shape,
+          );
+        }
       }
     }
     for (final beam in battle.beams) {
@@ -236,8 +234,35 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     }
   }
 
+  /// A streak of [style] from [from] to [to], in battle pixels (2 per art
+  /// pixel). [shape] bends the bolts.
+  static void drawZap(
+    Canvas canvas,
+    ZapStyle style,
+    Vector2 from,
+    Vector2 to,
+    Random shape,
+  ) {
+    switch (style) {
+      case ZapStyle.bolt:
+        ShieldLinkLayer.drawBolt(canvas, from, to, shape);
+      case ZapStyle.tracer:
+        canvas.drawLine(Offset(from.x, from.y), Offset(to.x, to.y), _tracer);
+      case ZapStyle.laser:
+        final a = Offset(from.x, from.y);
+        final b = Offset(to.x, to.y);
+        canvas
+          ..drawLine(a, b, _laserEdge)
+          ..drawLine(a, b, _tracer);
+      case ZapStyle.chain:
+        _drawChain(canvas, from, to);
+      case ZapStyle.tractor:
+        _drawTractor(canvas, from, to);
+    }
+  }
+
   /// Links alternating light and dark from [a] to [b] (Gancho).
-  void _drawChain(Canvas canvas, Vector2 a, Vector2 b) {
+  static void _drawChain(Canvas canvas, Vector2 a, Vector2 b) {
     const link = 6.0;
     final along = b - a;
     final length = along.length;
@@ -255,17 +280,17 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
   }
 
   /// A see-through blue band from [a] to [b] (Feixe Trator).
-  void _drawTractor(Canvas canvas, Vector2 a, Vector2 b) {
+  static void _drawTractor(Canvas canvas, Vector2 a, Vector2 b) {
     final (from, to) = (Offset(a.x, a.y), Offset(b.x, b.y));
     canvas
       ..drawLine(from, to, _tractorGlow)
       ..drawLine(from, to, _tractorCore);
   }
 
-  /// Rings growing out of the hand, one after the other, fading out.
-  void _drawRings(Canvas canvas, Vector2 hand, Ring ring) {
-    final age = Ring.lifetime - ring.ticksLeft;
-    for (var i = 0; i < ring.count; i++) {
+  /// [count] rings growing out of the hand, one after the other, fading
+  /// out; [age] in ticks, up to [Ring.lifetime].
+  static void drawRings(Canvas canvas, Vector2 hand, int count, int age) {
+    for (var i = 0; i < count; i++) {
       final grown = age - i * 3;
       if (grown <= 0) continue;
       final t = grown / Ring.lifetime;
@@ -274,15 +299,12 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     }
   }
 
-  /// A few bars of static across [enemy]'s sprite (Interferência).
-  void _drawStatic(Canvas canvas, Fighter enemy, Random shape) {
-    final view = viewOf(enemy);
-    if (view == null) return;
-    final left = view.position.x - view.size.x / 2;
-    final top = view.position.y - view.size.y;
+  /// A few bars of static across an enemy's sprite, its [body] in battle
+  /// pixels (Interferência).
+  static void drawStatic(Canvas canvas, Rect body, Random shape) {
     for (var i = 0; i < 3; i++) {
-      final y = top + (shape.nextInt((view.size.y ~/ 2).clamp(1, 99)) * 2);
-      final x = left + shape.nextInt((view.size.x ~/ 4).clamp(1, 99)) * 2;
+      final y = body.top + (shape.nextInt((body.height ~/ 2).clamp(1, 99)) * 2);
+      final x = body.left + shape.nextInt((body.width ~/ 4).clamp(1, 99)) * 2;
       final width = (4 + shape.nextInt(8) * 2).toDouble();
       _static.color = (shape.nextBool() ? Pico.white : Pico.lightGray)
           .withValues(alpha: 0.8);
@@ -397,13 +419,14 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
       final h = snap(half * swell);
       if (h <= 0) return;
       canvas.drawCircle(Offset(hand.x, snap(y)), h, paint);
+      canvas.drawCircle(Offset(hand.x, end), h, paint);
       canvas.drawRect(
         Rect.fromLTRB(hand.x, snap(y) - h, end, snap(y) + h),
         paint,
       );
     }
 
-    final (outer, middle, inner) = _beamColors[beam.element]!;
+    final (outer, middle, inner) = beamColors[beam.element]!;
     band(_beamGlow + flicker, outer);
     band(_beamCore + flicker / 2, middle);
     band(2, inner);
@@ -423,12 +446,26 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
   }
 
   /// The player's gun barrel: the middle of the muzzle flash.
+  ///
+  /// Effects leave the end of what the last card used put in the fist,
+  /// like its muzzle flash (see [PlayerAttackArt.emitter]), even after the
+  /// attack frame is over (a beam outlasts it).
   Vector2? _hand() {
     final view = viewOf(battle.player);
     if (view == null) return null;
-    return view.position -
-        Vector2(view.size.x / 2, view.size.y) +
-        Vector2(view.size.x + 4, 18);
+    final emitter = switch (battle.player.lastChip) {
+      final def? => _artOf(def).emitter,
+      null => PlayerAttackArt.hand,
+    };
+    return view.position - Vector2(view.size.x / 2, view.size.y) + emitter * 2;
+  }
+
+  /// The attack frame's layout of the last card used, kept while it is.
+  PlayerAttackArt? _art;
+
+  PlayerAttackArt _artOf(ChipDef def) {
+    if (_art?.def != def) _art = PlayerAttackArt(sprites, def);
+    return _art!;
   }
 
   /// Middle of whoever stands on [pos]: their view if there is one, else

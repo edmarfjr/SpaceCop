@@ -5,9 +5,9 @@ import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 
 import '../../domain/battle/battle_state.dart';
-import '../../domain/chips/battle_chip.dart';
 import '../../domain/run/relics.dart';
 import '../../ui/theme.dart';
+import '../player_attack_art.dart';
 import '../sprites.dart';
 import 'grid_component.dart';
 import 'projectile_layer.dart';
@@ -51,59 +51,32 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     return f is PlayerFighter && f.attackCooldown > 0;
   }
 
-  /// The card's weapon or gun in the fist of the attack frame, outside the
-  /// clip since it reaches past the sprite. Its left edge, middle row,
-  /// sits on the fist.
-  void _drawHeld(Canvas canvas) {
+  /// The attack frame's layout for the card being used, kept while the
+  /// same card is.
+  PlayerAttackArt? _art;
+
+  PlayerAttackArt? get _attackArt {
     final f = fighter;
-    if (f is! PlayerFighter || !_attacking) return;
-    final fist = _fists[f.pose];
-    final held = switch (f.lastChip) {
-      final def? => sprites.held(def),
-      null => null,
-    };
-    if (fist == null || held == null) return;
+    if (f is! PlayerFighter || !_attacking) return null;
+    final def = f.lastChip;
+    if (def == null) return null;
+    if (_art?.def != def) _art = PlayerAttackArt(sprites, def);
+    return _art;
+  }
+
+  /// The card's weapon or gun in the fist of the attack frame, outside the
+  /// clip since it reaches past the sprite.
+  void _drawHeld(Canvas canvas) {
+    final art = _attackArt;
+    final held = art?.held;
+    final at = art?.heldAt;
+    if (held == null || at == null) return;
     held.render(
       canvas,
-      position: _heldOrigin(fist, held) * _scale,
+      position: at * _scale,
       size: held.srcSize * _scale,
       overridePaint: _flashing ? _hurtPaint : null,
     );
-  }
-
-  /// Top-left corner of a held sprite gripped at [fist], in art pixels.
-  static Vector2 _heldOrigin(Vector2 fist, Sprite held) =>
-      fist - Vector2(0, (held.srcSize.y ~/ 2).toDouble());
-
-  /// The tip of the gun in hand, in art pixels; null when firing without
-  /// one.
-  Vector2? get _barrelTip {
-    final f = fighter;
-    if (f is! PlayerFighter) return null;
-    final fist = _fists[f.pose];
-    final def = f.lastChip;
-    if (fist == null || def == null) return null;
-    final gun = sprites.held(def);
-    final tip = sprites.barrelTip(def);
-    if (gun == null || tip == null) return null;
-    return _heldOrigin(fist, gun) + tip;
-  }
-
-  /// The flash's own pixel that touches the barrel: its left edge, on the
-  /// row of the burst's point.
-  static final _muzzleRoot = Vector2(0, 3);
-
-  /// The fist in each attack frame that holds something, in art pixels.
-  /// A pose with a held sprite in `SpriteFiles.held` needs its fist here.
-  static final _fists = <ChipPose, Vector2>{
-    ChipPose.melee: Vector2(22, 9),
-    ChipPose.shoot: Vector2(15, 9),
-  };
-
-  /// Firing gets the muzzle flash; swings and tosses don't.
-  bool get _shooting {
-    final f = fighter;
-    return _attacking && f is PlayerFighter && f.pose == ChipPose.shoot;
   }
 
   /// White for 3 ticks, normal for 3, twice, starting on the hit. A fusing
@@ -339,14 +312,11 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
         );
     }
     // From the gun's tip, or in front of the bare hand without one.
-    if (_shooting) {
-      final tip = _barrelTip;
-      sprites.muzzle.render(
+    if (_attackArt case PlayerAttackArt(:final muzzle, :final muzzleAt?)) {
+      muzzle.render(
         canvas,
-        position: tip == null
-            ? Vector2(size.x - 5, 11)
-            : (tip - _muzzleRoot) * _scale,
-        size: sprites.muzzle.srcSize * _scale,
+        position: muzzleAt * _scale,
+        size: muzzle.srcSize * _scale,
       );
     }
     // Enemy life bar, under the feet. Parts (a boss's arms) have none of

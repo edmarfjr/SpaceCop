@@ -2038,6 +2038,19 @@ abstract final class Chips {
   /// The decks a new run can start with, picked after "Novo jogo".
   static const starterDecks = [
     StarterDeck(
+      name: 'Kit Padrão',
+      tagline: 'Esteja equipado e preparado para qualquer desafio.',
+      cards: [
+        (shotgun, 2),
+        (cannon, 2),
+        (baton, 2),
+        (hook, 1),
+        (freezeRay, 1),
+        (melta, 1),
+        (grenade, 1),
+      ],
+    ),
+    StarterDeck(
       name: 'Projéteis',
       tagline: 'Encare seus inimigos com puro poder de fogo.',
       cards: [
@@ -2076,6 +2089,19 @@ abstract final class Chips {
         (bubblePush, 1),
         (freezeRay, 1),
         (conductor, 1),
+      ],
+    ),
+    StarterDeck(
+      name: 'Explosivos',
+      tagline: 'Exploda seus problemas.',
+      cards: [
+        (grenade, 2),
+        (cannon, 3),
+        (shot, 1),
+        (incendiaryGrenade, 1),
+        (smokeGrenade, 1),
+        (fragGrenade, 1),
+        (tnt, 1),
       ],
     ),
   ];

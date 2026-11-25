@@ -997,7 +997,7 @@ class GruntGrenadeBehavior extends EnemyBehavior {
     if (enemy.timer-- > 0) return;
     enemy.timer = cycleTicks;
     final aim = battle.aimPos;
-    battle.schedule(enemy, [aim], basicWarnTicks, lob: Lob.ball, () {
+    battle.schedule(enemy, [aim], basicWarnTicks, lob: Lob.stickGrenade, () {
       battle.strike(aim, damage, Team.player, enemy.element);
       if (battle.panelAt(aim).walkable) battle.setPanel(aim, PanelState.lava);
     });
@@ -1045,7 +1045,7 @@ class TwoHeadBehavior extends EnemyBehavior {
         enemy,
         [cell],
         basicWarnTicks + i * grenadeStagger,
-        lob: Lob.ball,
+        lob: Lob.stickGrenade,
         () {
           battle.strike(cell, grenadeDamage, Team.player, enemy.element);
           if (battle.panelAt(cell).walkable) {
@@ -1082,7 +1082,7 @@ class GruntArtilleryBehavior extends EnemyBehavior {
       [aim],
       warnTicks,
       () => battle.strike(aim, damage, Team.player, enemy.element),
-      lob: Lob.ball,
+      lob: Lob.mortar,
     );
   }
 }
@@ -1296,7 +1296,7 @@ class TankBehavior extends EnemyBehavior {
               battle.strike(cell, missileDamage, Team.player, enemy.element);
               _crack(battle, [cell]);
             },
-            lob: Lob.ball,
+            lob: Lob.rocket,
           );
         }
       case _:

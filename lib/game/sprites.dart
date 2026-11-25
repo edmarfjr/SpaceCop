@@ -114,6 +114,60 @@ abstract final class SpriteFiles {
   static const ball = 'projeteis/bola.png';
   static const pickaxe = 'projeteis/picareta.png';
   static const molotov = 'projeteis/molotov.png';
+  static const missile = 'projeteis/missil.png';
+  static const mortarShell = 'projeteis/morteiro.png';
+  static const grenade = 'projeteis/granada.png';
+
+  /// What flies along the arc of each kind of [Lob]. A card the player
+  /// throws with art of its own in [thrown], or an enemy with its own in
+  /// [enemyLobs], takes that instead. Lobbed art is one square frame, or
+  /// the first frame of a strip of square ones.
+  static const lobs = <Lob, String>{
+    Lob.ball: ball,
+    Lob.pickaxe: pickaxe,
+    Lob.molotov: molotov,
+    Lob.rocket: missile,
+    Lob.stickGrenade: 'projeteis/granadaCapanga.png',
+    Lob.mortar: mortarShell,
+  };
+
+  /// What each enemy throws in its lobbed attacks, by the enemy itself;
+  /// enemies missing here throw their [Lob]'s art (the [ball] for now).
+  /// Uncomment a line once its file is in `projeteis/` (a missing file
+  /// stops the game from loading).
+  static final enemyLobs = <EnemyDef, String>{
+    // Enemies.root: 'projeteis/raiz.png',
+    // Enemies.bubbler: 'projeteis/bolha.png',
+    // Enemies.lavaGuard: 'projeteis/lava.png',
+    // Enemies.colossus: 'projeteis/colosso.png',
+    // Enemies.ruinGolem: 'projeteis/golem.png',
+    // Enemies.maestro: 'projeteis/nota.png',
+    // Enemies.energySphere: 'projeteis/esfera.png',
+    // Enemies.priestess: 'projeteis/sacerdotisa.png',
+    // Enemies.voidEye: 'projeteis/olhoAbismo.png',
+    // Enemies.shadowFly: 'projeteis/sombraAlada.png',
+  };
+
+  /// What the player lobs using each card, by card id. Cards missing here
+  /// lob their [Lob]'s art.
+  static final thrown = <String, String>{
+    Chips.tnt.id: obstacles[ObstacleKind.dynamite]!,
+    Chips.grenade.id: grenade,
+    Chips.incendiaryGrenade.id: 'projeteis/granadaFogo.png',
+    Chips.crossFlame.id: 'projeteis/granadaFogo.png',
+    Chips.cryoGrenade.id: 'projeteis/granadaCrio.png',
+    Chips.stunGrenade.id: 'projeteis/granadaStun.png',
+    Chips.smokeGrenade.id: 'projeteis/granadaFumaca.png',
+    Chips.fragGrenade.id: 'projeteis/granadaFrag.png',
+    Chips.gravityGrenade.id: 'projeteis/granaGrav.png',
+    Chips.emp.id: grenade,
+    Chips.fissureBomb.id: grenade,
+    Chips.mortar.id: mortarShell,
+  };
+
+  /// Lobbed art drawn upright the whole flight. The rest tumbles, except
+  /// the missile, which points along its arc.
+  static const upright = {ball, mortarShell};
 
   /// Sumo-Sacerdote's rune on a panel, 16x16 frames.
   static const rune = 'projeteis/runa.png';
@@ -489,9 +543,9 @@ abstract final class SpriteFiles {
     chipRaroFrameUpgraded,
     shot,
     spear,
-    ball,
-    pickaxe,
-    molotov,
+    ...lobs.values,
+    ...thrown.values,
+    ...enemyLobs.values,
     rune,
     explosion,
     slash,
@@ -623,6 +677,24 @@ class GameSprites {
   );
   late final Sprite pickaxe = _file(SpriteFiles.pickaxe);
   late final Sprite molotov = _file(SpriteFiles.molotov);
+
+  String _lobFile(Lob lob, ChipDef? chip, EnemyDef? enemy) =>
+      SpriteFiles.thrown[chip?.id] ??
+      SpriteFiles.enemyLobs[enemy] ??
+      SpriteFiles.lobs[lob] ??
+      SpriteFiles.ball;
+
+  /// What flies along the arc of [lob]: the art of the card the player
+  /// threw it with ([chip]) or of the [enemy] that threw it, if it has
+  /// one, or the lob's own. The first frame of a strip (the TNT's stick).
+  Sprite lobbed(Lob lob, {ChipDef? chip, EnemyDef? enemy}) =>
+      _sheet(_lobFile(lob, chip, enemy)).first;
+
+  /// Whether [lobbed] spins in flight; a [Lob.rocket] points along its
+  /// arc instead.
+  bool tumbles(Lob lob, {ChipDef? chip, EnemyDef? enemy}) =>
+      lob != Lob.rocket &&
+      !SpriteFiles.upright.contains(_lobFile(lob, chip, enemy));
   late final List<Sprite> rune = [
     for (var i = 0; i < 2; i++) _frame(SpriteFiles.rune, i, 16),
   ];

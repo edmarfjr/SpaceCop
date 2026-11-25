@@ -48,6 +48,26 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
   static Vector2 lobAt(Vector2 from, Vector2 to, double t) =>
       from + (to - from) * t - Vector2(0, lobHeight * 4 * t * (1 - t));
 
+  /// How a lobbed sprite is turned at [t] of its flight from [from] to
+  /// [to]: a [Lob.rocket] points along the arc (its art points right), a
+  /// tumbling one turns once forward, the rest stays upright. [height] is
+  /// the arc's peak, for the direction.
+  static double lobTurn(
+    Lob lob,
+    Vector2 from,
+    Vector2 to,
+    double t, {
+    required bool tumbles,
+    double height = lobHeight,
+  }) {
+    if (lob == Lob.rocket) {
+      final along = to - from - Vector2(0, height * 4 * (1 - 2 * t));
+      return atan2(along.y, along.x);
+    }
+    if (!tumbles) return 0;
+    return (to.x >= from.x ? 1 : -1) * t * 2 * pi;
+  }
+
   static final _danger = Paint()
     ..color = Pico.white
     ..style = PaintingStyle.stroke
@@ -86,15 +106,25 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
       final to = parent.cellCenter(lob.to);
       final t = 1 - lob.ticksLeft / lob.flightTicks;
       final at = lobAt(from, to, t);
+      final enemy = switch (lob.from) {
+        EnemyFighter(:final def) => def,
+        _ => null,
+      };
+      final sprite = sprites.lobbed(lob.lob, chip: lob.chip, enemy: enemy);
       canvas
         ..save()
-        ..translate(at.x, at.y);
-      if (lob.lob case Lob.pickaxe || Lob.molotov) canvas.rotate(-t * 2 * pi);
-      (switch (lob.lob) {
-        Lob.pickaxe => sprites.pickaxe,
-        Lob.molotov => sprites.molotov,
-        _ => sprites.ball,
-      }).render(canvas, size: _size, anchor: Anchor.center);
+        ..translate(at.x, at.y)
+        ..rotate(
+          lobTurn(
+            lob.lob,
+            from,
+            to,
+            t,
+            tumbles: sprites.tumbles(lob.lob, chip: lob.chip, enemy: enemy),
+          ),
+        );
+      // 2x like the fighters: the grenades are smaller than a ball.
+      sprite.render(canvas, size: sprite.srcSize * 2, anchor: Anchor.center);
       canvas.restore();
     }
     // Smoke clouds, over whoever stands in them.
@@ -163,14 +193,18 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
 
   /// Recolors a flash: the element's color for tinted ones, blue for the
   /// Pulso EMP's. Fire keeps the art's own orange.
-  static Paint? _tint(HitFlash flash) {
-    final color = flash.kind == FlashKind.pulse
+  static Paint? _tint(HitFlash flash) => tintOf(flash.kind, flash.element);
+
+  /// The paint that recolors a flash of [kind] and [element]; null keeps
+  /// the art's own colors.
+  static Paint? tintOf(FlashKind kind, Element? element) {
+    final color = kind == FlashKind.pulse
         ? Pico.blue
-        : switch (flash.element) {
+        : switch (element) {
             Element.aqua => Pico.blue,
             Element.elec => Pico.yellow,
             Element.wood => Pico.green,
-            Element.fire => flash.kind == FlashKind.slash ? Pico.orange : null,
+            Element.fire => kind == FlashKind.slash ? Pico.orange : null,
             _ => null,
           };
     if (color == null) return null;
