@@ -91,7 +91,8 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
     }
     for (final shot in battle.projectiles) {
       // The beam covers its own shots.
-      if (shot.pos.y != row || shot.fx == ChipFx.beam) continue;
+      // The beam covers its own shots; the Gancho's hook is its chain.
+      if (shot.pos.y != row || shot.fx == ChipFx.beam || shot.hooked) continue;
       (shot.fx == ChipFx.spear ? sprites.spear : sprites.shot[_frame ~/ 6 % 2])
           .render(
             canvas,

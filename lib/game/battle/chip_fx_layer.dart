@@ -49,15 +49,21 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
       ),
   };
 
+  /// Recolored for each tracer (its card's `corFx`).
   static final _tracer = Paint()
     ..color = Pico.white
     ..strokeWidth = 2
     ..style = PaintingStyle.stroke;
 
-  /// Laser de Varredura: a white core with red edges.
+  /// Laser de Varredura: a white core with red edges. The core has its own
+  /// paint, so a colored tracer drawn before can't tint it.
   static final _laserEdge = Paint()
     ..color = Pico.red
     ..strokeWidth = 6
+    ..style = PaintingStyle.stroke;
+  static final _laserCore = Paint()
+    ..color = Pico.white
+    ..strokeWidth = 2
     ..style = PaintingStyle.stroke;
 
   static final _red = Paint()..color = Pico.red;
@@ -105,9 +111,6 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     ..strokeWidth = 2;
   static final _static = Paint();
 
-  /// The player's HP last frame: a rise sends up green crosses.
-  int? _lastHp;
-
   @override
   void update(double dt) {
     _time += dt;
@@ -119,16 +122,6 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     _markedSince.removeWhere(
       (enemy, _) => !enemy.has(Status.marked) || enemy.isDead,
     );
-    final hp = battle.player.hp;
-    if (_lastHp case final last? when hp > last) {
-      if (viewOf(battle.player) case final view?) {
-        final middle = view.position - Vector2(0, view.size.y / 2);
-        for (var i = 0; i < 3; i++) {
-          _particles.add(_Particle.heal(middle, _random));
-        }
-      }
-    }
-    _lastHp = hp;
     for (final particle in _particles) {
       particle.age += dt;
     }
@@ -151,9 +144,14 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     if (hand == null) return;
     final shape = Random(_seed);
     for (final shot in battle.projectiles) {
-      if (shot.fx != ChipFx.bolt) continue;
+      if (shot.fx != ChipFx.bolt && !shot.hooked) continue;
       final to = _body(shot.pos);
-      ShieldLinkLayer.drawBolt(canvas, hand, Vector2(to.x, hand.y), shape);
+      final tip = Vector2(to.x, hand.y);
+      // Arco Voltaico: lightning to its shot. Gancho: the chain reaching
+      // out with the hook.
+      shot.hooked
+          ? _drawChain(canvas, hand, tip)
+          : ShieldLinkLayer.drawBolt(canvas, hand, tip, shape);
     }
     for (final zap in battle.zaps) {
       final from = switch (zap.from) {
@@ -165,7 +163,8 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
       if (zap.from == null && zap.to.y == battle.player.pos.y) {
         to = Vector2(to.x, from.y);
       }
-      drawZap(canvas, zap.style, from, to, shape);
+      if (zap.style == ZapStyle.chain) to = _chainEnd(from, to, zap);
+      drawZap(canvas, zap.style, from, to, shape, zap.corFx);
     }
     for (final particle in _particles) {
       particle.render(canvas);
@@ -242,23 +241,34 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     Vector2 from,
     Vector2 to,
     Random shape,
+    Color corFx,
   ) {
     switch (style) {
       case ZapStyle.bolt:
         ShieldLinkLayer.drawBolt(canvas, from, to, shape);
       case ZapStyle.tracer:
+        _tracer.color = corFx;
         canvas.drawLine(Offset(from.x, from.y), Offset(to.x, to.y), _tracer);
       case ZapStyle.laser:
         final a = Offset(from.x, from.y);
         final b = Offset(to.x, to.y);
         canvas
           ..drawLine(a, b, _laserEdge)
-          ..drawLine(a, b, _tracer);
+          ..drawLine(a, b, _laserCore);
       case ZapStyle.chain:
         _drawChain(canvas, from, to);
       case ZapStyle.tractor:
         _drawTractor(canvas, from, to);
     }
+  }
+
+  /// The Gancho's chain end, [zap] being its chain from [hand] to the
+  /// target at [target]: the first half it stays on the target (pulled in,
+  /// its view gliding), the second half it winds back into the hand.
+  static Vector2 _chainEnd(Vector2 hand, Vector2 target, Zap zap) {
+    final age = 1 - zap.ticksLeft / zap.length;
+    final back = (age * 2 - 1).clamp(0.0, 1.0);
+    return target + (hand - target) * back;
   }
 
   /// Links alternating light and dark from [a] to [b] (Gancho).
@@ -312,12 +322,15 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     }
   }
 
-  /// Fading ghosts of the player on each panel left behind by Investida.
+  /// Fading ghosts of the player on each panel left behind by Investida or
+  /// the Salto Acrobático's recoil.
   void _drawTrail(Canvas canvas, Trail trail) {
     final sprite = sprites.playerIdle;
     final alpha = trail.ticksLeft / Trail.lifetime;
     _ghost.color = Pico.blue.withValues(alpha: 0.5 * alpha);
-    for (var x = trail.from.x; x < trail.to.x; x++) {
+    // Every panel left behind, from where they started, either way.
+    final dir = trail.to.x > trail.from.x ? 1 : -1;
+    for (var x = trail.from.x; x != trail.to.x; x += dir) {
       sprite.render(
         canvas,
         position: parent.cellFeet(GridPos(x, trail.from.y)),
@@ -485,16 +498,7 @@ class _Particle {
       velocity = Vector2(-10, -12),
       life = 0.45,
       color = Pico.lightGray,
-      grows = true,
-      plus = false;
-
-  _Particle.heal(Vector2 at, Random random)
-    : position = at + Vector2(random.nextDouble() * 24 - 12, 0),
-      velocity = Vector2(0, -30 - random.nextDouble() * 10),
-      life = 0.6,
-      color = Pico.green,
-      grows = false,
-      plus = true;
+      grows = true;
 
   _Particle.spark(Vector2 at, Random random)
     : position = at,
@@ -504,8 +508,7 @@ class _Particle {
       ),
       life = 0.25,
       color = random.nextBool() ? Pico.orange : Pico.yellow,
-      grows = false,
-      plus = false;
+      grows = false;
 
   final Vector2 position;
   final Vector2 velocity;
@@ -514,9 +517,6 @@ class _Particle {
 
   /// Smoke swells as it fades; sparks shrink.
   final bool grows;
-
-  /// Drawn as a "+" (a heal) instead of a square.
-  final bool plus;
   double age = 0;
 
   static final _paint = Paint();
@@ -524,21 +524,6 @@ class _Particle {
   void render(Canvas canvas) {
     final t = age / life;
     final at = position + velocity * age;
-    if (plus) {
-      _paint.color = color.withValues(alpha: 1 - t);
-      final x = (at.x / 2).roundToDouble() * 2;
-      final y = (at.y / 2).roundToDouble() * 2;
-      canvas
-        ..drawRect(
-          Rect.fromCenter(center: Offset(x, y), width: 6, height: 2),
-          _paint,
-        )
-        ..drawRect(
-          Rect.fromCenter(center: Offset(x, y), width: 2, height: 6),
-          _paint,
-        );
-      return;
-    }
     final size = (grows ? 4 + 6 * t : 4 * (1 - t)).roundToDouble();
     if (size <= 0) return;
     _paint.color = color.withValues(alpha: 1 - t);

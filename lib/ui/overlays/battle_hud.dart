@@ -538,6 +538,7 @@ class _Hand extends StatelessWidget {
                 focusable: false,
                 selected: card == selected,
                 dimmed: !battle.canAfford(card),
+                bonusDamage: battle.stackBonus(card.def),
               ),
             ),
           ),
@@ -578,6 +579,7 @@ class _HeldCard extends StatelessWidget {
           width: width,
           focusable: false,
           dimmed: !world.battle.canAfford(card),
+          bonusDamage: world.battle.stackBonus(card.def),
         ),
       ),
     );
@@ -627,6 +629,7 @@ class _PeekPopup extends StatelessWidget {
                         sprites: sprites,
                         width: 56,
                         focusable: false,
+                        bonusDamage: battle.stackBonus(card.def),
                         onTap: () => _close(() => battle.sendToBottom(card)),
                       ),
                     ),

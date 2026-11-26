@@ -44,6 +44,7 @@ class EnemyDef {
     this.part = false,
     this.frontShield = false,
     this.prism = false,
+    this.lavaImmune = false,
   });
 
   final String name;
@@ -81,6 +82,10 @@ class EnemyDef {
   /// Reflects straight projectiles unless lined up with its partner (Dupla
   /// Prisma).
   final bool prism;
+
+  /// Lava panels don't burn it, like a Fire unit (Capanga de Duas Cabeças,
+  /// which sets its own lava and walks on it).
+  final bool lavaImmune;
 }
 
 class EnemySpawn {
@@ -266,6 +271,7 @@ abstract final class Enemies {
     hp: 120,
     shotDamage: 10,
     shotStepTicks: 6,
+    lavaImmune: true,
     behavior: TwoHeadBehavior(),
   );
 
@@ -435,9 +441,8 @@ abstract final class Enemies {
   static const portal = EnemyDef(
     name: 'Portal Ancestral',
     kind: EnemyKind.machine,
-    hp: 180,
+    hp: 225,
     pushable: false,
-    frontShield: true,
     behavior: PortalBehavior(),
   );
 

@@ -509,7 +509,7 @@ const _foes = [
       (Enemies.etRider, '2 painéis. Só investe pela sua linha.'),
       (Enemies.ruinGolem, 'Racha sua coluna. Acerte o punho.'),
       (Enemies.priestess, 'Teleporta e cria cópias frágeis.'),
-      (Enemies.portal, 'Solta guerreiros. O anel bloqueia tiros.'),
+      (Enemies.portal, 'Solta guerreiros a cada poucos segundos.'),
     ],
   ),
   (

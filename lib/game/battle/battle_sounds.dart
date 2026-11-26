@@ -55,6 +55,7 @@ class BattleSounds {
       ChipPose.melee => Sfx.melee,
       ChipPose.ombrada => Sfx.melee,
       ChipPose.toss => Sfx.toss,
+      ChipPose.consumo => Sfx.heal,
       ChipPose.shoot => switch (def.tint) {
         Element.fire => Sfx.shotFire,
         Element.aqua => Sfx.shotAqua,

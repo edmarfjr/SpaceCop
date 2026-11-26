@@ -1,3 +1,5 @@
+import 'package:starcop/ui/theme.dart';
+
 import '../battle/battle_state.dart';
 import '../battle/enemies.dart' show EnemyKind;
 import '../battle/panels.dart';
@@ -252,7 +254,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: HealEffect(10),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const atkBoost = ChipDef(
@@ -264,7 +266,7 @@ abstract final class Chips {
     type: ChipType.support,
     target: ChipTarget.self,
     effect: DamageBoostEffect(10),
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const energyDrink = ChipDef(
@@ -290,7 +292,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: EnergyMaxEffect(1),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const powerGenerator = ChipDef(
@@ -305,7 +307,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: GaugeSpeedEffect(20),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const cracker = ChipDef(
@@ -475,6 +477,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     effect: PullEffect(stunTicks: 3 * ticksPerSecond),
     pose: ChipPose.melee,
+    fx: ChipFx.muzzle,
   );
 
   static const cryoGrenade = ChipDef(
@@ -521,6 +524,8 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 15,
     effect: StatusShotEffect(Status.rooted, 3 * ticksPerSecond),
+    fx: ChipFx.sniper,
+    corFx: Pico.forest,
   );
 
   static const laserSight = ChipDef(
@@ -533,6 +538,8 @@ abstract final class Chips {
     target: ChipTarget.row,
     effect: StatusShotEffect(Status.marked, markTicks),
     pose: ChipPose.toss,
+    fx: ChipFx.sniper,
+    corFx: Pico.red,
   );
 
   static const overcharge = ChipDef(
@@ -584,7 +591,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: RepeatNextEffect(),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const sniper = ChipDef(
@@ -826,7 +833,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: EnergyBurstEffect(3),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const specialAmmo = ChipDef(
@@ -842,6 +849,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: ProjectileBonusEffect(3),
     exhaust: true,
+    pose: ChipPose.consumo,
   );
 
   static const combatScan = ChipDef(
@@ -860,14 +868,15 @@ abstract final class Chips {
   static const jammer = ChipDef(
     id: 'jammer',
     name: 'Interferência',
-    description: 'Atordoa todos os inimigos por 2 s.',
+    description: 'Atordoa todos os inimigos por 3 s.',
     cost: 1,
     family: ChipFamily.tactical,
     rarity: Rarity.uncommon,
     type: ChipType.support,
     target: ChipTarget.self,
-    effect: StatusAllEffect(Status.stunned, 2 * ticksPerSecond),
+    effect: StatusAllEffect(Status.stunned, 3 * ticksPerSecond),
     fx: ChipFx.glitch,
+    pose: ChipPose.toss,
   );
 
   static const dash = ChipDef(
@@ -921,7 +930,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: CleanseEffect(5),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const nanobots = ChipDef(
@@ -935,7 +944,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: SelfStatusEffect(Status.regen, regenTicks),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const tacticalReload = ChipDef(
@@ -990,7 +999,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: AttackChargesEffect(3, 5),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const ricochet = ChipDef(
@@ -1059,8 +1068,7 @@ abstract final class Chips {
     id: 'tnt',
     name: 'TNT',
     description:
-        'Lançada uma dinamite no 3º painel à frente, que explode'
-        'em cruz 2 s depois. Uso único.',
+        'Lançada uma tnt no 3º painel à frente, que explode 2 s depois. Uso único.',
     cost: 2,
     family: ChipFamily.explosive,
     rarity: Rarity.uncommon,
@@ -1076,8 +1084,7 @@ abstract final class Chips {
     id: 'assisted_aim',
     name: 'Mira Assistida',
     description:
-        'O próximo tiro acerta o alvo com menos vida, em qualquer '
-        'linha.',
+        'O próximo tiro acerta o alvo com menos vida, em qualquer linha.',
     cost: 0,
     family: ChipFamily.tactical,
     rarity: Rarity.uncommon,
@@ -1231,6 +1238,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 10,
     effect: WetShockEffect(ticksPerSecond),
+    fx: ChipFx.bolt,
   );
 
   static const conductor = ChipDef(
@@ -1326,7 +1334,7 @@ abstract final class Chips {
     id: 'parry',
     name: 'Aparar',
     description:
-        'Por 3 s, repele o proximo ataque no primeiro inimigo da sua linha.',
+        'Por 3 s, apara todo ataque e revida no primeiro inimigo da sua linha.',
     cost: 1,
     family: ChipFamily.melee,
     rarity: Rarity.uncommon,
@@ -1374,7 +1382,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: AddCardsEffect('shot', 2),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const recycleCapsule = ChipDef(
@@ -1389,7 +1397,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: RecycleEffect(),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const reserveBattery = ChipDef(
@@ -1404,7 +1412,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: CarryEnergyEffect(),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const stabilizer = ChipDef(
@@ -1418,7 +1426,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: DiscountNextHandEffect(1),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const emergencySyringe = ChipDef(
@@ -1434,7 +1442,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     effect: EmergencyHealEffect(),
     exhaust: true,
-    pose: ChipPose.toss,
+    pose: ChipPose.consumo,
   );
 
   static const freezeSpray = ChipDef(
@@ -2037,6 +2045,20 @@ abstract final class Chips {
 
   /// The decks a new run can start with, picked after "Novo jogo".
   static const starterDecks = [
+    /*  StarterDeck(
+      name: 'teste e animação',
+      tagline: 'Testar animações das cartas.',
+      cards: [
+        (sniper, 2),
+        (medicDrone, 2),
+        (homingRocket, 2),
+        (laserSight, 1),
+        (neuralVine, 1),
+        (mortar, 1),
+        (seismicHammer, 1),
+      ],
+    ),
+    */
     StarterDeck(
       name: 'Kit Padrão',
       tagline: 'Esteja equipado e preparado para qualquer desafio.',

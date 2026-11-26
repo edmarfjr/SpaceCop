@@ -136,7 +136,7 @@ class BattleWorld extends World
         : view.position - Vector2(0, view.size.y);
     _grid.add(
       DamageText(
-        amount,
+        '$amount',
         position: head + Vector2(_random.nextDouble() * 8 - 4, 0),
         color: target is PlayerFighter
             ? Pico.red
@@ -151,6 +151,28 @@ class BattleWorld extends World
       hurtFeedback();
       _shake = _shakeTime;
     }
+  }
+
+  /// Each fighter's HP after the last tick: a rise is a heal.
+  final Map<Fighter, int> _lastHp = {};
+
+  /// Green crosses over every fighter whose HP rose this tick, whatever
+  /// healed it (a card, regen, grass, an enemy healer).
+  void _showHeals() {
+    final alive = {...battle.units};
+    for (final fighter in alive) {
+      final last = _lastHp[fighter];
+      if (last != null && fighter.hp > last && !fighter.hidden) {
+        final view = _views[fighter];
+        _grid.addAll(
+          view == null
+              ? HealBurst.over(_grid.cellFeet(fighter.pos), Vector2.all(32))
+              : HealBurst.over(view.position.clone(), view.size),
+        );
+      }
+      _lastHp[fighter] = fighter.hp;
+    }
+    _lastHp.removeWhere((fighter, _) => !alive.contains(fighter));
   }
 
   @override
@@ -194,6 +216,7 @@ class BattleWorld extends World
       for (final hit in battle.hits) {
         _showHit(hit.target, hit.amount, hit.multiplier);
       }
+      _showHeals();
       _sounds.afterTick(battle);
       if (battle.events.any((e) => e.kind == BattleEventKind.quake)) {
         _shake = _shakeTime;

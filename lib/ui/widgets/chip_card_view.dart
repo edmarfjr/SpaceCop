@@ -26,9 +26,14 @@ class ChipCardView extends StatefulWidget {
     this.width = 44,
     this.focusable = true,
     this.autofocus = false,
+    this.bonusDamage = 0,
   });
 
   final ChipDef def;
+
+  /// Damage the card has gained in this battle (Tiro Contínuo): added to
+  /// the damage shown, in green, and stated under the description.
+  final int bonusDamage;
   final GameSprites sprites;
   final bool selected;
   final bool dimmed;
@@ -186,14 +191,21 @@ class _ChipCardViewState extends State<ChipCardView> {
               if (def.damage > 0)
                 at(
                   _right,
-                  Center(child: fitted('${def.damage}', 5 * scale * 0.8)),
+                  Center(
+                    child: fitted(
+                      '${def.damage + widget.bonusDamage}',
+                      5 * scale * 0.8,
+                      color: widget.bonusDamage > 0 ? Pico.green : null,
+                    ),
+                  ),
                 ),
               at(
                 _description,
                 Container(
                   alignment: Alignment.topCenter,
                   child: fitted(
-                    '\n${def.description}',
+                    '\n${def.description}'
+                    '${widget.bonusDamage > 0 ? '\n+${widget.bonusDamage}' : ''}',
                     2.5 * scale,
                     lines: 7,
                     prefix: TextSpan(

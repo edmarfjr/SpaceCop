@@ -31,7 +31,7 @@ class PlayerAttackArt {
   final Vector2? _barrelTip;
 
   /// The fist in each attack frame that holds something, in art pixels.
-  /// A pose with a held sprite in `SpriteFiles.held` needs its fist here.
+  /// Only these poses draw what the card holds (`SpriteFiles.held`).
   static final _fists = <ChipPose, Vector2>{
     ChipPose.melee: Vector2(22, 9),
     ChipPose.shoot: Vector2(15, 9),
@@ -77,7 +77,9 @@ class PlayerAttackArt {
   /// of the bare hand without one. Only Projectile cards flash: null for
   /// the others (energy shots, blows) and for poses that don't fire.
   Vector2? get muzzleAt {
-    if (!shoots || def.family != ChipFamily.projectile) return null;
+    if (!shoots || def.family != ChipFamily.projectile) {
+      if (def.fx != ChipFx.muzzle) return null;
+    }
     final at = heldAt;
     final tip = _barrelTip;
     if (at == null || tip == null) return _bareMuzzle;

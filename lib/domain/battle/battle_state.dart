@@ -1,4 +1,7 @@
 import 'dart:math';
+import 'dart:ui';
+
+import 'package:starcop/ui/theme.dart';
 
 import '../chips/battle_chip.dart';
 import '../chips/chip_library.dart';
@@ -619,6 +622,10 @@ class Projectile {
   int stepTimer;
   int ttl = projectileLifetime;
   bool spent = false;
+
+  /// The Gancho's hook: drawn as its chain from the player's hand, not as
+  /// a shot.
+  bool get hooked => onHit is PullEffect;
 }
 
 /// How a [HitFlash] is drawn.
@@ -638,14 +645,30 @@ enum FlashKind {
 /// Lightning from [from] (null: the player's hand) to [to], for a moment.
 /// Purely visual.
 class Zap {
-  Zap(this.to, {this.from, this.style = ZapStyle.bolt});
+  Zap(
+    this.to, {
+    this.from,
+    this.style = ZapStyle.bolt,
+    this.length = lifetime,
+    this.corFx = Pico.white,
+  }) : ticksLeft = length;
 
+  /// Ticks a zap shows, unless given its own [length].
   static const int lifetime = 8;
+
+  /// The Gancho's chain once the hook hits (or flies off the grid): its
+  /// first half it follows the target pulled in, its second half it winds
+  /// back into the hand.
+  static const int chainLifetime = 14;
 
   final GridPos? from;
   final GridPos to;
   final ZapStyle style;
-  int ticksLeft = lifetime;
+
+  /// Ticks it shows in all.
+  final int length;
+  int ticksLeft;
+  Color corFx;
 }
 
 enum ZapStyle {
@@ -691,8 +714,9 @@ class Beam {
   final bool pierce;
 }
 
-/// The player dashed from [from] to [to] (Investida): ghosts of them
-/// fade along the way. Purely visual.
+/// The player dashed from [from] to [to] along a row, forward (Investida)
+/// or back (Salto Acrobático's recoil): ghosts of them fade on every panel
+/// left behind. Purely visual.
 class Trail {
   Trail(this.from, this.to);
 
@@ -859,6 +883,11 @@ class BattleState {
   int attackCharges = 0;
   int chargeBonus = 0;
 
+  /// Extra damage the next attack gets from Bala Oca ([damageBonus]) and
+  /// Adrenalina ([chargeBonus]); 0 when none is pending. Shown over the
+  /// player.
+  int get attackBonus => damageBonus + (attackCharges > 0 ? chargeBonus : 0);
+
   /// The next chaining card counts as [chainFamily] (Coringa).
   bool wildcard = false;
 
@@ -908,7 +937,14 @@ class BattleState {
   /// Uses so far this battle of each stacking card (Bala Acumulativa).
   final Map<String, int> stackUses = {};
 
-  /// While positive, the next hit on the player is cancelled and answered
+  /// Damage a stacking card (Tiro Contínuo) has gained so far this battle;
+  /// 0 for any other card. Shown on the card in the hand.
+  int stackBonus(ChipDef def) => switch (def.effect) {
+    StackingShotEffect(:final step) => step * (stackUses[def.id] ?? 0),
+    _ => 0,
+  };
+
+  /// While positive, every hit on the player is cancelled and answered
   /// with [parryDamage] (Aparar).
   int parryTicks = 0;
   int parryDamage = 0;
@@ -1409,8 +1445,9 @@ class BattleState {
           unit.hp = min(unit.maxHp, unit.hp + grassHeal);
         } else if (panel.state == PanelState.lava &&
             unit.element != Element.fire &&
+            !(unit is EnemyFighter && unit.def.lavaImmune) &&
             !(unit == player && hasRelic(Relics.thermalInsulator))) {
-          damage(unit, lavaDamage);
+          damage(unit, lavaDamage, terrain: true);
         }
       }
     }
@@ -1596,13 +1633,10 @@ class BattleState {
         _homingCell = target.pos;
       }
     }
-    final bonus = spends
-        ? damageBonus + (attackCharges > 0 ? chargeBonus : 0)
-        : 0;
+    final bonus = spends ? attackBonus : 0;
     final base = switch (def.effect) {
       ChainScaleEffect() => def.damage * link,
-      StackingShotEffect(:final step) =>
-        def.damage + step * (stackUses[def.id] ?? 0),
+      StackingShotEffect() => def.damage + stackBonus(def),
       _ => def.damage,
     };
     var damage = boosted(player, base + bonus + ammo);
@@ -1627,12 +1661,9 @@ class BattleState {
         );
         _toss(shot.pos, () => _impact(shot, Team.enemy), chip: def);
       case ProjectileEffect(:final pattern, :final farBonus):
-        // Mira Assistida sends the shot to its own target: the bonus and the
-        // tracer follow it.
+        // Mira Assistida sends the shot to its own target: the bonus (and
+        // the tracer, see _fire) follow it.
         final far = _homingCell ?? _tossTarget();
-        if (def.fx == ChipFx.sniper) {
-          zaps.add(Zap(far, style: ZapStyle.tracer));
-        }
         final back =
             far.x == gridColumns - 1 && _targetAt(far, Team.enemy) != null;
         if (def.fx == ChipFx.beam) {
@@ -2091,6 +2122,11 @@ class BattleState {
       };
 
   /// Player shot along the row, one cell per tick.
+  ///
+  /// A card with [ChipFx.sniper] (Rifle de Precisão, Trepadeira Neural,
+  /// Mira Laser...) also streaks its tracer, in its [ChipDef.corFx], to
+  /// where the shot is headed: the first target of the row, or the
+  /// Mira Assistida's.
   void _fire(
     ChipDef def,
     int damage, {
@@ -2099,6 +2135,15 @@ class BattleState {
     Status? status,
     GridPos? from,
   }) {
+    if (def.fx == ChipFx.sniper) {
+      zaps.add(
+        Zap(
+          from ?? _homingCell ?? _tossTarget(),
+          style: ZapStyle.tracer,
+          corFx: def.corFx,
+        ),
+      );
+    }
     projectiles.add(
       Projectile(
         team: Team.player,
@@ -2382,7 +2427,12 @@ class BattleState {
     if (recoil > 0 && !player.has(Status.rooted)) {
       final step = GridPos(-recoil, 0);
       final back = player.pos + step;
-      if (canEnter(player, back)) _moveUnit(player, back, step);
+      if (canEnter(player, back)) {
+        final from = player.pos;
+        _moveUnit(player, back, step);
+        // Ice may slide them further: the trail covers it all.
+        trails.add(Trail(from, player.pos));
+      }
     }
     if (crack) {
       for (final offset in pattern) {
@@ -2679,6 +2729,8 @@ class BattleState {
   /// Carga C4 stuck on it): it reaches [EnemyFighter.hidden] and [EnemyFighter.burrowed]
   /// units, which stay hidden or burrowed. Targeting is untouched: they
   /// still can't be picked or hit by anything else.
+  ///
+  /// [terrain] marks a panel burning the unit (lava): Aparar can't parry it.
   void damage(
     Fighter target,
     int amount, {
@@ -2687,6 +2739,7 @@ class BattleState {
     HitKind kind = HitKind.area,
     Projectile? shot,
     bool pointBlank = false,
+    bool terrain = false,
   }) {
     if (target is EnemyFighter) {
       if (target.invulnerable || (target.hidden && !pointBlank)) return;
@@ -2753,8 +2806,8 @@ class BattleState {
       }
     }
     if (target is EnemyFighter && target.exposedTicks > 0) total *= 2;
-    if (target is PlayerFighter && parryTicks > 0 && total > 0) {
-      parryTicks = 0;
+    if (target is PlayerFighter && parryTicks > 0 && total > 0 && !terrain) {
+      // Every hit while it lasts is parried, so bursts don't get through.
       events.add(BattleEvent(BattleEventKind.blocked, unit: target));
       _counter();
       return;
@@ -3034,6 +3087,16 @@ class BattleState {
         if (shot.onHit is SpearEffect && shot.pos.x >= gridColumns) {
           _plantSpear(GridPos(gridColumns - 1, shot.pos.y));
         }
+        // A Gancho that missed winds its chain back from the last panel.
+        if (shot.hooked) {
+          zaps.add(
+            Zap(
+              GridPos(shot.pos.x.clamp(0, gridColumns - 1), shot.pos.y),
+              style: ZapStyle.chain,
+              length: Zap.chainLifetime,
+            ),
+          );
+        }
       }
     }
     projectiles.removeWhere((p) => p.spent);
@@ -3164,7 +3227,9 @@ class BattleState {
         _plantSpear(shot.pos);
       case PullEffect(:final stunTicks):
         _pull(target);
-        zaps.add(Zap(target.pos, style: ZapStyle.chain));
+        zaps.add(
+          Zap(target.pos, style: ZapStyle.chain, length: Zap.chainLifetime),
+        );
         if (stunTicks > 0) target.applyStatus(Status.stunned, stunTicks);
       case StatusShotEffect(:final status, :final ticks, :final panel):
         target.applyStatus(status, ticks);

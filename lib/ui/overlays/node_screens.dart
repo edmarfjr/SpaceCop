@@ -9,6 +9,7 @@ import '../../domain/battle/battle_state.dart'
         FlashKind,
         HitFlash,
         ObstacleKind,
+        Status,
         Trail,
         Zap,
         ZapStyle,
@@ -26,6 +27,7 @@ import '../../domain/run/run_state.dart';
 import '../../domain/run/shop.dart' show removalPriceStep;
 import '../../game/audio.dart';
 import '../../game/battle/chip_fx_layer.dart' show ChipFxLayer;
+import '../../game/battle/damage_text.dart' show DamageText, HealBurst;
 import '../../game/battle/projectile_layer.dart' show ProjectileLayer;
 import '../../game/player_attack_art.dart';
 import '../../game/sprites.dart';
@@ -1721,7 +1723,22 @@ class _ShowcasePainter extends CustomPainter {
   /// A panel's middle, in art pixels from the player's left edge; [cell]
   /// counts columns ahead and rows down from the player, as in the battle.
   static Offset _cell(GridPos cell) =>
-      Offset(12 + cell.x * 16.0, 12 + cell.y * 16.0);
+      Offset(12 + cell.x * _panel, 12 + cell.y * _panel);
+
+  /// A panel's size in the showcase, in art pixels.
+  static const _panel = 16.0;
+
+  /// Ticks the player takes to glide back on a recoil, about as long as
+  /// the battle's view takes.
+  static const _glideTicks = 5;
+
+  /// Where the player stands when using the card: a panel ahead per panel
+  /// a recoil (Salto Acrobático) takes them back, so they land at the
+  /// box's usual spot.
+  Offset get _start => switch (art.def.effect) {
+    MeleeEffect(:final recoil) when recoil > 0 => Offset(_panel * recoil, 0),
+    _ => Offset.zero,
+  };
 
   static Offset _offset(Vector2 v) => Offset(v.x, v.y);
 
@@ -1773,7 +1790,7 @@ class _ShowcasePainter extends CustomPainter {
       ..scale(_CardShowcase.scale);
     if (t < 0.5) {
       canvas.translate(_left, _center);
-      _draw(canvas, sprites.playerIdle, Offset.zero);
+      _draw(canvas, sprites.playerIdle, _start);
       canvas.restore();
       return;
     }
@@ -1781,27 +1798,80 @@ class _ShowcasePainter extends CustomPainter {
     final def = art.def;
     // Martelo Sísmico and the like shake the picture on the hit.
     if (def.fx == ChipFx.quake && age >= _hitAt && age < _hitAt + 0.25) {
-      canvas.translate((t * 60).floor().isEven ? 1 : -1, _center);
+      canvas.translate((t * 60).floor().isEven ? 1 : -1, 0);
     }
     canvas.translate(_left, _center);
     final ticks = _ticks(age);
     // A new shape for the bolts every 60 ms, like the battle's.
     final shape = Random((t * _loopMs / 60).floor());
     _player(canvas, ticks);
+    // The blow lands from where the card was used, before any recoil.
+    canvas
+      ..save()
+      ..translate(_start.dx, _start.dy);
     _effects(canvas, age, ticks, shape);
+    canvas.restore();
+    _onPlayer(canvas, age);
     canvas.restore();
   }
 
-  /// The attack frame and what is in the fist; Investida dashes a panel
-  /// ahead, leaving a fading ghost.
+  /// What shows over the player in battle: the heal's green crosses, or
+  /// the attack bonus the card leaves for the next attacks ("+X").
+  void _onPlayer(Canvas canvas, double age) {
+    final effect = art.def.effect;
+    final heals = switch (effect) {
+      HealEffect() || CleanseEffect() || EmergencyHealEffect() => true,
+      SelfStatusEffect(status: Status.regen) => true,
+      MeleeEffect(lifesteal: true) => true,
+      _ => false,
+    };
+    final bonus = switch (effect) {
+      DamageBoostEffect(:final amount) => amount,
+      AttackChargesEffect(:final amount) => amount,
+      _ => 0,
+    };
+    if (!heals && bonus == 0) return;
+    // In the battle's pixels, where the texts are sized: the player's
+    // 24px frame is 48 there, its feet's middle at (24, 48).
+    _inBattlePixels(canvas, () {
+      if (heals) {
+        HealBurst.paint(
+          canvas,
+          Vector2(24, 48),
+          Vector2.all(48),
+          age * _attackSeconds,
+        );
+      }
+      if (bonus > 0) {
+        DamageText.paintText(
+          canvas,
+          '+$bonus',
+          Vector2(24, 12),
+          Pico.yellow,
+          0,
+        );
+      }
+    });
+  }
+
+  /// The attack frame and what is in the fist. Investida dashes a panel
+  /// ahead and the Salto Acrobático glides back one after its blow, both
+  /// leaving a fading ghost where they were, like the battle's trail.
   void _player(Canvas canvas, int ticks) {
     var at = Offset.zero;
+    Offset? ghost;
     if (art.def.effect is DashEffect) {
-      at = const Offset(14, 0);
+      at = const Offset(_panel, 0);
+      ghost = Offset.zero;
+    } else if (_start != Offset.zero) {
+      at = Offset.lerp(_start, Offset.zero, min(1, ticks / _glideTicks))!;
+      ghost = _start;
+    }
+    if (ghost != null) {
       final fade = 1 - ticks / Trail.lifetime;
       if (fade > 0) {
         _ghost.color = Pico.blue.withValues(alpha: 0.5 * fade);
-        _draw(canvas, sprites.playerIdle, Offset.zero, paint: _ghost);
+        _draw(canvas, sprites.playerIdle, ghost, paint: _ghost);
       }
     }
     // Drawn in the battle's order: body, then what's in the fist.
@@ -1833,14 +1903,21 @@ class _ShowcasePainter extends CustomPainter {
     if (ticks < Zap.lifetime) {
       switch (effect) {
         case KindStrikeEffect():
-          _zap(canvas, ZapStyle.bolt, hand, foeLevel, shape);
+          _zap(canvas, ZapStyle.bolt, hand, foeLevel, shape, def.corFx);
         case SweepEffect():
           for (final row in const [-1, 0, 1]) {
             final to = _cell(GridPos(_foe.x, row));
-            _zap(canvas, ZapStyle.laser, hand, row == 0 ? foeLevel : to, shape);
+            _zap(
+              canvas,
+              ZapStyle.laser,
+              hand,
+              row == 0 ? foeLevel : to,
+              shape,
+              def.corFx,
+            );
           }
         case TractorEffect():
-          _zap(canvas, ZapStyle.tractor, hand, foeLevel, shape);
+          _zap(canvas, ZapStyle.tractor, hand, foeLevel, shape, def.corFx);
         case MeleeEffect(:final pattern) when def.fx == ChipFx.bolt:
           // Sparks to every panel hit (Cacetete, Chicote).
           for (final cell in pattern) {
@@ -1851,6 +1928,7 @@ class _ShowcasePainter extends CustomPainter {
               hand,
               cell.y == 0 ? Offset(to.dx, hand.dy) : to,
               shape,
+              def.corFx,
             );
           }
         default:
@@ -1911,7 +1989,14 @@ class _ShowcasePainter extends CustomPainter {
         } else if (def.firesShots) {
           _shot(canvas, hand, foeLevel, age, shape);
         } else if (def.fx == ChipFx.sniper && ticks < Zap.lifetime) {
-          _zap(canvas, ZapStyle.tracer, hand, Offset(_end, hand.dy), shape);
+          _zap(
+            canvas,
+            ZapStyle.tracer,
+            hand,
+            Offset(foeLevel.dx, hand.dy),
+            shape,
+            def.corFx,
+          );
         }
     }
   }
@@ -1952,7 +2037,7 @@ class _ShowcasePainter extends CustomPainter {
       sprite,
       Offset(
         x - sprite.src.width / 2,
-        _CardShowcase.box.height - sprite.src.height,
+        _CardShowcase.box.height / 2 - sprite.src.height,
       ),
       paint: kind == ObstacleKind.decoy ? _hologram : null,
     );
@@ -1964,9 +2049,17 @@ class _ShowcasePainter extends CustomPainter {
     Offset from,
     Offset to,
     Random shape,
+    Color corFx,
   ) => _inBattlePixels(
     canvas,
-    () => ChipFxLayer.drawZap(canvas, style, _battle(from), _battle(to), shape),
+    () => ChipFxLayer.drawZap(
+      canvas,
+      style,
+      _battle(from),
+      _battle(to),
+      shape,
+      corFx,
+    ),
   );
 
   /// A blow on [pattern]'s panels: a hit flash on each, plus the Foice's
@@ -2030,8 +2123,29 @@ class _ShowcasePainter extends CustomPainter {
   }
 
   /// A shot from the hand to [to], then what its hit does there.
+  /// The Gancho, as in battle: no shot, its chain reaches from the
+  /// weapon's end to [to], hits (a flash there), stays on the target being
+  /// pulled in, then winds back into the hand.
+  void _hook(Canvas canvas, Offset hand, Offset to, double age, Random shape) {
+    final Offset end;
+    if (age < _arrival) {
+      end = Offset.lerp(hand, to, age / _arrival)!;
+    } else {
+      // Like the battle's chain zap: holds its first half, winds back its
+      // second.
+      final held = (age - _arrival) / (1 - _arrival);
+      end = Offset.lerp(to, hand, (held * 2 - 1).clamp(0.0, 1.0))!;
+      _blast(canvas, _cell(_foe), _ticks(age - _arrival));
+    }
+    _zap(canvas, ZapStyle.chain, hand, end, shape, art.def.corFx);
+  }
+
   void _shot(Canvas canvas, Offset hand, Offset to, double age, Random shape) {
     final def = art.def;
+    if (def.effect is PullEffect) {
+      _hook(canvas, hand, to, age, shape);
+      return;
+    }
     if (age < _arrival) {
       final f = age / _arrival;
       final at = Offset.lerp(hand, to, f)!;
@@ -2048,10 +2162,17 @@ class _ShowcasePainter extends CustomPainter {
       }
       // Arco Voltaico: lightning from the hand to the shot.
       if (def.fx == ChipFx.bolt) {
-        _zap(canvas, ZapStyle.bolt, hand, at, shape);
+        _zap(canvas, ZapStyle.bolt, hand, at, shape, def.corFx);
       }
       if (def.fx == ChipFx.sniper && age < _arrival / 2) {
-        _zap(canvas, ZapStyle.tracer, hand, Offset(_end, hand.dy), shape);
+        _zap(
+          canvas,
+          ZapStyle.tracer,
+          hand,
+          Offset(_end, hand.dy),
+          shape,
+          def.corFx,
+        );
       }
       return;
     }
@@ -2067,9 +2188,6 @@ class _ShowcasePainter extends CustomPainter {
     }
     if (ticks >= Zap.lifetime) return;
     switch (def.effect) {
-      // Gancho: the chain to the target pulled in.
-      case PullEffect():
-        _zap(canvas, ZapStyle.chain, hand, to, shape);
       // Ricochete, Arco Voltaico, Condutor: the hit jumps on.
       case BounceEffect() || ConductorEffect()
           when def.fx == ChipFx.bolt || def.fx == ChipFx.tracer:
@@ -2079,6 +2197,7 @@ class _ShowcasePainter extends CustomPainter {
           foe,
           next,
           shape,
+          def.corFx,
         );
         _blast(canvas, next, ticks);
       default:
@@ -2304,6 +2423,7 @@ class GameOverOverlay extends StatelessWidget {
     final floor = (run.current?.floor ?? -1) + 1;
     final stats = [
       ('Ato · andar', '${run.act} · $floor'),
+      ('Tempo', run.playTime),
       ('Batalhas vencidas', '${run.battlesWon}'),
       ('Inimigos derrotados', '${run.enemiesDefeated}'),
       ('Créditos ganhos', '${run.creditsEarned}'),

@@ -80,6 +80,7 @@ class RunState {
       ..battlesWon = json['battlesWon'] as int? ?? 0
       ..enemiesDefeated = json['enemiesDefeated'] as int? ?? 0
       ..creditsEarned = json['creditsEarned'] as int? ?? 0
+      ..playSeconds = (json['playSeconds'] as num? ?? 0).toDouble()
       ..cardUses.addAll(
         (json['cardUses'] as Map?)?.cast<String, int>() ?? const {},
       );
@@ -129,6 +130,7 @@ class RunState {
     'battlesWon': battlesWon,
     'enemiesDefeated': enemiesDefeated,
     'creditsEarned': creditsEarned,
+    'playSeconds': playSeconds,
     'cardUses': cardUses,
   };
 
@@ -223,6 +225,18 @@ class RunState {
   int battlesWon = 0;
   int enemiesDefeated = 0;
   int creditsEarned = 0;
+
+  /// Seconds played in the run, not counting the pause.
+  double playSeconds = 0;
+
+  /// [playSeconds] as "m:ss", or "h:mm:ss" past the hour.
+  String get playTime {
+    final total = playSeconds.floor();
+    final h = total ~/ 3600;
+    final m = total ~/ 60 % 60;
+    final s = (total % 60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:${m.toString().padLeft(2, '0')}:$s' : '$m:$s';
+  }
 
   /// Times each card (by name) was used in battle.
   final Map<String, int> cardUses = {};

@@ -5,10 +5,12 @@ import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 
 import '../../domain/battle/battle_state.dart';
+import '../../domain/battle/enemies.dart';
 import '../../domain/run/relics.dart';
 import '../../ui/theme.dart';
 import '../player_attack_art.dart';
 import '../sprites.dart';
+import 'damage_text.dart';
 import 'grid_component.dart';
 import 'projectile_layer.dart';
 
@@ -109,7 +111,14 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
       BlendMode.srcATop,
     )
     ..color = const Color(0xB0FFFFFF);
-  static final _scanline = Paint()..color = Pico.blue.withValues(alpha: 0.35);
+  /// The Sacerdotisa's illusions: see-through and lightly green.
+  static final _illusionPaint = Paint()
+    ..colorFilter = ColorFilter.mode(
+      Pico.green.withValues(alpha: 0.35),
+      BlendMode.srcATop,
+    )
+    ..color = const Color(0x99FFFFFF);
+  static final _scanline =Paint()..color = Pico.blue.withValues(alpha: 0.35);
 
   bool get _isDecoy =>
       fighter is Obstacle && (fighter as Obstacle).kind == ObstacleKind.decoy;
@@ -244,6 +253,9 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
           ? _phasedPaint
           : _isDecoy
           ? _hologramPaint
+          : fighter is EnemyFighter &&
+                (fighter as EnemyFighter).def == Enemies.illusion
+          ? _illusionPaint
           : null,
     );
     if (_isDecoy) _scanlines(canvas);
@@ -395,6 +407,20 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
     for (final icon in icons) {
       icon.render(canvas, position: Vector2(x, 6), size: Vector2.all(8));
       x += 9;
+    }
+    // Bala Oca, Adrenalina: the damage the next attack gains, over the
+    // head (over the status icons, if any), until an attack spends it.
+    if (fighter is PlayerFighter) {
+      final bonus = parent.battle.attackBonus;
+      if (bonus > 0) {
+        DamageText.paintText(
+          canvas,
+          '+$bonus',
+          Vector2(size.x / 2, icons.isEmpty ? 12 : 5),
+          Pico.yellow,
+          0,
+        );
+      }
     }
   }
 }

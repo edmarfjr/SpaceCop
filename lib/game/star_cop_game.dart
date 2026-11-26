@@ -14,6 +14,7 @@ import '../domain/run/run_state.dart';
 import '../domain/run/shop.dart';
 import 'audio.dart';
 import 'battle/battle_world.dart';
+import 'bestiary_progress.dart';
 import 'run_save.dart';
 import 'sprites.dart';
 import '../ui/theme.dart' show Pico;
@@ -133,6 +134,26 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   /// Pause or deck view open; the battle doesn't tick.
   bool get halted =>
       overlays.isActive(Overlays.pause) || overlays.isActive(Overlays.deck);
+
+  /// The run's clock runs on its screens, not on the pause, the deck view,
+  /// the settings or the manual opened from the pause.
+  @override
+  void update(double dt) {
+    super.update(dt);
+    switch (phase.value) {
+      case GamePhase.map ||
+              GamePhase.battle ||
+              GamePhase.reward ||
+              GamePhase.rest ||
+              GamePhase.shop ||
+              GamePhase.event
+          when !halted &&
+              !overlays.isActive(Overlays.settings) &&
+              !overlays.isActive(Overlays.manual):
+        run.playSeconds += dt;
+      default:
+    }
+  }
 
   void pause() {
     GameAudio.instance.play(Sfx.pause);
@@ -262,6 +283,7 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   }
 
   void _startBattle(Encounter encounter) {
+    BestiaryProgress.instance.recordBattle(encounter);
     final boss = run.current?.type == NodeType.boss;
     final battle = BattleState(
       playerHp: run.hp,

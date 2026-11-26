@@ -63,8 +63,8 @@ abstract final class SpriteFiles {
     Enemies.twoHead: 'actors/inimigos_2HeadGrunt.png',
     Enemies.leaper: 'actors/saltador.png',
     Enemies.ruinGolem: 'actors/bosses_colosso.png',
-    Enemies.priestess: 'actors/inimigos2_etShaman.png',
-    Enemies.illusion: 'actors/inimigos2_etShaman.png',
+    Enemies.priestess: 'actors/inimigos2_etSacerdotiza.png',
+    Enemies.illusion: 'actors/inimigos2_etSacerdotiza.png',
     Enemies.portal: 'chips/stasisGen.png',
     Enemies.colonel: 'actors/coronel.png',
     Enemies.colonelGuard: 'actors/inimigos_gruntBrute.png',
@@ -339,7 +339,6 @@ abstract final class SpriteFiles {
     Chips.energyWhip.id: 'weapons/energy_whip.png',
     Chips.seismicHammer.id: 'weapons/seismic_hammer.png',
     Chips.cracker.id: 'weapons/cracker.png',
-    Chips.hook.id: 'weapons/hook.png',
     Chips.dagger.id: 'weapons/dagger.png',
     Chips.thermalBlade.id: 'weapons/thermal_blade.png',
     Chips.scythe.id: 'weapons/scythe.png',
@@ -356,13 +355,14 @@ abstract final class SpriteFiles {
     Chips.vShot.id: 'weapons/plasma.png',
     Chips.shotgun.id: 'weapons/shotgun.png',
     Chips.smg.id: 'weapons/smg.png',
+    Chips.hook.id: 'weapons/hook.png',
     // Revolver until each card gets its own gun.
     Chips.missile.id: 'weapons/revolver.png',
     Chips.bubblePush.id: 'weapons/revolver.png',
     Chips.thunderLance.id: 'weapons/revolver.png',
     Chips.neuralVine.id: 'weapons/revolver.png',
     Chips.tractorBeam.id: 'weapons/revolver.png',
-    Chips.sniper.id: 'weapons/revolver.png',
+    Chips.sniper.id: 'weapons/rifle.png',
     Chips.incendiaryRound.id: 'weapons/revolver.png',
     Chips.piercingShot.id: 'weapons/revolver.png',
     Chips.tranqDart.id: 'weapons/revolver.png',
@@ -386,12 +386,12 @@ abstract final class SpriteFiles {
     Chips.sweepLaser.id: 'weapons/revolver.png',
   };
 
-  /// What the player holds for each attack pose, by card id. A pose
-  /// missing here (toss, ombrada) is drawn empty-handed.
-  static final held = <ChipPose, Map<String, String>>{
-    ChipPose.melee: weapons,
-    ChipPose.shoot: guns,
-  };
+  /// What the player holds using each card, by card id: its gun or its
+  /// melee weapon, whatever its pose (the Gancho fires its gun in the swing
+  /// frame). A gun's barrel tip, where the flash and effects come out, is
+  /// read from its art. Poses without a fist (toss, ombrada; see
+  /// `PlayerAttackArt`) are drawn empty-handed.
+  static final held = <String, String>{...weapons, ...guns};
 
   /// Frame drawn over every panel, by the side that owns it.
   static const panelFrames = <Team, String>{
@@ -562,7 +562,7 @@ abstract final class SpriteFiles {
     ...enemies.values,
     ...obstacles.values,
     ...chips.values,
-    for (final table in held.values) ...table.values,
+    ...held.values,
     ...panels.values,
     ...panelFrames.values,
     ...statuses.values,
@@ -634,6 +634,7 @@ class GameSprites {
   late final Sprite playerAttack = _frame(SpriteFiles.player, 1, 24);
   late final Sprite playerMelee = _frame(SpriteFiles.player, 2, 24);
   late final Sprite playerOmbrada = _frame(SpriteFiles.player, 3, 24);
+  late final Sprite playerConsumo = _frame(SpriteFiles.player, 4, 24);
 
   /// The player's frame while using a chip of [pose]. The switch is
   /// exhaustive, so a new [ChipPose] won't compile until it gets a frame
@@ -642,6 +643,7 @@ class GameSprites {
     ChipPose.shoot => playerAttack,
     ChipPose.melee || ChipPose.toss => playerMelee,
     ChipPose.ombrada => playerOmbrada,
+    ChipPose.consumo => playerConsumo,
   };
 
   /// Muzzle flash, drawn in front of the player while shooting and at the
@@ -810,8 +812,9 @@ class GameSprites {
   };
 
   /// What the player holds while using [def]: a melee weapon, a gun, or
-  /// null for cards used bare-handed.
-  Sprite? held(ChipDef def) => switch (SpriteFiles.held[def.pose]?[def.id]) {
+  /// null for cards used bare-handed. Whether the pose has a fist for it
+  /// is `PlayerAttackArt`'s call.
+  Sprite? held(ChipDef def) => switch (SpriteFiles.held[def.id]) {
     final path? => _file(path),
     null => null,
   };

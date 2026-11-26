@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/battle/bestiary.dart';
+import '../../domain/battle/enemies.dart';
 import '../../domain/chips/battle_chip.dart';
 import '../../domain/chips/chip_library.dart';
 import '../../domain/run/relics.dart';
 import '../../game/audio.dart';
+import '../../game/bestiary_progress.dart';
 import '../../game/star_cop_game.dart';
 import '../feedback.dart';
 import '../theme.dart';
@@ -40,8 +43,10 @@ class CompendiumOverlay extends StatefulWidget {
   State<CompendiumOverlay> createState() => _CompendiumOverlayState();
 }
 
+enum _Tab { cards, relics, enemies }
+
 class _CompendiumOverlayState extends State<CompendiumOverlay> {
-  bool _showRelics = false;
+  _Tab _tabShown = _Tab.cards;
 
   /// Cards tab: the family shown (all if null), the order, and whether the
   /// "+" versions are shown instead.
@@ -55,6 +60,9 @@ class _CompendiumOverlayState extends State<CompendiumOverlay> {
 
   /// Relics tab: the one whose text is shown.
   RelicDef? _relic;
+
+  /// Enemies tab: the one whose entry is shown.
+  FoeEntry? _foe;
 
   StarCopGame get game => widget.game;
 
@@ -71,9 +79,23 @@ class _CompendiumOverlayState extends State<CompendiumOverlay> {
         children: [
           Row(
             children: [
-              _tab('Cartas', !_showRelics, () => _showRelics = false),
+              _tab(
+                'Cartas',
+                _tabShown == _Tab.cards,
+                () => _tabShown = _Tab.cards,
+              ),
               const SizedBox(width: 4),
-              _tab('Relíquias', _showRelics, () => _showRelics = true),
+              _tab(
+                'Relíquias',
+                _tabShown == _Tab.relics,
+                () => _tabShown = _Tab.relics,
+              ),
+              const SizedBox(width: 4),
+              _tab(
+                'Inimigos',
+                _tabShown == _Tab.enemies,
+                () => _tabShown = _Tab.enemies,
+              ),
               const Spacer(),
               TextButton(
                 autofocus: true,
@@ -83,7 +105,13 @@ class _CompendiumOverlayState extends State<CompendiumOverlay> {
             ],
           ),
           const SizedBox(height: 4),
-          Expanded(child: _showRelics ? _relics() : _cards()),
+          Expanded(
+            child: switch (_tabShown) {
+              _Tab.cards => _cards(),
+              _Tab.relics => _relics(),
+              _Tab.enemies => _enemies(),
+            },
+          ),
         ],
       ),
     ),
@@ -348,6 +376,241 @@ class _CompendiumOverlayState extends State<CompendiumOverlay> {
                     ],
                   ),
                 ),
+        ),
+      ],
+    );
+  }
+
+  // --------------------------------------------------------------- enemies
+
+  static Color _tierColor(FoeTier tier) => switch (tier) {
+    FoeTier.common => Pico.white,
+    FoeTier.elite => Pico.orange,
+    FoeTier.boss => Pico.red,
+  };
+
+  static String _kindText(EnemyKind kind) => switch (kind) {
+    EnemyKind.machine => 'Projétil faz metade; Energia, o dobro.',
+    EnemyKind.organic => 'Projétil faz +50%; Energia, metade.',
+    EnemyKind.ethereal =>
+      'Projétil e Corpo-a-corpo o atravessam, e Explosivo faz metade, '
+          'exceto enquanto ataca.',
+  };
+
+  /// [entry]'s sprite fitted in a [size] square; a dark silhouette until
+  /// it is unlocked.
+  Widget _foeSprite(FoeEntry entry, double size, {required bool unlocked}) {
+    final sprite = game.sprites.enemy(entry.def);
+    final longest = sprite.src.width > sprite.src.height
+        ? sprite.src.width
+        : sprite.src.height;
+    final art = SheetSprite(sprite: sprite, scale: size / longest);
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Center(
+        child: unlocked
+            ? art
+            : ColorFiltered(
+                colorFilter: const ColorFilter.mode(
+                  Pico.darkGray,
+                  BlendMode.srcIn,
+                ),
+                child: art,
+              ),
+      ),
+    );
+  }
+
+  Widget _enemies() {
+    final progress = BestiaryProgress.instance;
+    final known = Bestiary.all.where(progress.unlocked).length;
+    final foe = _foe;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Registrados: $known/${Bestiary.all.length}',
+                style: GbText.small.copyWith(color: Pico.lightGray),
+              ),
+              const SizedBox(height: 2),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final act in const [1, 2, 3]) ...[
+                        Text(
+                          'Missão $act',
+                          style: GbText.body.copyWith(color: Pico.yellow),
+                        ),
+                        for (final entry in Bestiary.all)
+                          if (entry.act == act) _foeRow(entry, entry == foe),
+                        const SizedBox(height: 4),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        Container(
+          width: 120,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Pico.black,
+            border: Border.all(color: Pico.lightGray, width: 0.5),
+          ),
+          child: foe == null
+              ? Text(
+                  'Toque num inimigo para ver sua ficha. Enfrente um inimigo '
+                  '5 vezes (chefes: 1 vez) para registrá-lo.',
+                  style: GbText.small.copyWith(color: Pico.darkGray),
+                )
+              : SingleChildScrollView(child: _foeSheet(foe)),
+        ),
+      ],
+    );
+  }
+
+  /// One line of the list: sprite, name (or ??? while locked) and, while
+  /// locked, the fights still needed.
+  Widget _foeRow(FoeEntry entry, bool selected) {
+    final progress = BestiaryProgress.instance;
+    final unlocked = progress.unlocked(entry);
+    final needed = entry.tier.unlockFights;
+    return GestureDetector(
+      onTap: () => _set(() => _foe = entry),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 1),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+        decoration: BoxDecoration(
+          color: selected ? Pico.darkBlue : Colors.transparent,
+          border: Border.all(
+            color: selected ? Pico.yellow : Colors.transparent,
+            width: 0.5,
+          ),
+        ),
+        child: Row(
+          children: [
+            _foeSprite(entry, 14, unlocked: unlocked),
+            const SizedBox(width: 3),
+            Expanded(
+              child: Text(
+                unlocked ? entry.def.name : '???',
+                overflow: TextOverflow.ellipsis,
+                style: GbText.small.copyWith(
+                  color: unlocked ? _tierColor(entry.tier) : Pico.darkGray,
+                ),
+              ),
+            ),
+            if (unlocked)
+              Text(
+                entry.tier.label,
+                style: GbText.small.copyWith(color: _tierColor(entry.tier)),
+              )
+            else
+              Text(
+                '${progress.fights(entry)}/$needed',
+                style: GbText.small.copyWith(color: Pico.darkGray),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The right panel: [entry]'s stats and how it fights, or how far it is
+  /// from being unlocked.
+  Widget _foeSheet(FoeEntry entry) {
+    final progress = BestiaryProgress.instance;
+    final fights = progress.fights(entry);
+    final needed = entry.tier.unlockFights;
+    if (!progress.unlocked(entry)) {
+      return Column(
+        children: [
+          _foeSprite(entry, 48, unlocked: false),
+          const SizedBox(height: 4),
+          Text('???', style: GbText.body.copyWith(color: Pico.darkGray)),
+          const SizedBox(height: 4),
+          Text(
+            needed == 1
+                ? 'Enfrente este chefe para registrá-lo.'
+                : 'Enfrente este inimigo $needed vezes para registrá-lo.',
+            textAlign: TextAlign.center,
+            style: GbText.small,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Batalhas: $fights/$needed',
+            style: GbText.small.copyWith(color: Pico.lightGray),
+          ),
+        ],
+      );
+    }
+    final def = entry.def;
+    final traits = [
+      if (def.footprint.length > 1) 'Ocupa ${def.footprint.length} painéis.',
+      if (!def.pushable) 'Não pode ser empurrado.',
+      if (def.frontShield) 'Escudo frontal: bloqueia tiros de frente.',
+      if (def.prism) 'Reflete tiros fora de linha com o parceiro.',
+      if (def.lavaImmune) 'Imune a Lava.',
+    ];
+    Widget stat(String label, String value, {Color color = Pico.white}) =>
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '$label ',
+                style: const TextStyle(color: Pico.lightGray),
+              ),
+              TextSpan(text: value, style: TextStyle(color: color)),
+            ],
+          ),
+          style: GbText.small,
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Center(child: _foeSprite(entry, 48, unlocked: true)),
+        const SizedBox(height: 4),
+        Center(
+          child: Text(
+            def.name,
+            textAlign: TextAlign.center,
+            style: GbText.body.copyWith(color: _tierColor(entry.tier)),
+          ),
+        ),
+        Center(
+          child: Text(
+            'Missão ${entry.act} · ${entry.tier.label}',
+            style: GbText.small.copyWith(color: Pico.lightGray),
+          ),
+        ),
+        const SizedBox(height: 4),
+        stat('HP', '${def.hp}', color: Pico.green),
+        stat('Tipo', def.kind.label),
+        stat('Elemento', def.element.label),
+        if (def.shotDamage > 0) stat('Tiro', '${def.shotDamage} de dano'),
+        const SizedBox(height: 2),
+        Text(
+          _kindText(def.kind),
+          style: GbText.small.copyWith(color: Pico.lavender),
+        ),
+        for (final trait in traits)
+          Text('- $trait', style: GbText.small.copyWith(color: Pico.peach)),
+        const SizedBox(height: 4),
+        Text(entry.description, style: GbText.small),
+        const SizedBox(height: 4),
+        Text(
+          'Enfrentado $fights ${fights == 1 ? 'vez' : 'vezes'}.',
+          style: GbText.small.copyWith(color: Pico.darkGray),
         ),
       ],
     );

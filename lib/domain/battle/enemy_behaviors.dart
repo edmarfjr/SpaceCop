@@ -280,7 +280,12 @@ class BruteBehavior extends EnemyBehavior {
 
   @override
   void tick(EnemyFighter enemy, BattleState battle) {
-    if (enemy.stage == 1) return;
+    if (enemy.stage == 1) {
+      // A charge started inside a smoke cloud fizzles without running its
+      // callback: drop the wind-up instead of waiting for it forever.
+      if (battle.ticksToAttack(enemy) != null) return;
+      enemy.stage = 0;
+    }
     if (++enemy.timer >= chargeEvery) {
       enemy
         ..timer = 0
@@ -1570,9 +1575,8 @@ class PriestessBehavior extends EnemyBehavior {
 }
 
 /// Portal Ancestral: never moves. Opens every [spawnEvery] and lets out an
-/// ET Guerreiro or ET Atirador (at most [maxOut] at once). Its energy ring
-/// ([EnemyDef.frontShield]) stops shots from the front, except for
-/// [openTicks] after each opening.
+/// ET Guerreiro or ET Atirador (at most [maxOut] at once). No shield: it
+/// takes every hit.
 class PortalBehavior extends EnemyBehavior {
   const PortalBehavior();
 

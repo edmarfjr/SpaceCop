@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'game/audio.dart';
+import 'game/bestiary_progress.dart';
 import 'game/settings.dart';
 import 'game/star_cop_game.dart';
 import 'ui/overlays/battle_hud.dart';
@@ -25,6 +26,7 @@ Future<void> main() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   await GameAudio.instance.init();
   await GameSettings.instance.init();
+  await BestiaryProgress.instance.init();
   runApp(const StarCopApp());
 }
 

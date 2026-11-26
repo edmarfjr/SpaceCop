@@ -23,6 +23,10 @@ class PauseOverlay extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text('PAUSA', style: GbText.title),
+          Text(
+            'Tempo ${game.run.playTime}',
+            style: GbText.small.copyWith(color: Pico.yellow),
+          ),
           const SizedBox(height: 8),
           for (final (i, (label, action)) in [
             ('Continuar', game.closeMenus),

@@ -1,3 +1,7 @@
+import 'dart:ui';
+
+import 'package:starcop/ui/theme.dart';
+
 import '../battle/battle_state.dart' show ObstacleKind, Status;
 import '../battle/enemies.dart' show EnemyKind;
 import '../battle/panels.dart';
@@ -600,7 +604,7 @@ class NoEffect extends ChipEffect {
 /// How the player is drawn using a chip: firing (attack frame and muzzle
 /// flash), swinging / tossing (the melee frame), or a shoulder charge (the
 /// ombrada frame). Each pose's frame is picked in `GameSprites.playerPose`.
-enum ChipPose { shoot, melee, toss, ombrada }
+enum ChipPose { shoot, melee, toss, ombrada, consumo }
 
 /// Extra look of a card in battle. Purely visual.
 enum ChipFx {
@@ -647,6 +651,8 @@ enum ChipFx {
 
   /// Rings out of the hand, one per place in the chain (Pulso Ressonante).
   rings,
+
+  muzzle,
 }
 
 class ChipDef {
@@ -665,6 +671,7 @@ class ChipDef {
     this.upgraded = false,
     this.rarity = Rarity.common,
     this.fx = ChipFx.none,
+    this.corFx = Pico.white,
   });
 
   final String id;
@@ -679,6 +686,7 @@ class ChipDef {
   final ChipEffect effect;
   final int damage;
   final ChipPose pose;
+  final Color corFx;
 
   /// Color and sound of the card's shots and blasts, from what it inflicts
   /// or the panel it leaves. Purely cosmetic: cards have no element.
@@ -710,7 +718,7 @@ class ChipDef {
     PushEffect() ||
     PullEffect() ||
     SpearEffect() ||
-    StatusShotEffect() ||
+    //StatusShotEffect() ||
     BounceEffect() ||
     BurstEffect() ||
     ChainScaleEffect() ||
