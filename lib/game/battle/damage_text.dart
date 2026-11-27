@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
 
+import '../../domain/chips/battle_chip.dart';
 import '../../ui/theme.dart';
 
 /// A short text rising from a unit and fading out: the damage of one hit,
@@ -14,6 +15,7 @@ class DamageText extends PositionComponent {
     required this.color,
     this.delay = 0,
     this.rise = defaultRise,
+    this.fSize = 8,
   }) : super(anchor: Anchor.bottomCenter, priority: 1000);
 
   final String text;
@@ -24,6 +26,7 @@ class DamageText extends PositionComponent {
 
   /// Px risen over [lifetime].
   final double rise;
+  double fSize;
 
   /// Seconds on screen; it fades over the second half.
   static const double lifetime = 0.7;
@@ -46,7 +49,14 @@ class DamageText extends PositionComponent {
   @override
   void render(Canvas canvas) {
     if (_age < delay) return;
-    paintText(canvas, text, Vector2.zero(), color, (_age - delay) / lifetime);
+    paintText(
+      canvas,
+      text,
+      Vector2.zero(),
+      color,
+      (_age - delay) / lifetime,
+      fSize,
+    );
   }
 
   /// Draws [text] the way a [DamageText] looks [t] (0 to 1) into its life,
@@ -57,12 +67,13 @@ class DamageText extends PositionComponent {
     Vector2 at,
     Color color,
     double t,
+    double fSize,
   ) {
     final opacity = 1 - max(0, t * 2 - 1).toDouble();
     TextPaint(
       style: TextStyle(
         fontFamily: pixelFont,
-        fontSize: 8,
+        fontSize: fSize,
         color: color.withValues(alpha: opacity),
         shadows: [
           Shadow(
@@ -73,6 +84,23 @@ class DamageText extends PositionComponent {
       ),
     ).render(canvas, text, at, anchor: Anchor.bottomCenter);
   }
+}
+
+/// What a gain shows rising over whoever gets it, as a [DamageText]: a
+/// heal's "+X" in green, a card's Energy as "+X En." or "+X En. Max" in
+/// blue. Shared by the battle and the deck select's showcase.
+abstract final class GainText {
+  static const healColor = Pico.green;
+  static const energyColor = Pico.blue;
+
+  static String heal(int amount) => '+$amount';
+
+  /// The Energy a card's [effect] gives, as shown; null if it gives none.
+  static String? energyOf(ChipEffect effect) => switch (effect) {
+    EnergyBurstEffect(:final amount) => '+$amount En.',
+    EnergyMaxEffect(:final amount) => '+$amount En. Max',
+    _ => null,
+  };
 }
 
 /// A heal: green "+" [DamageText]s rising over the healed unit's sprite,
@@ -105,6 +133,7 @@ abstract final class HealBurst {
         color: color,
         delay: i * stagger,
         rise: rise,
+        fSize: 12,
       ),
   ];
 
@@ -121,6 +150,7 @@ abstract final class HealBurst {
         feet + Vector2(size.x * across, -size.y * up - rise * t),
         color,
         t,
+        12,
       );
     }
   }

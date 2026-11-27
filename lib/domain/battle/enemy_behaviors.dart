@@ -1003,7 +1003,7 @@ class GruntGrenadeBehavior extends EnemyBehavior {
     enemy.timer = cycleTicks;
     final aim = battle.aimPos;
     battle.schedule(enemy, [aim], basicWarnTicks, lob: Lob.stickGrenade, () {
-      battle.strike(aim, damage, Team.player, enemy.element);
+      battle.strike(aim, damage, Team.player, enemy.element, explosion: true);
       if (battle.panelAt(aim).walkable) battle.setPanel(aim, PanelState.lava);
     });
   }
@@ -1052,7 +1052,13 @@ class TwoHeadBehavior extends EnemyBehavior {
         basicWarnTicks + i * grenadeStagger,
         lob: Lob.stickGrenade,
         () {
-          battle.strike(cell, grenadeDamage, Team.player, enemy.element);
+          battle.strike(
+            cell,
+            grenadeDamage,
+            Team.player,
+            enemy.element,
+            explosion: true,
+          );
           if (battle.panelAt(cell).walkable) {
             battle.setPanel(cell, PanelState.lava);
           }
@@ -1086,7 +1092,13 @@ class GruntArtilleryBehavior extends EnemyBehavior {
       enemy,
       [aim],
       warnTicks,
-      () => battle.strike(aim, damage, Team.player, enemy.element),
+      () => battle.strike(
+        aim,
+        damage,
+        Team.player,
+        enemy.element,
+        explosion: true,
+      ),
       lob: Lob.mortar,
     );
   }
@@ -1298,7 +1310,13 @@ class TankBehavior extends EnemyBehavior {
             [cell],
             basicWarnTicks + i * missileStagger,
             () {
-              battle.strike(cell, missileDamage, Team.player, enemy.element);
+              battle.strike(
+                cell,
+                missileDamage,
+                Team.player,
+                enemy.element,
+                explosion: true,
+              );
               _crack(battle, [cell]);
             },
             lob: Lob.rocket,
@@ -1985,9 +2003,21 @@ class TickBehavior extends EnemyBehavior {
       ..stage = _exploding
       ..fusing = true;
     battle.schedule(enemy, [center, ...arms], fuseTicks, () {
-      battle.strike(center, damage, Team.player, enemy.element);
+      battle.strike(
+        center,
+        damage,
+        Team.player,
+        enemy.element,
+        explosion: true,
+      );
       for (final cell in arms) {
-        battle.strike(cell, (damage + 1) ~/ 2, Team.player, enemy.element);
+        battle.strike(
+          cell,
+          (damage + 1) ~/ 2,
+          Team.player,
+          enemy.element,
+          explosion: true,
+        );
       }
       enemy.hp = 0;
     });

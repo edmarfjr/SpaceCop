@@ -253,6 +253,26 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
         final a = Offset(from.x, from.y);
         final b = Offset(to.x, to.y);
         canvas
+          ..drawCircle(
+            a,
+            _laserEdge.strokeWidth,
+            Paint()..color = _laserEdge.color,
+          )
+          ..drawCircle(
+            a,
+            _laserCore.strokeWidth,
+            Paint()..color = _laserCore.color,
+          )
+          ..drawCircle(
+            b,
+            _laserEdge.strokeWidth,
+            Paint()..color = _laserEdge.color,
+          )
+          ..drawCircle(
+            b,
+            _laserCore.strokeWidth,
+            Paint()..color = _laserCore.color,
+          )
           ..drawLine(a, b, _laserEdge)
           ..drawLine(a, b, _laserCore);
       case ZapStyle.chain:
@@ -431,8 +451,8 @@ class ChipFxLayer extends Component with ParentIsA<GridComponent> {
     void band(double half, Paint paint) {
       final h = snap(half * swell);
       if (h <= 0) return;
-      canvas.drawCircle(Offset(hand.x, snap(y)), h, paint);
-      canvas.drawCircle(Offset(hand.x, end), h, paint);
+      canvas.drawCircle(Offset(hand.x, snap(y)), h * 1.25, paint);
+      canvas.drawCircle(Offset(hand.x, end), h * 1.25, paint);
       canvas.drawRect(
         Rect.fromLTRB(hand.x, snap(y) - h, end, snap(y) + h),
         paint,

@@ -10,6 +10,7 @@ import '../../game/bestiary_progress.dart';
 import '../../game/star_cop_game.dart';
 import '../feedback.dart';
 import '../theme.dart';
+import '../widgets/card_showcase.dart';
 import '../widgets/chip_card_view.dart';
 import '../widgets/sheet_sprite.dart';
 
@@ -223,19 +224,10 @@ class _CompendiumOverlayState extends State<CompendiumOverlay> {
         ),
         if (_zoomed case final def?)
           Positioned.fill(
-            child: GestureDetector(
-              onTap: () => _set(() => _zoomed = null),
-              child: ColoredBox(
-                color: Pico.black.withValues(alpha: 0.8),
-                child: Center(
-                  child: ChipCardView(
-                    def: def,
-                    sprites: game.sprites,
-                    width: 96,
-                    focusable: false,
-                  ),
-                ),
-              ),
+            child: CardPreview(
+              def: def,
+              sprites: game.sprites,
+              onClose: () => _set(() => _zoomed = null),
             ),
           ),
       ],

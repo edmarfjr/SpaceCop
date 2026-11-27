@@ -144,10 +144,10 @@ const petAlert = Pico.red;
 const focusFill = Pico.blue;
 
 /// The scanlines over the menus' background: one dark line every 2 px.
-const scanline = Color(0x59111D35); // Pico.midnight at 35%
+const scanline = Pico.black; // Pico.midnight at 35%
 
 /// The map's background grid, every [mapGridStep] px.
-const mapGrid = Color(0x59065AB5); // Pico.royal at 35%
+const mapGrid = Pico.midnight; //Color(0x59065AB5); // Pico.royal at 35%
 const double mapGridStep = 16;
 
 /// Fills its box with [color] and draws the [scanline]s over it.

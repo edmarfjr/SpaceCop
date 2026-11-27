@@ -129,6 +129,7 @@ class MeleeEffect extends ChipEffect {
     this.push = 0,
     this.crack = false,
     this.slash = false,
+    this.slashH = false,
     this.inflict,
     this.tipPush = 0,
     this.tipPull = 0,
@@ -161,6 +162,10 @@ class MeleeEffect extends ChipEffect {
   /// Shown as one vertical slash on the panel in front instead of an
   /// explosion on each panel hit (Espada).
   final bool slash;
+
+  /// Shown as one horizontal slash across the 2 panels in front instead
+  /// of an explosion on each panel hit (Arma de Haste).
+  final bool slashH;
 }
 
 /// Lobbed [distance] panels in front of the user, wherever the enemies
@@ -604,7 +609,7 @@ class NoEffect extends ChipEffect {
 /// How the player is drawn using a chip: firing (attack frame and muzzle
 /// flash), swinging / tossing (the melee frame), or a shoulder charge (the
 /// ombrada frame). Each pose's frame is picked in `GameSprites.playerPose`.
-enum ChipPose { shoot, melee, toss, ombrada, consumo }
+enum ChipPose { shoot, melee, toss, ombrada, consumo, melee2, toss2 }
 
 /// Extra look of a card in battle. Purely visual.
 enum ChipFx {
@@ -654,6 +659,13 @@ enum ChipFx {
 
   muzzle,
 }
+
+/// Whether a hit of a card of [family] and [fx] is an explosion: an
+/// Explosivo card, or one that blasts (grenades in a color, the Pulso EMP).
+/// An explosion's hit flash shows on every panel it covers; any other hit
+/// flashes only on someone it hits.
+bool isExplosion(ChipFamily? family, ChipFx fx) =>
+    family == ChipFamily.explosive || fx == ChipFx.blast || fx == ChipFx.pulse;
 
 class ChipDef {
   const ChipDef({
@@ -710,6 +722,10 @@ class ChipDef {
     PullEffect(stunTicks: > 0) => Element.elec,
     _ => Element.neutral,
   };
+
+  /// Its hits are explosions: they flash on every panel they cover, not
+  /// only where they hit someone (see [isExplosion]).
+  bool get explodes => isExplosion(family, fx);
 
   /// Cards whose shots travel the row, which Mira Assistida redirects.
   bool get firesShots => switch (effect) {

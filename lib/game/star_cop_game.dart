@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
@@ -227,6 +229,26 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     _goTo(GamePhase.gameOver);
   }
 
+  /// The run as it was on the map just before entering the node being
+  /// played (a battle, a shop, an event...), as JSON; null on the map.
+  /// What [saveAndQuit] saves from inside a node: the save only holds runs
+  /// on their map, and the node can't count as done.
+  Map<String, Object?>? _beforeNode;
+
+  /// Pause, "Menu principal": saves the run and goes back to the title
+  /// screen, whose "Continuar" picks it up on its map. From inside a node
+  /// it saves the run as it was before entering it, with the time played
+  /// since: that node is played again from its start.
+  void saveAndQuit() {
+    final saved = switch (_beforeNode) {
+      final json? => RunState.fromJson(json)..playSeconds = run.playSeconds,
+      null => run,
+    };
+    RunSave.write(saved);
+    savedRun = saved;
+    backToMenu();
+  }
+
   /// Menu: back to the saved run, on its map.
   void continueRun() {
     final saved = savedRun;
@@ -239,6 +261,8 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
   /// Entry point from the map overlay.
   void selectNode(MapNode node) {
     GameAudio.instance.play(Sfx.node);
+    // A deep copy: the run keeps changing inside the node.
+    _beforeNode = jsonDecode(jsonEncode(run.toJson())) as Map<String, Object?>;
     run.enter(node);
     switch (node.type!) {
       case NodeType.battle:
@@ -489,6 +513,14 @@ class StarCopGame extends FlameGame with HasKeyboardHandlerComponents {
     overlays.removeAll(overlays.activeOverlays.toList());
     overlays.add(Overlays.forPhase(next));
     phase.value = next;
+    // Back on the map (or out of the run): no node being played.
+    if (next != GamePhase.battle &&
+        next != GamePhase.reward &&
+        next != GamePhase.rest &&
+        next != GamePhase.shop &&
+        next != GamePhase.event) {
+      _beforeNode = null;
+    }
     if (next != GamePhase.menu &&
         next != GamePhase.deckSelect &&
         next != GamePhase.compendium &&

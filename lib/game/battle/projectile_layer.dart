@@ -152,6 +152,19 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
         );
         continue;
       }
+      if (flash.kind == FlashKind.slashH) {
+        // Across its panel and the next one, centered between them.
+        final from = parent.cellCenter(flash.pos);
+        final to = parent.cellCenter(flash.pos + const GridPos(1, 0));
+        sprites.slashH.render(
+          canvas,
+          position: (from + to) / 2,
+          size: sprites.slashH.srcSize * 2,
+          anchor: Anchor.center,
+          overridePaint: tint,
+        );
+        continue;
+      }
       if (flash.kind == FlashKind.cut) {
         // Half the slash, leaning toward the panel it hits.
         final cut = sprites.cut;
@@ -161,9 +174,9 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
           ..translate(at.x, at.y)
           ..rotate(
             flash.pos.y < battle.player.pos.y
-                ? _cutAngle
-                : flash.pos.y > battle.player.pos.y
                 ? -_cutAngle
+                : flash.pos.y > battle.player.pos.y
+                ? _cutAngle
                 : 0,
           );
         cut.render(
@@ -205,7 +218,10 @@ class ProjectileLayer extends Component with ParentIsA<GridComponent> {
             Element.aqua => Pico.blue,
             Element.elec => Pico.yellow,
             Element.wood => Pico.green,
-            Element.fire => kind == FlashKind.slash ? Pico.orange : null,
+            Element.fire =>
+              kind == FlashKind.slash || kind == FlashKind.slashH
+                  ? Pico.orange
+                  : null,
             _ => null,
           };
     if (color == null) return null;

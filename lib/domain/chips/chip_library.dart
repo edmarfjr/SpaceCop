@@ -135,7 +135,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     damage: 20,
     effect: MeleeEffect(slash: true),
-    pose: ChipPose.melee,
+    pose: ChipPose.melee2,
   );
 
   static const shoulderBash = ChipDef(
@@ -177,7 +177,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     damage: 30,
     effect: MeleeEffect(pattern: [GridPos(1, 0)], crack: true),
-    pose: ChipPose.melee,
+    pose: ChipPose.melee2,
     fx: ChipFx.quake,
   );
 
@@ -321,7 +321,7 @@ abstract final class Chips {
     target: ChipTarget.row,
     damage: 20,
     effect: CrackEffect(),
-    pose: ChipPose.melee,
+    pose: ChipPose.melee2,
   );
 
   static const bubblePush = ChipDef(
@@ -751,6 +751,7 @@ abstract final class Chips {
     damage: 10,
     effect: MeleeEffect(pattern: [GridPos(1, 0)]),
     pose: ChipPose.melee,
+    fx: ChipFx.cut,
   );
 
   static const thermalBlade = ChipDef(
@@ -764,7 +765,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     damage: 15,
     effect: MeleeEffect(slash: true, inflict: Status.burning),
-    pose: ChipPose.melee,
+    pose: ChipPose.melee2,
   );
 
   static const scythe = ChipDef(
@@ -777,7 +778,7 @@ abstract final class Chips {
     target: ChipTarget.self,
     damage: 20,
     effect: MeleeEffect(pattern: [GridPos(1, -1), GridPos(1, 1)]),
-    pose: ChipPose.melee,
+    pose: ChipPose.melee2,
     fx: ChipFx.cut,
   );
 
@@ -1147,8 +1148,13 @@ abstract final class Chips {
     type: ChipType.attack,
     target: ChipTarget.self,
     damage: 15,
-    effect: MeleeEffect(pattern: [GridPos(1, 0), GridPos(2, 0)], tipPush: 1),
+    effect: MeleeEffect(
+      pattern: [GridPos(1, 0), GridPos(2, 0)],
+      tipPush: 1,
+      slashH: true,
+    ),
     pose: ChipPose.melee,
+    //fx: ChipFx.cut,
   );
 
   static const _square = [
@@ -1370,6 +1376,7 @@ abstract final class Chips {
     damage: 15,
     effect: MeleeEffect(pattern: [GridPos(1, 0)], lifesteal: true),
     pose: ChipPose.melee,
+    fx: ChipFx.cut,
   );
 
   static const ammoKit = ChipDef(

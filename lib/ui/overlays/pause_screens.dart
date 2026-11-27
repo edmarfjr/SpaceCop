@@ -6,6 +6,7 @@ import '../../game/settings.dart';
 import '../../game/star_cop_game.dart';
 import '../feedback.dart';
 import '../theme.dart';
+import '../widgets/card_showcase.dart';
 import '../widgets/chip_picker.dart';
 
 /// Pause icon in battle: a button to resume (a stray tap doesn't) and one
@@ -33,6 +34,8 @@ class PauseOverlay extends StatelessWidget {
             ('Ver deck', game.showDeck),
             ('Manual', game.openManualOverRun),
             ('Configurações', game.openSettings),
+            // Saved: "Continuar" on the title screen picks it up.
+            ('Menu principal', game.saveAndQuit),
           ].indexed) ...[
             FilledButton(
               autofocus: i == 0,
@@ -307,6 +310,9 @@ enum _DeckTab {
 class _DeckOverlayState extends State<DeckOverlay> {
   _DeckTab _tab = _DeckTab.draw;
 
+  /// The card tapped, shown big with its use (see [CardPreview]).
+  ChipDef? _zoomed;
+
   StarCopGame get game => widget.game;
 
   @override
@@ -320,6 +326,13 @@ class _DeckOverlayState extends State<DeckOverlay> {
     };
     final tab = deck == null ? _DeckTab.all : _tab;
     final shown = cards(tab);
+    if (_zoomed case final def?) {
+      return CardPreview(
+        def: def,
+        sprites: game.sprites,
+        onClose: withTap(() => setState(() => _zoomed = null))!,
+      );
+    }
     return GestureDetector(
       onTap: withTap(game.closeMenus),
       child: ColoredBox(
@@ -363,11 +376,14 @@ class _DeckOverlayState extends State<DeckOverlay> {
                       )
                     : ChipPicker(
                         title: deck == null
-                            ? 'Deck (${shown.length}) · toque para fechar'
-                            : 'Toque fora das abas para fechar',
+                            ? 'Deck (${shown.length}) · toque numa carta '
+                                  'para ver · fora para fechar'
+                            : 'Toque numa carta para ver · fora das abas '
+                                  'para fechar',
                         cards: shown,
                         sprites: game.sprites,
                         grouped: true,
+                        onPick: (card) => setState(() => _zoomed = card.def),
                       ),
               ),
             ],

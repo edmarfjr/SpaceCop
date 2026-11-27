@@ -34,8 +34,17 @@ class PlayerAttackArt {
   /// Only these poses draw what the card holds (`SpriteFiles.held`).
   static final _fists = <ChipPose, Vector2>{
     ChipPose.melee: Vector2(22, 9),
+    // The hand at the end of the arm swung down to the right.
+    ChipPose.melee2: Vector2(20, 15),
     ChipPose.shoot: Vector2(15, 9),
   };
+
+  /// Where the fist grips what it holds, in the held art's pixels, for
+  /// poses that don't hold it by its left edge's middle row (guns, and
+  /// blades drawn level): melee2 holds the weapon art drawn diagonally by
+  /// its handle, at the top-left corner (the sword's handle crosses its
+  /// guard at (1, 1)).
+  static final _grips = <ChipPose, Vector2>{ChipPose.melee2: Vector2(1, 1)};
 
   /// The flash's own pixel that touches the barrel: its left edge, on the
   /// row of the burst's point.
@@ -64,13 +73,15 @@ class PlayerAttackArt {
   /// Firing gets the muzzle flash; swings and tosses don't.
   bool get shoots => def.pose == ChipPose.shoot;
 
-  /// Top-left corner of [held]: its left edge, middle row, on the fist.
-  /// Null when nothing is held.
+  /// Top-left corner of [held], its grip on the fist: the pose's own grip
+  /// ([_grips]), or its left edge's middle row. Null when nothing is held.
   Vector2? get heldAt {
     final fist = _fists[def.pose];
     final item = held;
     if (fist == null || item == null) return null;
-    return fist - Vector2(0, (item.srcSize.y ~/ 2).toDouble());
+    final grip =
+        _grips[def.pose] ?? Vector2(0, (item.srcSize.y ~/ 2).toDouble());
+    return fist - grip;
   }
 
   /// Top-left corner of the muzzle flash: from the gun's tip, or in front

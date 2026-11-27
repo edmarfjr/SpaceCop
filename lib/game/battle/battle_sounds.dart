@@ -19,6 +19,7 @@ class BattleSounds {
         BattleEventKind.enemyShot => Sfx.enemyShot,
         BattleEventKind.explosion => Sfx.explosion,
         BattleEventKind.slash => Sfx.slash,
+        BattleEventKind.slashH => Sfx.slash,
         BattleEventKind.blocked => Sfx.block,
         BattleEventKind.noRoom => Sfx.cancel,
         BattleEventKind.quake => Sfx.explosion,
@@ -56,6 +57,8 @@ class BattleSounds {
       ChipPose.ombrada => Sfx.melee,
       ChipPose.toss => Sfx.toss,
       ChipPose.consumo => Sfx.heal,
+      ChipPose.melee2 => Sfx.melee,
+      ChipPose.toss2 => Sfx.toss,
       ChipPose.shoot => switch (def.tint) {
         Element.fire => Sfx.shotFire,
         Element.aqua => Sfx.shotAqua,

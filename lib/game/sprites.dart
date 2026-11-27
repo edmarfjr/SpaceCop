@@ -178,6 +178,7 @@ abstract final class SpriteFiles {
 
   /// Espada's vertical slash: one 16x48 frame, 3 rows tall.
   static const slash = 'projeteis/slash3Vertical.png';
+  static const slashH = 'projeteis/slash2Horizontal.png';
 
   static const cut = 'projeteis/cut.png';
 
@@ -340,6 +341,7 @@ abstract final class SpriteFiles {
     Chips.seismicHammer.id: 'weapons/seismic_hammer.png',
     Chips.cracker.id: 'weapons/cracker.png',
     Chips.dagger.id: 'weapons/dagger.png',
+    Chips.vampireBlade.id: 'weapons/dagger.png',
     Chips.thermalBlade.id: 'weapons/thermal_blade.png',
     Chips.scythe.id: 'weapons/scythe.png',
     Chips.hydraulicFist.id: 'weapons/hydraulic_fist.png',
@@ -549,6 +551,7 @@ abstract final class SpriteFiles {
     rune,
     explosion,
     slash,
+    slashH,
     cut,
     smoke,
     energyShield,
@@ -635,6 +638,7 @@ class GameSprites {
   late final Sprite playerMelee = _frame(SpriteFiles.player, 2, 24);
   late final Sprite playerOmbrada = _frame(SpriteFiles.player, 3, 24);
   late final Sprite playerConsumo = _frame(SpriteFiles.player, 4, 24);
+  late final Sprite playerMelee2 = _frame(SpriteFiles.player, 5, 24);
 
   /// The player's frame while using a chip of [pose]. The switch is
   /// exhaustive, so a new [ChipPose] won't compile until it gets a frame
@@ -642,6 +646,7 @@ class GameSprites {
   Sprite playerPose(ChipPose pose) => switch (pose) {
     ChipPose.shoot => playerAttack,
     ChipPose.melee || ChipPose.toss => playerMelee,
+    ChipPose.melee2 || ChipPose.toss2 => playerMelee2,
     ChipPose.ombrada => playerOmbrada,
     ChipPose.consumo => playerConsumo,
   };
@@ -731,6 +736,7 @@ class GameSprites {
   ];
 
   late final Sprite slash = _file(SpriteFiles.slash);
+  late final Sprite slashH = _file(SpriteFiles.slashH);
   late final Sprite cut = _file(SpriteFiles.cut);
 
   /// The middle 16x24 of the slash: a Foice cut.

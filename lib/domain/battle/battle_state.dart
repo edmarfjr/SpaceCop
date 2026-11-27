@@ -46,6 +46,10 @@ const int spikesDamage = 5;
 const int doubleTriggerEvery = 8;
 const int playerAttackCooldown = 10;
 
+/// Overclock (and Gatilho Duplo): ticks between the card's first use and
+/// its second (0.2 s).
+const int overclockGapTicks = ticksPerSecond ~/ 5;
+
 /// Cards drawn from the top of the deck on each refill.
 const int handSize = 5;
 
@@ -236,6 +240,7 @@ enum BattleEventKind {
   /// A [HitFlash] appeared.
   explosion,
   slash,
+  slashH,
 
   /// A hit on [BattleEvent.unit] was stopped: barrier, shield, prism or
   /// reflector.
@@ -626,6 +631,9 @@ class Projectile {
   /// The Gancho's hook: drawn as its chain from the player's hand, not as
   /// a shot.
   bool get hooked => onHit is PullEffect;
+
+  /// Its impact is an explosion: it flashes on every panel it covers.
+  bool get explodes => isExplosion(family, fx);
 }
 
 /// How a [HitFlash] is drawn.
@@ -640,6 +648,10 @@ enum FlashKind {
 
   /// A vertical sword slash centered on [HitFlash.pos], 3 rows tall.
   slash,
+
+  /// A horizontal slash 2 panels long, from [HitFlash.pos] to the panel
+  /// past it (Arma de Haste).
+  slashH,
 }
 
 /// Lightning from [from] (null: the player's hand) to [to], for a moment.
@@ -1215,11 +1227,11 @@ class BattleState {
       // Not counted down yet: added this tick.
       if (flash.ticksLeft == HitFlash.lifetime) {
         events.add(
-          BattleEvent(
-            flash.kind == FlashKind.slash || flash.kind == FlashKind.cut
-                ? BattleEventKind.slash
-                : BattleEventKind.explosion,
-          ),
+          BattleEvent(switch (flash.kind) {
+            FlashKind.slash || FlashKind.cut => BattleEventKind.slash,
+            FlashKind.slashH => BattleEventKind.slashH,
+            _ => BattleEventKind.explosion,
+          }),
         );
       }
       flash.ticksLeft--;
@@ -1582,7 +1594,13 @@ class BattleState {
     final twice = overclocked;
     overclocked = false;
     _activate(def);
-    if (twice) _activate(def);
+    // Overclock: the second use a moment later, so both can be seen.
+    if (twice) {
+      schedule(player, const [], overclockGapTicks, () {
+        player.attackCooldown = playerAttackCooldown;
+        _activate(def);
+      }, telegraph: false);
+    }
     energy -= costOf(card);
     holsterUsed = true;
     if (hasRelic(Relics.doubleTrigger) &&
@@ -1817,7 +1835,7 @@ class BattleState {
       case StickyBombEffect(:final delay):
         final victim = _targetAt(_tossTarget(), Team.enemy);
         if (victim != null) {
-          flashes.add(HitFlash(victim.pos));
+          // Stuck on, not a hit: the blast flashes later.
           stickies.add(StickyBomb(victim, delay));
           final bomb = damage;
           schedule(player, const [], delay, telegraph: false, () {
@@ -2367,6 +2385,7 @@ class BattleState {
       :push,
       :crack,
       :slash,
+      :slashH,
       :inflict,
       :tipPush,
       :tipPull,
@@ -2386,6 +2405,15 @@ class BattleState {
         ),
       );
     }
+    if (slashH && front.inBounds) {
+      flashes.add(
+        HitFlash(
+          front,
+          FlashKind.slashH,
+          def.tint == Element.neutral ? null : def.tint,
+        ),
+      );
+    }
     final cut = def.fx == ChipFx.cut;
     if (def.fx == ChipFx.quake) events.add(BattleEvent(BattleEventKind.quake));
     for (final offset in pattern) {
@@ -2401,7 +2429,7 @@ class BattleState {
         family: def.family,
         status: status,
         struck: struck,
-        flash: !slash && !cut,
+        flash: !slash && !slashH && !cut,
       );
     }
     final steps = push + (hasRelic(Relics.servoArm) ? 1 : 0);
@@ -2674,6 +2702,10 @@ class BattleState {
   ///
   /// Attacks covering several cells share a [struck] set so a multi-cell
   /// unit is only hit once.
+  ///
+  /// The hit flashes where it hits someone; an [explosion] (a grenade, a
+  /// mortar shell, a unit blowing up) flashes on the panel either way.
+  /// [flash] false draws none (the blow has its own slash or cut).
   void strike(
     GridPos cell,
     int amount,
@@ -2683,10 +2715,13 @@ class BattleState {
     Status? status,
     Set<Fighter>? struck,
     bool flash = true,
+    bool explosion = false,
   }) {
     if (!cell.inBounds) return;
-    if (flash) flashes.add(HitFlash(cell));
     final target = _targetAt(cell, opponent);
+    if (flash && (explosion || target != null)) {
+      flashes.add(HitFlash(cell));
+    }
     if (target != null && (struck?.add(target) ?? true)) {
       final through = _passesThrough(target, family);
       damage(
@@ -3125,11 +3160,6 @@ class BattleState {
     for (final offset in shot.pattern) {
       final cell = shot.pos + GridPos(offset.x * shot.dir, offset.y);
       if (!cell.inBounds) continue;
-      flashes.add(switch (shot.fx) {
-        ChipFx.blast => HitFlash(cell, FlashKind.explosion, shot.element),
-        ChipFx.pulse => HitFlash(cell, FlashKind.pulse),
-        _ => HitFlash(cell),
-      });
       final straight = offset == const GridPos(0, 0);
       final pointBlank =
           straight &&
@@ -3137,6 +3167,14 @@ class BattleState {
           !carrier.isDead &&
           carrier.occupies(cell);
       final target = pointBlank ? carrier : _targetAt(cell, opponent);
+      // On whoever it hits; an explosion on every panel it covers.
+      if (target != null || shot.explodes) {
+        flashes.add(switch (shot.fx) {
+          ChipFx.blast => HitFlash(cell, FlashKind.explosion, shot.element),
+          ChipFx.pulse => HitFlash(cell, FlashKind.pulse),
+          _ => HitFlash(cell),
+        });
+      }
       if (target != null && struck.add(target)) {
         final through = _passesThrough(target, shot.family) || target.hidden;
         final execute = switch (shot.onHit) {

@@ -130,22 +130,16 @@ class BattleWorld extends World
   /// The damage number over [target]; hurting the player also shakes the
   /// screen and vibrates.
   void _showHit(Fighter target, int amount, double multiplier) {
-    final view = _views[target];
-    final head = view == null
-        ? _grid.cellCenter(target.pos)
-        : view.position - Vector2(0, view.size.y);
-    _grid.add(
-      DamageText(
-        '$amount',
-        position: head + Vector2(_random.nextDouble() * 8 - 4, 0),
-        color: target is PlayerFighter
-            ? Pico.red
-            : multiplier == 1
-            ? Pico.white
-            : multiplier > 1
-            ? Pico.yellow
-            : Pico.lightGray,
-      ),
+    _floatOver(
+      target,
+      '$amount',
+      target is PlayerFighter
+          ? Pico.red
+          : multiplier == 1
+          ? Pico.white
+          : multiplier > 1
+          ? Pico.yellow
+          : Pico.lightGray,
     );
     if (target is PlayerFighter) {
       hurtFeedback();
@@ -153,11 +147,26 @@ class BattleWorld extends World
     }
   }
 
+  /// [text] rising from over [target]'s head (a damage number, a gain).
+  void _floatOver(Fighter target, String text, Color color) {
+    final view = _views[target];
+    final head = view == null
+        ? _grid.cellCenter(target.pos)
+        : view.position - Vector2(0, view.size.y);
+    _grid.add(
+      DamageText(
+        text,
+        position: head + Vector2(_random.nextDouble() * 8 - 4, 0),
+        color: color,
+      ),
+    );
+  }
+
   /// Each fighter's HP after the last tick: a rise is a heal.
   final Map<Fighter, int> _lastHp = {};
 
-  /// Green crosses over every fighter whose HP rose this tick, whatever
-  /// healed it (a card, regen, grass, an enemy healer).
+  /// Green crosses and the amount ("+X") over every fighter whose HP rose
+  /// this tick, whatever healed it (a card, regen, grass, an enemy healer).
   void _showHeals() {
     final alive = {...battle.units};
     for (final fighter in alive) {
@@ -169,10 +178,28 @@ class BattleWorld extends World
               ? HealBurst.over(_grid.cellFeet(fighter.pos), Vector2.all(32))
               : HealBurst.over(view.position.clone(), view.size),
         );
+        _floatOver(
+          fighter,
+          GainText.heal(fighter.hp - last),
+          GainText.healColor,
+        );
       }
       _lastHp[fighter] = fighter.hp;
     }
     _lastHp.removeWhere((fighter, _) => !alive.contains(fighter));
+  }
+
+  /// "+X En." / "+X En. Max" over the player for each card used this tick
+  /// that gives Energy (twice for an Overclocked one).
+  void _showEnergy() {
+    for (final event in battle.events) {
+      if (event.kind != BattleEventKind.chipUsed) continue;
+      final chip = event.chip;
+      final text = chip == null ? null : GainText.energyOf(chip.effect);
+      if (text != null) {
+        _floatOver(battle.player, text, GainText.energyColor);
+      }
+    }
   }
 
   @override
@@ -217,6 +244,7 @@ class BattleWorld extends World
         _showHit(hit.target, hit.amount, hit.multiplier);
       }
       _showHeals();
+      _showEnergy();
       _sounds.afterTick(battle);
       if (battle.events.any((e) => e.kind == BattleEventKind.quake)) {
         _shake = _shakeTime;

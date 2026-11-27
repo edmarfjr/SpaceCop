@@ -111,6 +111,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
       BlendMode.srcATop,
     )
     ..color = const Color(0xB0FFFFFF);
+
   /// The Sacerdotisa's illusions: see-through and lightly green.
   static final _illusionPaint = Paint()
     ..colorFilter = ColorFilter.mode(
@@ -118,7 +119,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
       BlendMode.srcATop,
     )
     ..color = const Color(0x99FFFFFF);
-  static final _scanline =Paint()..color = Pico.blue.withValues(alpha: 0.35);
+  static final _scanline = Paint()..color = Pico.blue.withValues(alpha: 0.35);
 
   bool get _isDecoy =>
       fighter is Obstacle && (fighter as Obstacle).kind == ObstacleKind.decoy;
@@ -419,6 +420,7 @@ class FighterComponent extends PositionComponent with ParentIsA<GridComponent> {
           Vector2(size.x / 2, icons.isEmpty ? 12 : 5),
           Pico.yellow,
           0,
+          8,
         );
       }
     }
