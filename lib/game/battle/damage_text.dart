@@ -75,12 +75,7 @@ class DamageText extends PositionComponent {
         fontFamily: pixelFont,
         fontSize: fSize,
         color: color.withValues(alpha: opacity),
-        shadows: [
-          Shadow(
-            color: Pico.black.withValues(alpha: opacity),
-            offset: const Offset(1, 1),
-          ),
-        ],
+        shadows: sombra(tamanho: fSize*0.1),
       ),
     ).render(canvas, text, at, anchor: Anchor.bottomCenter);
   }

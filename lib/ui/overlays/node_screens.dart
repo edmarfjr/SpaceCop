@@ -1336,6 +1336,7 @@ class MenuOverlay extends StatelessWidget {
           header: _AnimatedTitle(frames: game.sprites.titleFx),
           children: [
             // The options in a PET window.
+            SizedBox(height: 10),
             Container(
               width: 104,
               decoration: petWindow,

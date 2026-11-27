@@ -96,16 +96,22 @@ Color familyColor(ChipFamily family) => switch (family) {
   ChipFamily.tactical => Pico.darkGreen,
 };
 
-List<Shadow> sombra = <Shadow>[
-  Shadow(offset: Offset(1, 1) * 0.5),
-  Shadow(offset: Offset(-1, 1) * 0.5),
-  Shadow(offset: Offset(1, -1) * 0.5),
-  Shadow(offset: Offset(-1, -1) * 0.5),
-  Shadow(offset: Offset(1, 0) * 0.5),
-  Shadow(offset: Offset(-1, 0) * 0.5),
-  Shadow(offset: Offset(0, 1) * 0.5),
-  Shadow(offset: Offset(0, -1) * 0.5),
-];
+List<Shadow> sombra({
+  double tamanho = 0.5,
+  Color cor = const Color(0x80000000),
+  double blur = 0.0,
+}) {
+  return [
+    Shadow(offset: Offset(1, 1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(-1, 1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(1, -1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(-1, -1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(1, 0) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(-1, 0) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(0, 1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(0, -1) * tamanho, color: cor, blurRadius: blur),
+  ];
+}
 
 /// PET window, the sci-fi box of the battle HUD: [Pico.midnight] inside, a
 /// [Pico.royal] frame and two cut corners.

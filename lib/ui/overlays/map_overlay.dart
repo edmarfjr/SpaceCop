@@ -622,8 +622,9 @@ class _JackInOverlayState extends State<JackInOverlay>
                       child: Text(
                         word,
                         style: GbText.title.copyWith(
-                          color: Pico.midnight,
+                          color: Pico.white,
                           letterSpacing: 2,
+                          shadows: sombra(tamanho: 1)
                         ),
                       ),
                     ),
