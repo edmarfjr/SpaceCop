@@ -98,10 +98,11 @@ Color familyColor(ChipFamily family) => switch (family) {
 
 List<Shadow> sombra({
   double tamanho = 0.5,
-  Color cor = const Color(0x80000000),
+  Color cor = Pico.black,
   double blur = 0.0,
 }) {
   return [
+    
     Shadow(offset: Offset(1, 1) * tamanho, color: cor, blurRadius: blur),
     Shadow(offset: Offset(-1, 1) * tamanho, color: cor, blurRadius: blur),
     Shadow(offset: Offset(1, -1) * tamanho, color: cor, blurRadius: blur),
@@ -110,6 +111,26 @@ List<Shadow> sombra({
     Shadow(offset: Offset(-1, 0) * tamanho, color: cor, blurRadius: blur),
     Shadow(offset: Offset(0, 1) * tamanho, color: cor, blurRadius: blur),
     Shadow(offset: Offset(0, -1) * tamanho, color: cor, blurRadius: blur),
+
+    Shadow(offset: Offset(1, 0.5) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(-1, 0.5) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(1, -0.5) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(-1, -0.5) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(1, 0) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(-1, 0) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(0, 0.5) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(0, -0.5) * tamanho, color: cor, blurRadius: blur),
+
+    Shadow(offset: Offset(0.5, 1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(-0.5, 1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(0.5, -1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(-0.5, -1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(0.5, 0) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(-0.5, 0) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(0, 1) * tamanho, color: cor, blurRadius: blur),
+    Shadow(offset: Offset(0, -1) * tamanho, color: cor, blurRadius: blur),
+
+    
   ];
 }
 

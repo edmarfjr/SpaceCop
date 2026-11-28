@@ -80,7 +80,8 @@ flutter:
   fonts:
     - family: Pixel
       fonts:
-        - asset: assets/fonts/pixel.ttf
+        #- asset: assets/fonts/pixel.ttf
+        - asset: assets/fonts/pixel2.otf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -1452,7 +1452,7 @@ class _DeckSelectOverlayState extends State<DeckSelectOverlay> {
                         _TitleBar(deck.name, expand: true),
                         const SizedBox(height: 3),
                         Text(deck.tagline, style: GbText.small),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 5),
                         Expanded(
                           child: Center(
                             child: CardShowcase(

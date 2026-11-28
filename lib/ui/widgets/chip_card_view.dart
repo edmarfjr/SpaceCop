@@ -61,12 +61,12 @@ class _ChipCardViewState extends State<ChipCardView> {
   /// Regions of the frame, in its pixels: the name bar, the black art
   /// window, the cost (blue) and damage (red) circles, the element icon
   /// between them, and the description box.
-  static const _name = Rect.fromLTWH(5, 4, 26, 3);
+  static const _name = Rect.fromLTWH(5, 3.5, 26, 3);
   // static const _nameOutline = Rect.fromLTWH(2, 2, 28, 5);
   static const _art = Rect.fromLTWH(7, 9, 22, 16);
-  static const _left = Rect.fromLTWH(1, 8.5, 6, 6);
-  static const _right = Rect.fromLTWH(29, 8.5, 6, 6);
-  static const _description = Rect.fromLTWH(2, 28, 32, 17);
+  static const _left = Rect.fromLTWH(1.25, 8.0, 6, 6);
+  static const _right = Rect.fromLTWH(29.25, 8.0, 6, 6);
+  static const _description = Rect.fromLTWH(3.15, 27.75, 30.0, 17);
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +113,7 @@ class _ChipCardViewState extends State<ChipCardView> {
             height: 1.0,
             color: color ?? Pico.white,
             fontWeight: lines == null ? FontWeight.bold : null,
-            shadows: sombra(tamanho: 0.6),
+            shadows: sombra(tamanho: size*0.15),
           ),
         ),
       ),
@@ -154,7 +154,7 @@ class _ChipCardViewState extends State<ChipCardView> {
                 Center(
                   child: fitted(
                     def.name,
-                    2.5 * scale,
+                    3 * scale,
                     color: def.upgraded ? Pico.green : Pico.white,
                   ),
                 ),
@@ -204,7 +204,6 @@ class _ChipCardViewState extends State<ChipCardView> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         color: familyColor(def.family),
-                        //shadows: sombra,
                       ),
                     ),
                   ),

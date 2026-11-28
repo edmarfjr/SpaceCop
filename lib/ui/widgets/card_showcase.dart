@@ -39,7 +39,7 @@ class CardShowcase extends StatefulWidget {
   final ChipDef def;
 
   /// Art pixel size on screen.
-  static const scale = 2.0;
+  static const scale = 2.5;
 
   /// The box, in art pixels: room past the player for the weapon and beam.
   static const box = Size(80, 52);
